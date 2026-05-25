@@ -1,0 +1,37 @@
+---
+version: v1.2
+description: UI 개발 시 반드시 사용해야 하는 @shared/ui 공통 컴포넌트 사용 규칙
+globs: ["src/**/*.tsx"]
+alwaysApply: true
+---
+
+# 공통 컴포넌트 사용 규칙 (@shared/ui)
+
+UI를 구현할 때 일반 HTML 태그나 외부 라이브러리 컴포넌트 대신, 프로젝트 내부에 구축된 `@shared/ui` 컴포넌트를 최우선으로 사용해야 합니다.
+
+## 1. 폼(Form) 컴포넌트 규칙 (`@shared/ui/form`)
+모든 폼 컴포넌트는 `react-hook-form`과 통합되어 동작합니다. 용도에 맞게 `register` 방식과 `control` 방식을 구분하여 사용하세요.
+
+### 단순 입력 필드 (register 방식)
+상태 관리가 단순한 입력의 경우 아래 컴포넌트를 사용하고 `register` prop을 넘깁니다.
+- `FormInput.Text` : 일반 텍스트 입력
+- `FormTextarea` : 여러 줄 텍스트 입력
+- `FormSelection` : (내부에 FormRadio, FormCheckbox, FormSwitch 포함)
+
+### 복잡한 상태 관리 필드 (controller 방식)
+숫자 포맷팅, 복잡한 드롭다운, 날짜 선택 등의 경우 아래 컴포넌트를 사용하고 `control` prop을 넘깁니다.
+- `FormInput.Number` : 숫자 전용 입력
+- `FormSelect.Default` / `FormSelect.Search` / `FormSelect.Text` : 드롭다운 선택
+- `FormDatepicker.Dropdown` / `FormDatepicker.Input` : 날짜 선택
+
+## 2. API 조회 에러/로딩 처리 (`@shared/ui/common`)
+- **ApiQueryBoundary**: `useSuspenseQuery` 사용 시 반드시 `<ApiQueryBoundary>`로 감싸세요. ErrorBoundary와 Suspense를 직접 import 하지 마세요.
+- **ApiErrorFallback**: 기본 에러 UI (메시지 + 재시도 버튼). ApiQueryBoundary의 기본 fallback으로 사용되며, 커스텀 fallback 내부에서도 활용 가능합니다.
+
+## 3. 레이아웃 및 기타 컴포넌트
+- **로고**: `<BrandLogo />` (`@shared/ui/brand`) - `isColored`, `isOnlyIcon` 옵션 지원
+- **브레드크럼**: `<BreadcrumbNavigation />` (`@shared/ui/navigation`) - 자동 경로 기반 네비게이션
+- **표준 레이아웃**: `<TitleDescriptionLayout title="..." description="...">` (`@shared/ui/layout`) - 제목과 설명을 포함하는 페이지 표준 레이아웃
+
+## 4. 디자인 시스템 연동 확인
+추가적인 버튼, 아바타, 아이콘 등이 필요할 경우 코드를 직접 하드코딩하기 전에 `@nx-frontend/design-kits` 및 `@nx-frontend/icons` 패키지에 해당 컴포넌트가 있는지 반드시 먼저 확인하고 재사용하세요.

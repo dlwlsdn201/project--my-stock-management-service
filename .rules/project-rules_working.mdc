@@ -1,0 +1,37 @@
+---
+version: v2.1
+updated: 2026-05-20
+description: 코드를 작성하는 작업 수행 시 기본적으로 지켜야 할 사항과 최신 기술 스택(React 19, Jotai) 준수 사항을 정의
+globs: ["src/**/*.{ts,tsx}"]
+alwaysApply: true
+---
+
+# 기본 작업 준수 사항
+
+## 1. 최신 기술 스택(React 19) 및 최적화 규칙
+- **React Import**: React 19를 사용하므로 파일 상단에 `import React from 'react';`를 명시적으로 선언할 필요가 없습니다.
+- **메모이제이션 금지**: Babel React Compiler를 통해 자동 메모이제이션이 진행되므로, 수동으로 `useMemo`, `useCallback`, `React.memo` 등을 사용할 필요가 없습니다. 불필요한 보일러플레이트를 작성하지 마세요.
+
+## 2. 상태 관리 및 에러 핸들링
+- **Jotai 우선**: 전역 상태 및 파라미터 관리에 Zustand 대신 `jotai`의 `atom`을 사용하세요.
+- **Query Params 스토어 표준화**: 신규 쿼리 파라미터 훅 작성 시 `@shared/jotai/createQueryParamsStore` 기반 패턴을 우선 적용하고, atom 선언 위치·공유 범위·패턴(A/B/C)은 `project-rules_jotai-atom-declaration.mdc`를 단일 기준으로 따릅니다.
+- **조회(GET) 로직의 에러/로딩**: `useSuspenseQuery` + `<ApiQueryBoundary>`를 기본 패턴으로 사용하며, `useBaseQuery` 사용 기준·예외·금지 사항의 상세는 `project-rules_api-error-handling.mdc` §5-1을 단일 기준으로 따릅니다.
+- **수정(Mutation) 로직**: POST/PUT/DELETE는 **`useBaseMutation`**(entities hook) + features에서 **`mutateAsync` 호출 시** toast·modal 등 UI 피드백. entities hook `onSuccess`에는 **`invalidateQueries`만**. 상세·예시는 `project-rules_api-error-handling.mdc` §5-2, `project-rules_architecture.mdc` §3 [2단계] 2-2를 단일 기준으로 따릅니다.
+- **에러 타입 지정**: 모든 API 에러는 `@shared/types/api`에 정의된 `NormalizedApiError` 인터페이스를 타입으로 지정하세요.
+- **필터 초기화 시 조회 대상 초기화 규칙**: 필터 영역의 `[초기화]` 버튼 클릭 시 필터 기본값 복원과 함께 조회 대상도 페이지 유형에 맞게 초기화합니다. Grid 중심 페이지는 `ZoneTree` 또는 `ZoneAndGroupTree`를 최상위 노드로 재선택하고 해당 노드 기준으로 재조회합니다. `GroupTree` 단독 구조는 최상위 노드 개념이 없으므로 Grid 중심 페이지의 최상위 노드 초기화 기준에서 제외합니다. Grid 비중심 페이지는 Treeview를 `unselected`로 전환하고 메인 데이터 영역을 `Empty Data` 상태로 초기화합니다. 
+
+## 3. 프로젝트 구조 확인 및 재사용성
+- 작업 전 `project-rules_architecture.mdc`를 확인하여 단방향 의존성(상위 레이어는 하위만 참조)을 위반하지 않도록 하세요.
+- UI 구현 시, 사내 시스템인 `@nx-frontend/design-kits`의 컴포넌트(`IconOnlyButton`, `AvatarGroup` 등)와 `src/shared/ui/` 컴포넌트(폼 브릿지 등)가 존재하는지 먼저 확인하고 재사용하세요.
+
+## 4. 코드 품질 원칙
+- **불변성 (Immutability)**: 상태 업데이트 시 원본 객체/배열을 직접 변경(mutate)하지 않는다.
+  - Jotai atom 업데이트: `set(atom, { ...prev, ...update })` 패턴 사용.
+  - 배열 가공: `push`/`splice` 대신 `map`/`filter`/`spread`/`toSorted` 사용.
+  - 🚨 예외: 성능이 입증된 경우에 한해 `structuredClone` 또는 `immer`의 `produce` 허용.
+- **에러 처리**: 이 프로젝트의 표준 에러 처리 경로를 반드시 따른다. 컴포넌트 내부에 임의의 try-catch를 작성하지 않는다.
+  - 조회(GET): `useSuspenseQuery` + `<ApiQueryBoundary>` (상세 → `project-rules_api-error-handling.mdc` §5-1)
+  - 변경(Mutation): entities `useBaseMutation` + features `mutateAsync`의 `onError`/`onSuccess` (상세 → §5-2). hook·호출부 `onSuccess`는 각각 invalidate·toast로 분리
+  - 시스템 에러: `baseApiModule` Axios Interceptor
+  - 위 경로로 처리할 수 없는 비-API 외부 호출(localStorage, FileReader 등)에 한해서만 개별 try-catch 허용.
+- **린터·포맷터**: ESLint·Prettier 규칙은 무조건 준수. 위반 시 에이전트가 자체적으로 수정 후 진행.

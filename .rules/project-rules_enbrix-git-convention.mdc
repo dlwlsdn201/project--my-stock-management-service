@@ -1,0 +1,48 @@
+---
+version: v1.2
+description: 프로젝트의 Git Flow, 브랜치 네이밍 및 커밋 메시지 규칙 (Gitmoji)
+globs: ["*"]
+alwaysApply: false
+---
+
+# Git / GitLab 개발 규칙
+
+## 1. Git Flow (간소화 전략)
+이 프로젝트는 `release` 브랜치 단계를 생략한 간소화된 Git Flow를 사용합니다.
+- **배포용 메인 브랜치**: `master`
+- **작업 브랜치**: `master`에서 직접 분기하여 작업 (`feature/*` 또는 `bugfix/*`)
+- **병합**: 작업 완료 후 `master` 브랜치로 직접 Merge Request (MR) 생성
+
+## 2. 브랜치 네이밍 규칙
+`<GITLAB_ISSUE_CODE>-feature--<기능명>` 또는 `<GITLAB_ISSUE_CODE>-bugfix` 형식을 엄격히 준수합니다.
+- **신규/개선 기능**: `2-feature--create-user-profile`
+- **버그 수정**: `9-bugfix`
+
+*허용 특수 기호:*
+- `-`: 단어 간 띄어쓰기
+- `--`: 네이밍 유형 구분
+
+## 3. 커밋 메시지 규칙 (Gitmoji 필수)
+- **형식**: `<GITMOJI> <#이슈코드> <이슈 제목>`
+- **예시**: `:sparkles: #2 404, 500 에러 페이지 신규 개발`
+- **제약사항**: 제목은 50자 이내로 제한하며, 끝에 마침표(.)를 찍지 않습니다.
+
+### 자주 사용하는 Gitmoji 타입
+> - `:sparkles:` (✨) - 신규 기능 추가
+> - `:beetle:` (🐞) - 버그 수정
+> - `:zap:` (⚡️) - 성능 개선
+> - `:lipstick:` (💄) - UI 컴포넌트 수정
+> - `:art:` (🎨) - 스타일 수정
+> - `:electric_plug:` (🔌) - API 관련 작업
+> - `:cyclone:` (🌀) - 코드 리팩터링
+> - `:building_construction:` (🏗️) - 아키텍처/구조 변경
+> - `:bento:` (🍱) - asset 데이터 변경/수정 등(이미지 파일 등)
+> - `:pencil:` (📝) - 폴더/파일 수정 등
+> - `:fire:` (🔥) - 삭제/제거 등
+> - `:label:` (🏷️) - 타입, 태그 관련
+> - `:nut_and_bolt:` (🔩) - 프로젝트 환경 파일(*.config.js, ...) 변경 등
+> - `🧪` (🧪) - 테스트 관련 커밋
+---
+
+## 4. 커밋 제외 파일 (`.gitignore` 확인)
+절대 커밋하면 안 되는 파일들: `.env`, `.next/`, `*.zip`, `node_modules/`, 커스텀 에디터 설정 파일 등.

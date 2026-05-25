@@ -1,0 +1,69 @@
+---
+version: v1.2
+description: API 응답 인터페이스 표준 (백엔드 계약 및 프론트엔드 타입 정의 시 준수)
+globs: ["src/shared/api/**/*", "src/shared/types/**/*", "src/entities/**/api/*", "src/entities/**/*.ts"]
+alwaysApply: false
+---
+
+# API 응답 인터페이스 표준
+
+백엔드 API 재설계 계약에 따른 응답 구조. **새 API 연동·타입 정의·baseApiModule 수정 시** 반드시 준수.
+요청/응답 필드 네이밍(`snake_case`)의 단일 기준(SSOT)은 `project-rules_api-spec-contract.mdc`를 따릅니다.
+
+백엔드·API 명세 작성 시 **공통 응답 규격**을 누락하지 않도록 하며, 팀 합의 본문은 [공통 응답 규격(내부 문서)](https://docs.google.com/document/d/1b8gV3meipFY88kPQEil67nvR4wYagr4vDRh71JiguZk/edit?tab=t.0#heading=h.rtcbq5b75vcg)를 참조합니다.
+
+## 1. 핵심 원칙: 가짜 성공(Fake 200 OK) 금지
+
+- ❌ **금지**: HTTP 200 + `{ success: false }` 또는 `{ result_code: -1 }`
+- ✅ **필수**: 비즈니스 실패 시 **HTTP 4xx/5xx** + 에러 바디
+- **이유**: ErrorBoundary·React Query는 HTTP 상태 코드 기반으로 에러를 감지. 200이면 화면 블랙아웃/화이트스크린 가능.
+
+## 2. 성공 응답 (HTTP 2xx)
+
+`result_code` 제거. 성공 데이터는 `data` 래퍼에만 담김.
+
+### 단일 리소스
+
+```ts
+interface ApiSuccessResponse<T> {
+  data: T;  // Record | string | number 등 단일 값
+}
+```
+
+### 목록 및 페이지네이션
+
+```ts
+interface ApiSuccessResponse<T> {
+  data: T;  // T는 객체[] | string[] | number[] 등
+  meta?: {
+    page: number;
+    size: number;
+    total: number;
+  };
+}
+```
+
+### 성공 JSON 최상위 형태
+
+- HTTP 2xx 성공 바디의 최상위는 **반드시 `{ "data": ... }` 한 겹**이어야 합니다.
+- 최상위가 곧바로 배열(`[...]`)이거나 단일 리소스 객체(`{ "id": ... }`)만 오는 형태는 **금지**입니다. (클라이언트 파싱·인터셉터 단일화)
+
+## 3. 에러 응답 (HTTP 4xx, 5xx)
+
+`errors.ts` (RESULT_CODE, ERROR_CODES) 연동을 위해 필드 유지.
+
+```ts
+interface ApiErrorResponse {
+  message: string;       // 필수. 사용자 노출용
+  result_code?: number;  // 기존 result_code. RESULT_CODE 매핑용
+}
+```
+
+`result_code`의 **값·대역 규칙은 본 문서에서 강제하지 않으며**, 백엔드·`errors.ts` 매핑 필요에 따라 정합니다.
+
+## 4. 타입·인터셉터 구현 시 체크
+
+- Entity API 타입: `ApiSuccessResponse<YourDataType>` 사용
+- baseApiModule: 성공 시 `data`만 unwrap, 에러 시 HTTP 상태 기반 처리
+- 상세 스펙: `API response interface.md` 참조
+- **레거시(enbrix 1.0)** 엔드포인트는 `project-rules_api-error-handling.mdc`의 `result_code`·unwrap 규칙이 우선하고, **신규 HTTP 기반 계약** 엔드포인트는 본 문서 §1~§3을 우선합니다. (동일 코드베이스에서 병행 가능)

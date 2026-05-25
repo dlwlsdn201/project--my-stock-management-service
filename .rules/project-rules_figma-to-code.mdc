@@ -1,0 +1,269 @@
+---
+version: v1.2
+description: Figma 디자인을 enbrix 2.0 프로젝트의 코드로 변환하는 작업 시 적용할 규칙을 정의
+
+globs: ['src/**/*.{ts,tsx}']
+
+alwaysApply: false
+---
+
+Figma의 구현 내용을 Code로 변환하는 작업을 수행 시 아래의 사항들을 준수하여 수행하여야 합니다.
+
+> **참고**: 본 규칙은 Figma 디자인을 코드로 변환할 때 적용됩니다. 일반적인 개발 컨벤션은 `project-rules_architecture.mdc`를 참고하세요.
+
+## 1. Figma 디자인 요소 구현 원칙
+
+1-1. **디자인 시스템 준수 (필수)**
+
+- 디자인 시스템의 기본 의도와 시각적 일관성을 유지하는 것을 최우선으로 함
+- Figma에서 확인한 디자인 토큰 값들을 `@nx-frontend/design-kits`의 테마 시스템으로 매핑
+- **하드코딩된 값 사용 절대 금지**, 반드시 테마 시스템 유틸리티 함수 활용
+- CSS 변수(`var(--color-...)`) 사용 금지, 테마 시스템 유틸리티 함수 사용 필수
+
+1-2. **테마 시스템 유틸리티 필수 사용 항목**
+
+- **색상**: `getCommonColors`, `getBorderColors`, `getSurfaceColors`, `getElementColors`, `getIconColors` 사용
+  - ❌ 금지: `color: #364152`, `color: var(--color-element-basic, #364152)`
+  - ✅ 필수: `color: ${getCommonColors('blackInverse')}`, `color: ${getElementColors('basic')}`
+- **타이포그래피**: `getBodyTypography`, `getHeadingTypography` 사용
+  - ❌ 금지: `font-size: 14px`, `font-size: var(--font-size-body-small, 14px)`, `font-family: Pretendard`
+  - ✅ 필수: `${getBodyTypography({ path: 'small', color: 'basic' })}`
+- **배경색**: `getCommonColors`, `getSurfaceColors` 사용
+  - ❌ 금지: `background: #fff`, `background: var(--color-Common-white_inverse, #fff)`
+  - ✅ 필수: `background: ${getCommonColors('whiteInverse')}`, `background: ${getSurfaceColors('whiteBright')}`
+- **테두리**: `getBorderColors` 사용
+  - ❌ 금지: `border: 1px solid #e5e7eb`, `border: 1px solid var(--color-border-border-neutral, #e5e7eb)`
+  - ✅ 필수: `border: 1px solid ${getBorderColors('borderNeutral')}`
+- **그림자**: `getShadow` 사용 (해당 유틸리티가 있는 경우)
+- 컴포넌트 간 시각적 계층 구조와 관계
+- 효과 및 애니메이션의 핵심 특성 (transition, transform 등)
+
+1-3. **조정 가능한 요소**
+
+- 반응형 디자인을 위한 여백(padding/margin) 미세 조정
+- 다양한 화면 크기에 대응하기 위한 레이아웃 조정
+- 웹 접근성 향상을 위한 색상 대비 미세 조정
+- 성능 최적화를 위한 효과(effect) 단순화
+
+1-4. **중요한 디자인 변경이 필요한 경우 디자이너와 협의 후 진행**
+
+## 2. Figma에서 코드 생성 시 주의사항
+
+2-1. **Figma 정보 활용**
+
+- Figma에서 노드 정보를 읽어올 때 다음을 확인:
+  - 색상 값 → `@nx-frontend/design-kits/lib/style`의 색상 유틸리티 함수로 매핑 (`getCommonColors`, `getBorderColors` 등)
+  - 폰트 크기/두께 → `getBodyTypography`, `getHeadingTypography` 등으로 매핑
+  - 간격/사이즈 → rem 단위로 직접 변환 (예: `1.25rem`)
+  - 레이아웃 → flexbox/grid 패턴 확인
+  - 그림자 효과 → `@nx-frontend/design-kits/lib/style`의 그림자 유틸리티 함수로 매핑
+
+2-2. **자동화된 코드 생성 시**
+
+- Figma에서 가져온 값은 하드코딩하지 않고 테마 시스템 활용
+- 반응형을 고려한 미디어 쿼리 적용 (필요시 직접 작성)
+- 접근성 속성 자동 추가 (aria-label, aria-describedby 등)
+- 시맨틱 HTML 태그 사용 (button, nav, article, section 등)
+
+2-3. **값 매핑 가이드 (필수 준수)**
+
+```tsx
+import {
+  getCommonColors,
+  getBorderColors,
+  getSurfaceColors,
+  getElementColors,
+  getBodyTypography,
+  getHeadingTypography,
+} from '@nx-frontend/design-kits/lib/style';
+import styled from 'styled-components';
+
+// ❌ 잘못된 예시 (하드코딩 및 CSS 변수 사용)
+const Component = styled.div`
+  color: #364152;
+  background: var(--color-Common-white_inverse, #fff);
+  border: 1px solid var(--color-border-border-neutral, #e5e7eb);
+  font-size: 14px;
+  font-family: Pretendard;
+  font-weight: 400;
+  line-height: 150%;
+`;
+
+// ✅ 올바른 예시 (테마 시스템 유틸리티 활용)
+const Component = styled.div`
+  color: ${getElementColors('basic')};
+  background: ${getCommonColors('whiteInverse')};
+  border: 1px solid ${getBorderColors('borderNeutral')};
+  ${getBodyTypography({ path: 'small', color: 'basic' })}
+  padding: 0.75rem; // 12px → 0.75rem (간격은 rem 단위 직접 사용)
+`;
+```
+
+**테마 시스템 유틸리티 함수별 사용 가이드:**
+
+- **`getCommonColors`**: 기본 색상 (whitePrimary, whiteInverse, blackInverse, primaryDefault, dangerDefault, grayDefault 등)
+- **`getBorderColors`**: 테두리 색상 (borderNeutral, borderStrong 등)
+- **`getSurfaceColors`**: 표면/배경 색상 (whiteBright, whiteGentle 등)
+- **`getElementColors`**: 요소 색상 (basic, strong, bolder, stable 등)
+- **`getIconColors`**: 아이콘 색상
+- **`getBodyTypography`**: 본문 타이포그래피 (path: 'xsmall' | 'small' | 'medium' | 'large', color: 'basic' | 'strong' | 'bolder' | 'stable')
+- **`getHeadingTypography`**: 제목 타이포그래피 (path: 'xsmall' | 'small' | 'medium' | 'large', color: 'strong' | 'bolder' | 'stable')
+
+## 3. Figma 디자인 분석 및 구조 파악
+
+3-1. **컴포넌트 구조 파악**
+
+- Figma에서 컴포넌트 계층 구조 확인
+- 재사용 가능한 기존 컴포넌트 식별
+- `@nx-frontend/design-kits`의 컴포넌트 활용 가능 여부 확인 (`IconOnlyButton`, `MultiButton` 등)
+- FSD 아키텍처에 맞는 레이어 분류 (`shared`, `features`, `widgets`, `pages`)
+
+3-2. **레이아웃 분석**
+
+- Auto Layout 사용 여부 확인 → flexbox/grid 매핑
+- Constraints 확인 → 반응형 처리 방법 결정
+- Frame 구조 확인 → 컴포넌트 구조 설계
+
+3-3. **스타일 토큰 추출 (테마 시스템 우선 적용)**
+
+- **색상**: Figma Color Styles → `@nx-frontend/design-kits/lib/style`의 색상 유틸리티 함수로 매핑
+  - 배경색: `getCommonColors`, `getSurfaceColors` 사용
+  - 텍스트 색상: `getElementColors`, `getCommonColors` 사용
+  - 테두리 색상: `getBorderColors` 사용
+  - 아이콘 색상: `getIconColors` 사용
+  - ❌ 절대 하드코딩 금지: `#364152`, `#fff`, `#e5e7eb` 등
+  - ❌ CSS 변수 사용 금지: `var(--color-...)` 형태
+- **타이포그래피**: Figma Text Styles → `getBodyTypography`, `getHeadingTypography` 사용
+  - 본문: `getBodyTypography({ path: 'small', color: 'basic' })`
+  - 제목: `getHeadingTypography({ path: 'medium', color: 'strong' })`
+  - ❌ 절대 하드코딩 금지: `font-size: 14px`, `font-family: Pretendard`, `font-weight: 400` 등
+  - ❌ CSS 변수 사용 금지: `var(--font-size-body-small, 14px)` 형태
+- **간격**: Spacing 값 → rem 단위로 직접 변환 (예: `1.25rem`)
+- **효과**: Shadow/Blur → `@nx-frontend/design-kits/lib/style`의 그림자 유틸리티 함수로 매핑 (해당 유틸리티가 있는 경우)
+
+## 4. 코드 생성 워크플로우
+
+4-1. **Figma에서 정보 추출**
+
+1.  Figma MCP를 통해 노드 정보 읽기
+2.  디자인 토큰 값 추출 및 매핑
+3.  컴포넌트 구조 분석
+
+4-2. **프로젝트 컨벤션 준수**
+
+- `project-rules_architecture.mdc` 규칙에 따라 FSD 아키텍처 구조 생성
+- 파일 경로: FSD 레이어에 맞게 배치
+  - `src/shared/ui/`: 재사용 가능한 순수 UI 컴포넌트
+  - `src/features/`: 사용자 상호작용 기능 단위
+  - `src/widgets/`: 여러 features를 조합한 독립적인 UI 영역
+  - `src/pages/`: 실제 페이지 단위
+- 파일 구조 준수 (tsx, \*.styled.tsx, index.ts 등)
+
+4-3. **테마 시스템 적용 (필수 단계)**
+
+**작업 순서:**
+
+1. Figma에서 색상, 폰트, 간격 값 추출
+2. **테마 시스템 유틸리티 함수로 매핑** (하드코딩 절대 금지)
+3. CSS 변수(`var(--...)`) 사용 금지, 유틸리티 함수 사용 필수
+4. 반응형 처리 (필요시 미디어 쿼리 직접 작성)
+
+**테마 시스템 적용 체크리스트:**
+
+- ✅ 모든 색상이 테마 시스템 유틸리티 함수로 적용되었는가?
+- ✅ 모든 타이포그래피가 `getBodyTypography` 또는 `getHeadingTypography`로 적용되었는가?
+- ✅ 하드코딩된 색상 값(`#364152`, `#fff` 등)이 없는가?
+- ✅ CSS 변수(`var(--color-...)`, `var(--font-size-...)`) 사용이 없는가?
+- ✅ 간격은 rem 단위로 변환되었는가?
+
+4-4. **검증 및 최적화**
+
+- 생성된 코드가 프로젝트 컨벤션을 준수하는지 확인
+- 접근성 속성 추가 여부 확인
+- 성능 최적화 고려 (불필요한 리렌더링 방지)
+
+## 5. Figma MCP 활용 가이드
+
+5-1. **노드 정보 읽기**
+
+- `get_node_info`: 특정 노드의 상세 정보 확인
+- `get_selection`: 현재 선택된 요소 정보 확인
+- `read_my_design`: 선택된 요소의 모든 세부 정보 확인
+
+5-2. **디자인 토큰 확인**
+
+- Figma에서 사용된 색상, 폰트, 간격 등을 확인
+- 프로젝트 테마 시스템과 매핑
+
+5-3. **컴포넌트 생성**
+
+- Figma 구조를 기반으로 컴포넌트 구조 설계
+- 재사용 가능한 컴포넌트 식별 및 활용
+
+## 6. 테마 시스템 유틸리티 사용 필수 규칙
+
+6-1. **색상 사용 규칙**
+
+```tsx
+// ❌ 금지: 하드코딩
+color: #364152;
+background: #fff;
+border: 1px solid #e5e7eb;
+
+// ❌ 금지: CSS 변수 사용
+color: var(--color-element-basic, #364152);
+background: var(--color-Common-white_inverse, #fff);
+border: 1px solid var(--color-border-border-neutral, #e5e7eb);
+
+// ✅ 필수: 테마 시스템 유틸리티 함수 사용
+color: ${getElementColors('basic')};
+background: ${getCommonColors('whiteInverse')};
+border: 1px solid ${getBorderColors('borderNeutral')};
+```
+
+6-2. **타이포그래피 사용 규칙**
+
+```tsx
+// ❌ 금지: 하드코딩
+font-size: 14px;
+font-family: Pretendard;
+font-weight: 400;
+line-height: 150%;
+
+// ❌ 금지: CSS 변수 사용
+font-size: var(--font-size-body-small, 14px);
+font-family: var(--typo-font-type, Pretendard);
+
+// ✅ 필수: 테마 시스템 유틸리티 함수 사용
+${getBodyTypography({ path: 'small', color: 'basic' })}
+// 또는
+${getHeadingTypography({ path: 'medium', color: 'strong' })}
+```
+
+6-3. **테마 시스템 유틸리티 함수 목록**
+
+```tsx
+import {
+  // 색상 유틸리티
+  getCommonColors, // 기본 색상 (whitePrimary, whiteInverse, blackInverse, primaryDefault, dangerDefault 등)
+  getBorderColors, // 테두리 색상 (borderNeutral, borderStrong 등)
+  getSurfaceColors, // 표면/배경 색상 (whiteBright, whiteGentle 등)
+  getElementColors, // 요소 색상 (basic, strong, bolder, stable 등)
+  getIconColors, // 아이콘 색상
+  // 타이포그래피 유틸리티
+  getBodyTypography, // 본문 타이포그래피
+  getHeadingTypography, // 제목 타이포그래피
+  // 기타
+  getShadow, // 그림자 효과 (해당 유틸리티가 있는 경우)
+} from '@nx-frontend/design-kits/lib/style';
+```
+
+6-4. **작업 전 필수 확인 사항**
+
+피그마/퍼블리싱 작업 시 다음을 반드시 확인:
+
+1. 색상 값이 테마 시스템 유틸리티 함수로 매핑되었는가?
+2. 타이포그래피가 `getBodyTypography` 또는 `getHeadingTypography`로 적용되었는가?
+3. 하드코딩된 값이 없는가?
+4. CSS 변수 사용이 없는가?
+5. 기존 코드에서 유사한 패턴을 참고하여 올바른 유틸리티 함수를 사용하고 있는가?

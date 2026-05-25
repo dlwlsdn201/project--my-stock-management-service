@@ -1,0 +1,43 @@
+---
+version: v2.1
+updated: 2026-05-20
+description: AI 에이전트가 팀원의 코드를 리뷰하거나 리팩터링을 제안할 때 기준으로 삼아야 할 사내 표준 검증 규칙
+globs: ["*"]
+alwaysApply: true
+---
+
+# 사내 코드 리뷰 5대 핵심 검증 규칙 (Code Review Rules)
+
+AI가 코드를 리뷰할 때 다음 6가지 원칙을 엄격하게 검증하고, 위반 사항이 있다면 지적(Comment)해야 합니다.
+
+1. **FSD 아키텍처 규칙 검증**
+   - 상위 레이어가 하위 레이어를 참조하는지 확인. (하위가 상위를 참조하면 즉시 경고)
+   - **`entities` → `features` / `widgets` / `pages` / `apps` import 금지** (역참조 시 즉시 경고. 공통 코드는 `shared`로 이동)
+   - **Cross-import 금지**: 같은 레이어(예: `features` 내의 다른 슬라이스)끼리 직접 import 하는지 검사.
+2. **React 19 최적화 위반 검증**
+   - `useMemo`, `useCallback`, `React.memo` 등 수동 메모이제이션을 사용했다면 제거를 권고. (React Compiler에 위임)
+3. **API 및 에러 핸들링 패턴 검증 (가장 중요)**
+   - API Fetcher 함수명에 `UPPER_SNAKE_CASE`를 사용했는지 검사 (사용 시 `camelCase`로 수정 권고).
+   - Fetcher 함수 내부에 React Hook(`use-`)을 사용했는지 검사 (절대 금지).
+   - 컴포넌트 내부에 `if (isLoading)` 이나 중복된 `try-catch`가 있는지 검사하고, `<ApiQueryBoundary>` 사용으로 리팩터링 제안 (ErrorBoundary/Suspense 직접 import 지양).
+   - **신규 조회(GET) 훅**에서 `useBaseQuery`를 도입했는지 검사. 신규 기능·신규 훅에서는 `useSuspenseQuery` + `<ApiQueryBoundary>`를 사용하도록 권고합니다.
+   - **예외**: 예외적으로 컴포넌트 내부에 자체 Suspense 로직이 존재할 경우에는 `useSuspenseQuery` + `ApiQueryBoundary` 패턴 대신 `useBaseQuery`을 사용하도록 하여 자체 Suspense 로직을 사용하도록 합니다. (예시: `shared/ui/grid/NewGridLayout.tsx` 등)
+   - `group`/`zone` 등 **사이트 종속** API Fetcher에 `site_id` 쿼리 누락이 없는지 검사 (`project-rules_api-spec-contract.mdc` §2).
+   - 신규 계약 기준 **성공 응답·MSW mock JSON**이 최상위 `{ "data": ... }` 형태를 따르는지 검사 (`project-rules_api-response-interface.mdc` §2).
+   - **신규·리팩터 Mutation** (`project-rules_api-error-handling.mdc` §5-2):
+     - `features/**` Dialog·폼에서 Fetcher 또는 `useBaseMutation` **직접 import** 여부 (entities `useCreateX` / `useUpdateX` 등만 허용)
+     - `entities/**/hook`에 **`useToast` / `useModal`** 사용 여부
+     - `invalidateQueries`가 **features에만** 있고 entities hook에 없는 경우
+     - Dialog 제출 **실패 시 `closeModal`이 호출**되는지 (성공 분기·`onSuccess` 안에서만 닫기)
+4. **상태 관리 규칙 검증**
+   - 쿼리 파라미터 상태를 관리할 때 `useState`나 `Zustand`를 사용했다면 `Jotai` 아톰(`atom`)으로 변경할 것을 권고.
+   - 필터 영역의 `[초기화]` 버튼 구현 시 페이지 유형별 초기화 기준을 준수하는지 검사:
+     - Grid 중심 페이지: `ZoneTree` 또는 `ZoneAndGroupTree` 최상위 노드로 초기화 + 해당 노드 기준 데이터 재조회 (`GroupTree` 단독 구조 제외)
+     - Grid 비중심 페이지: Treeview `unselected` 초기화 + 메인 데이터 `Empty Data` 복귀 (*GroupTree 만 사용하는 페이지도 해당.)
+5. **하드코딩 및 UI 컴포넌트 검증**
+   - 헥스코드 색상이나 폰트 사이즈 하드코딩 검사 (`@nx-frontend/design-kits` 디자인 토큰 사용 권고).
+   - 폼 구현 시 일반 `<input>` 태그를 사용했는지 검사 (`@shared/ui/form` 컴포넌트 사용 권고).
+6. **import alias path 검증**
+   - 컴포넌트, 유틸 함수 등의 모듈 import path가 alias path으로 작성되었는지 검사.
+7. **사람이 직접 유지보수가 가능할 정도의 코드 품질**
+   - 추후, 언제든지 사람이 유지보수 또는 기능 확장 작업을 효율적으로 진행할 수 있을만큼의 가독성과 코드복잡도, 응집도와 결합도를 고려하여 리뷰해야함.

@@ -1,0 +1,19 @@
+---
+version: v1.2
+description: 프로젝트 수행 시 구현 및 지켜야 할 핵심 기술 요구사항 및 제약 사항
+alwaysApply: true
+---
+
+# 핵심 구현 요구사항
+
+1. **SSR / CSR 완벽 지원**
+   - 해당 프로젝트를 의존성으로 import하여 사용하는 프로젝트에서 Server-Side Rendering(SSR)과 Client-Side Rendering(CSR) 환경 모두 에러 없이 정상적으로 동작해야 합니다.
+   - 브라우저 전용 API(`window`, `document`, `localStorage` 등) 접근 시 `typeof window !== 'undefined'` 분기 처리 또는 `useEffect` 내부 실행을 철저히 지키세요.
+
+2. **기술 스택 버전 제약 준수**
+   AI 에이전트는 코드 작성 시 반드시 다음의 핵심 기술 버전을 기준으로 코드를 생성해야 합니다:
+   - Next.js: `v16.0.10` (Pages Router 환경)
+   - React: `v19.2.0`
+   - Jotai: `^2.17.1` (Zustand 사용 금지)
+   - @tanstack/react-query: `^5.90.5`
+   - Styled-Components: `^6.1.8`

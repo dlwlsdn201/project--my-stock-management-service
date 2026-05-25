@@ -1,0 +1,127 @@
+---
+version: v1.1
+description: API 명세 기반 엔드포인트(URL·메서드·쿼리) 설계 규칙
+globs: ["src/entities/**/api/*.ts"]
+alwaysApply: true
+---
+
+# API 명세(Contract) 구현 규칙
+
+이 문서는 API 명세 문서와 코드 구현의 불일치를 방지하기 위한 강제 규칙입니다.
+API 경로·HTTP 메서드·쿼리 설계 시 아래 규칙을 우선 적용합니다.
+본 문서는 API 계약(엔드포인트 경로, HTTP 메서드, 쿼리/바디 전달 방식)의 단일 기준(SSOT)입니다.
+
+## 1. 엔드포인트 경로 규칙
+
+1. 모든 API 경로(`path`)는 리소스 기준 상대 경로로 작성하고, 공통 접두사(`/api` 등)는 `NEXT_PUBLIC_API_BASE_URL`에서 관리합니다.
+   - 예: `NEXT_PUBLIC_API_BASE_URL=https://example.com/api`, `path: 'resource'`
+2. 기본 CRUD는 하나의 메인 리소스 경로에서 HTTP 메서드로 구분합니다.
+   - 예: `{resource}` + `GET/POST/PUT/DELETE`
+3. 부가 기능(보내기, 다운로드, 미리보기 등)은 하위 액션 경로를 추가합니다.
+   - 예: `{resource}/{action}`
+4. URL 경로는 리소스 중심으로 최대한 간결하게 유지합니다.
+5. **첫 번째·두 번째 경로 세그먼트 정의 원칙** — 경로를 여러 세그먼트로 쌓을 때, “무엇이 주어인가”에 따라 앞쪽 순서를 구분합니다.
+   - **엔티티 CRUD·목록·트리 등, 그 리소스 자체를 다루는 API** → **리소스(또는 리소스 계열)가 앞에 온다.** 기존 패턴과 동일 계열을 유지한다.
+     - 예: `zones/list`, `groups/list`, `zones/treeview` 또는 `zone/list`, `group/list` 등 — **첫 세그먼트가 “그 리소스”**임을 드러낸다. (단수·복수·정확한 세그먼트 문자열은 서버 명세·레거시 URL과의 일관성을 따른다.)
+   - **횡단 기능**(에너지 사용량, 일괄 제어, 랭킹 등, 특정 리소스의 “소유 데이터”가 아니라 **역량(capability) 단위**로 묶이는 API) → **역량이 먼저 오고, 그다음 적용 범위(scope)를 둔다.**
+     - 예: `usage/zone/...`, `usage/group/...`, `batch-control/zone/...`, `batch-control/group/...`
+   - 위 두 유형을 섞어 “한 URL 안에서 의미 순서가 뒤바뀌지 않도록” 설계한다. (리소스 중심 URL에 횡단 역량 접두를 억지로 붙이거나, 그 반대로 하지 않는다.)
+6. **zone vs group 쌍 API** — 동일한 역량이 zone·group 양쪽에 존재하면 **항상 대칭**으로 경로를 짠다.
+   - `usage/zone/...` ↔ `usage/group/...`
+   - `batch-control/zone/...` ↔ `batch-control/group/...`
+   - 한쪽만 다른 네이밍·다른 깊이·다른 쿼리 계약으로 두지 않는다. (예외는 서버 명세·마이그레이션 문서에 명시된 경우에 한한다.)
+7. `{resource}`는 아래 도메인 목록만 사용합니다.
+   - `bookmark`, `code`, `device`, `eer`, `env`, `facility`, `group`, `hub`, `hvac`, `ircode`, `log`, `login`, `master`, `modbus`, `motion`, `notification`, `panelboard`, `policy`, `saving`, `scene`, `schedule`, `session`, `site`, `source`, `target`, `timeline`, `unit`, `universal`, `usage`, `user`, `widget`, `zone`
+8. 목록에 없는 신규 도메인을 추가할 경우, API 명세 문서에 먼저 반영한 후 규칙 문서 목록을 함께 갱신합니다.
+
+## 2. URL 파라미터/쿼리스트링 규칙
+
+1. 조회 조건은 쿼리스트링을 우선 사용합니다.
+2. 경로 파라미터(`/:id`)는 기본적으로 사용하지 않으며, 식별값(`id` 포함)은 쿼리스트링으로 전달합니다.
+3. 서버 API 명세가 경로 파라미터를 강제하는 경우에만 예외적으로 허용합니다.
+4. 필터/정렬/검색/기간/페이지네이션은 쿼리스트링으로 통일합니다.
+5. `group`, `zone` 등 **특정 `site`에 종속되는 리소스**를 다루는 API에는 명세에 따라 **`site_id`를 쿼리 파라미터에 포함**합니다. (동일 의미를 body와 query에 중복 전달하지 않습니다.)
+
+## 3. HTTP 메서드 및 페이로드 규칙
+
+1. 조회는 `GET`, 생성은 `POST`, 수정은 `PUT`, 삭제는 `DELETE`를 사용합니다.
+2. `GET/DELETE`는 `params`(query)로 전달합니다.
+3. `POST/PUT`의 도메인 데이터(생성/수정 본문)는 요청 body(payload)로 전달합니다.
+4. `POST/PUT`에서 쿼리스트링은 제어 옵션에 한해 제한적으로 허용합니다.
+   - 예: `dryRun`, `force`, `locale`, `include`, `fields`
+5. 동일 의미 값을 body와 query에 중복 전달하지 않습니다.
+6. 단일 리소스에 대해 동작이 달라도 임의 메서드 남용을 금지합니다.
+   - 예: 조회를 `POST`로 우회 구현 금지
+
+## 4. 인증·게이트웨이(Keycloak)
+
+1. 구 API 명세에 `Authorization` 헤더로 `access_token`을 실었더라도, 요청이 **게이트웨이(Keycloak)를 경유**하고 사용자 식별은 게이트웨이가 백엔드로 전달하는 구성일 수 있습니다.
+2. 이 경우 프론트엔드 Fetcher는 **명시적으로 `access_token`(또는 동등한 Bearer 토큰)을 HTTP 헤더에 붙이지 않습니다.** (쿠키·세션 등은 배포 환경의 게이트웨이 정책을 전제로 합니다.)
+3. 엔드포인트별 인증 방식은 **백엔드·인프라 합의 및 API 명세**를 따르며, 명세의 헤더 항목은 위 정책에 맞게 갱신합니다.
+
+## 5. 날짜·시간 필드
+
+1. **프론트 → 백엔드**: 기간·시점은 **`snake_case` 필드명**(예: `start_date`, `end_date`)에 **UTC 기준 Unix epoch 밀리초 정수**(`number`)로 전달합니다.
+   - 예: `start_date: 1774969200000`, `end_date: 1777561199999`
+2. **백엔드 → 프론트**: 시각 값은 **ISO 8601 UTC 문자열**로 전달합니다.
+   - 예: `"timestamp": "2026-03-03T00:00:00.000Z"`
+
+## 6. 금지 사항
+
+1. API 접두사(`/api` 등)를 각 Fetcher의 `path`에 하드코딩하는 행위
+2. 동일 리소스 CRUD를 엔드포인트 이름으로 분산(`createX`, `updateX`)하는 행위
+3. 조회 조건을 경로 세그먼트로 과도하게 확장하는 행위
+4. 서버 명세 예외 없이 경로 파라미터(`/:id`)를 임의로 도입하는 행위
+5. 허용 도메인 목록에 없는 `{resource}`를 사전 합의 없이 사용하는 행위
+
+## 7. Request/Response 속성 네이밍 규칙
+
+1. API `request`(query/body)와 `response`(data/meta/error body)의 모든 필드명은 기본적으로 `snake_case`를 사용합니다.
+2. TypeScript 인터페이스/타입의 필드명도 서버 계약과 동일하게 `snake_case`를 유지합니다.
+3. 프론트엔드 내부에서 `camelCase`로 변환이 필요하면, API 계층 바깥에서 별도 가공 단계로 처리합니다. Fetcher의 요청/응답 계약 자체는 `snake_case`를 변경하지 않습니다.
+4. 예외가 필요할 경우(외부 표준 스펙 연동 등) API 명세에 근거를 먼저 기록하고, 해당 엔드포인트에만 제한적으로 적용합니다.
+
+## 8. 표준 예시 템플릿
+
+```typescript
+const API_PATH = 'resource';
+
+export const readResourceList = async (params: ReadResourceListParams) => {
+  return baseApiModule<ReadResourceListResponse>({
+    method: 'GET',
+    path: API_PATH,
+    params,
+  });
+};
+
+export const createResource = async (params: CreateResourceParams) => {
+  return baseApiModule<CreateResourceResponse>({
+    method: 'POST',
+    path: API_PATH,
+    params,
+  });
+};
+
+export const updateResource = async (params: UpdateResourceParams) => {
+  return baseApiModule<UpdateResourceResponse>({
+    method: 'PUT',
+    path: API_PATH,
+    params,
+  });
+};
+
+export const deleteResource = async (params: DeleteResourceParams) => {
+  return baseApiModule<DeleteResourceResponse>({
+    method: 'DELETE',
+    path: API_PATH,
+    params,
+  });
+};
+
+export const downloadResourceExport = async (params: DownloadExportParams) => {
+  return baseApiGetBlob({
+    path: `${API_PATH}/export`,
+    params,
+  });
+};
+```

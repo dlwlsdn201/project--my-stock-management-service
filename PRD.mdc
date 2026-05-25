@@ -1,0 +1,454 @@
+---
+alwaysApply: true
+---
+
+# PRD: Release Communication Hub
+
+## 1. 개요
+
+### 제품명
+
+Release Communication Hub
+
+가칭: ReleaseHub
+
+### 목적
+
+사내 릴리즈 과정에서 하나의 이슈 작업 완료 후 반복적으로 작성해야 하는 `CHANGELOG`, `QC 테스트 케이스`, `릴리즈 노트` 문서를 하나의 데이터 입력 흐름으로 통합한다.
+
+사용자는 릴리즈 관련 정보를 한 번만 입력하고, 시스템은 대상자와 목적에 맞게 다음 결과물을 자동 생성한다.
+
+- 전사 공지용 CHANGELOG
+- 개발자/테스터용 QC 테스트 케이스
+- 일반 사용자용 릴리즈 노트
+- GitLab 이슈/MR 기반 문서 초안
+- Google Drive 백업용 export 문서
+
+## 2. 문제 정의
+
+### 현재 문제
+
+사내 릴리즈 프로세스에서는 하나의 이슈 또는 신규 기능 작업이 완료될 때마다 작업자가 여러 문서를 수기로 작성해야 한다.
+
+| 문서 | 사용 대상 | 현재 역할 |
+| --- | --- | --- |
+| CHANGELOG | 모든 사용자 | 릴리즈 배포 완료 후 전사 메신저 공지에 첨부되는 버전별 주요 변경사항 |
+| QC 테스트 케이스 | 개발자, 테스터 | 릴리즈 전 QC 기간에 검증해야 할 테스트 항목 |
+| 릴리즈 노트 | 모든 사용자 | 실제 사용자가 상세 변경사항을 확인하는 문서 |
+
+현재는 Google Sheets와 Google Docs 기반으로 관리되고 있으며, 다음 불편함이 있다.
+
+- 동일한 이슈 정보를 여러 문서에 반복 작성해야 한다.
+- 문서별 포맷이 달라 작성 시간이 오래 걸린다.
+- Google Docs의 이미지, 표, 레이아웃 편집 UX가 불편하다.
+- 릴리즈 노트의 가독성이 낮다.
+- GitLab에 이미 존재하는 이슈, MR, 커밋 정보가 문서 작성에 충분히 활용되지 못한다.
+- 릴리즈 완료 후 전사 공지문 작성도 별도 수작업으로 진행된다.
+
+## 3. 목표
+
+### 핵심 목표
+
+릴리즈 문서 작성의 원본 데이터를 하나로 통합하고, 대상자별 문서는 자동 생성한다.
+
+### 정량 목표
+
+- 이슈 1건당 문서 작성 횟수: 3회에서 1회로 감소
+- 릴리즈 공지 작성 시간: 수동 작성에서 자동 초안 생성으로 전환
+- QC 테스트 케이스 누락률 감소
+- 릴리즈 노트 이미지/설명 작성 UX 개선
+
+### 정성 목표
+
+- 릴리즈 문서 작성 부담 감소
+- 문서 간 정보 불일치 감소
+- 일반 사용자에게 더 읽기 쉬운 릴리즈 노트 제공
+- 개발자/테스터가 QC 항목을 더 빠르게 확인
+- GitLab 기반 개발 흐름과 자연스럽게 연결
+
+## 4. 대상 사용자
+
+### 1차 사용자
+
+- 프론트엔드 개발자
+- 백엔드 개발자
+- QA 또는 테스트 담당자
+- 릴리즈 담당자
+
+### 2차 사용자
+
+- 일반 사내 사용자
+- 운영 담당자
+- 기획자
+- 고객 지원 담당자
+
+## 5. 핵심 사용자 시나리오
+
+### 시나리오 1: 이슈 작업 완료 후 릴리즈 항목 등록
+
+1. 개발자가 GitLab 이슈 또는 MR URL을 입력한다.
+2. 시스템이 GitLab API 또는 mock 데이터를 통해 기본 정보를 가져온다.
+3. 개발자는 변경 유형, 사용자 노출 여부, 테스트 항목, Before/After 설명을 보완한다.
+4. 릴리즈 항목을 저장한다.
+5. 시스템은 CHANGELOG, QC 테스트 케이스, 릴리즈 노트 데이터를 자동 생성한다.
+
+### 시나리오 2: 릴리즈 버전별 문서 확인
+
+1. 릴리즈 담당자가 `v1.8.0` 버전을 선택한다.
+2. 포함된 이슈 목록을 확인한다.
+3. `공지 요약`, `릴리즈 노트`, `QC 체크리스트` 탭을 전환하며 결과물을 검토한다.
+4. 필요한 항목을 수정한다.
+5. 최종 릴리즈 문서로 확정한다.
+
+### 시나리오 3: 릴리즈 완료 후 전사 공지 생성
+
+1. 릴리즈 담당자가 릴리즈 버전을 선택한다.
+2. 시스템이 Major, Minor 기준으로 CHANGELOG 요약을 생성한다.
+3. 릴리즈 노트 링크를 포함한 메신저 공지문을 생성한다.
+4. 담당자는 내용을 복사하여 전사 메신저에 공유한다.
+5. 최종 문서는 Google Drive에 백업된다.
+
+## 6. 주요 기능
+
+### 6.1 GitLab 연동
+
+GitLab 이슈, MR, 커밋 정보를 기반으로 릴리즈 항목 초안을 생성한다.
+
+#### 기능
+
+- GitLab 이슈 URL 입력
+- GitLab MR URL 입력
+- 프로젝트 선택
+- 릴리즈 대상 브랜치 또는 태그 선택
+- 이슈 제목 자동 불러오기
+- 이슈 번호 자동 불러오기
+- MR 제목, 설명, 라벨 자동 불러오기
+- 담당자, 리뷰어, 머지 상태 확인
+- GitLab 라벨 기반 변경 유형 추천
+
+#### 예시 매핑
+
+| GitLab 데이터 | ReleaseHub 데이터 |
+| --- | --- |
+| Issue ID | 이슈 티켓 번호 |
+| Issue Title | 변경사항 제목 |
+| Labels | Major / Minor / Bugfix 추천 |
+| MR Description | 상세 설명 초안 |
+| Assignee | 담당자 |
+| Milestone | 릴리즈 버전 후보 |
+
+### 6.2 릴리즈 항목 등록 폼
+
+하나의 이슈에 대한 릴리즈 원본 데이터를 입력하는 화면이다.
+
+#### 주요 필드
+
+| 필드 | 설명 |
+| --- | --- |
+| 이슈 번호 | GitLab Issue ID 또는 사내 티켓 번호 |
+| 이슈 제목 | 변경사항 제목 |
+| 릴리즈 버전 | 예: v1.8.0 |
+| 변경 유형 | Major / Minor / Patch / Bugfix |
+| 사용자 노출 여부 | 릴리즈 노트 공개 여부 |
+| CHANGELOG 요약 | 전사 공지용 짧은 문장 |
+| 사용자용 설명 | 릴리즈 노트에 표시될 상세 설명 |
+| 테스트 시나리오 | QC 테스트 케이스 |
+| 기대 결과 | 테스트 성공 기준 |
+| Before 이미지 | 변경 전 화면 |
+| After 이미지 | 변경 후 화면 |
+| 담당자 | 작업 담당자 |
+| 상태 | Draft / Ready / Confirmed |
+
+### 6.3 릴리즈 버전 관리
+
+릴리즈 버전 단위로 포함된 변경사항과 문서를 관리한다.
+
+#### 기능
+
+- 릴리즈 버전 생성
+- 버전별 이슈 목록 확인
+- Major / Minor / Bugfix 그룹핑
+- 릴리즈 상태 관리
+  - Draft
+  - QC Ready
+  - Released
+  - Archived
+- 릴리즈별 문서 미리보기
+- 릴리즈 항목 순서 변경
+
+### 6.4 CHANGELOG 자동 생성
+
+#### 대상
+
+모든 사용자
+
+#### 목적
+
+릴리즈 완료 후 전사 메신저 공지에 첨부할 수 있는 짧은 변경사항 요약을 제공한다.
+
+#### 출력 예시
+
+```text
+[v1.8.0 릴리즈 변경사항]
+
+Major
+- ABC-123 로그인 실패 안내 문구 개선
+- ABC-145 관리자 대시보드 필터 추가
+
+Minor
+- ABC-151 검색 결과 정렬 기준 개선
+- ABC-160 알림 목록 UI 개선
+```
+
+### 6.5 QC 테스트 케이스 자동 생성
+
+#### 대상
+
+개발자, 테스터
+
+#### 목적
+
+릴리즈 전 QC 기간에 검증해야 할 항목을 체크리스트 형태로 제공한다.
+
+#### 주요 기능
+
+- 테스트 항목 목록
+- 담당자 지정
+- 테스트 상태 관리
+  - Not Started
+  - Passed
+  - Failed
+  - Blocked
+- 실패 사유 입력
+- 재테스트 여부 표시
+
+#### 출력 예시
+
+| 이슈 | 테스트 항목 | 기대 결과 | 상태 |
+| --- | --- | --- | --- |
+| ABC-123 | 로그인 실패 시 에러 메시지 확인 | 실패 사유별 안내 문구가 노출된다 | Passed |
+| ABC-145 | 기간 필터 적용 확인 | 선택한 기간의 데이터만 표시된다 | Not Started |
+
+### 6.6 릴리즈 노트 빌더
+
+#### 대상
+
+모든 사용자
+
+#### 목적
+
+일반 사용자가 실제 업데이트 내용을 쉽게 이해할 수 있도록 상세 변경사항을 제공한다.
+
+#### 주요 기능
+
+- 변경사항 카드 UI
+- Before / After 이미지 비교
+- 이미지 캡션
+- 사용자용 설명
+- 변경 유형 배지
+- 버전별 릴리즈 노트 페이지
+- 공개/비공개 항목 구분
+
+#### 출력 예시
+
+```text
+로그인 실패 안내 문구가 개선되었습니다.
+
+기존에는 로그인 실패 시 동일한 안내 문구가 표시되어 실패 원인을 알기 어려웠습니다.
+이제 비밀번호 오류, 계정 잠금, 권한 없음 상태에 따라 더 구체적인 안내 문구가 표시됩니다.
+```
+
+### 6.7 공지문 생성기
+
+릴리즈 완료 후 전사 메신저에 공유할 공지문을 자동 생성한다.
+
+#### 포함 정보
+
+- 릴리즈 버전
+- 배포 일시
+- Major 변경사항
+- Minor 변경사항
+- 릴리즈 노트 링크
+- 문의 채널
+
+### 6.8 Google Drive 백업 Export
+
+최종 릴리즈 산출물을 Google Drive에 백업한다.
+
+#### Export 대상
+
+- CHANGELOG: Google Sheets 또는 CSV
+- QC 테스트 케이스: Google Sheets 또는 CSV
+- 릴리즈 노트: HTML, PDF, Google Docs 중 택 1
+- 전체 릴리즈 데이터: JSON
+
+프로토타입에서는 실제 Google Drive API 연동보다 CSV/HTML export를 먼저 구현한다.
+
+## 7. MVP 범위
+
+### 포함
+
+- 릴리즈 목록
+- 릴리즈 상세
+- 릴리즈 항목 등록/수정/삭제
+- GitLab URL 기반 수동 정보 입력
+- CHANGELOG 미리보기
+- QC 테스트 케이스 미리보기
+- 릴리즈 노트 미리보기
+- 전사 공지문 생성
+- CSV 또는 HTML export
+- mock GitLab 데이터 기반 프로토타입
+
+### 제외
+
+- 실제 GitLab OAuth 로그인
+- 실제 Google Drive API 연동
+- 실시간 협업 편집
+- 복잡한 권한 관리
+- AI 자동 문장 생성
+- 사내 메신저 자동 발송
+
+## 8. 화면 구성
+
+### 8.1 릴리즈 목록 화면
+
+- 릴리즈 버전
+- 상태
+- 포함 이슈 수
+- QC 진행률
+- 배포일
+- 상세 진입 버튼
+
+### 8.2 릴리즈 상세 화면
+
+탭 구조:
+
+- Overview
+- CHANGELOG
+- QC Checklist
+- Release Note
+- Announcement
+
+### 8.3 릴리즈 항목 등록 화면
+
+- GitLab URL 입력
+- 기본 정보 입력
+- CHANGELOG 요약 입력
+- QC 테스트 케이스 입력
+- 릴리즈 노트 설명 입력
+- 이미지 업로드
+
+### 8.4 릴리즈 노트 미리보기 화면
+
+- 실제 사용자에게 보여질 형태의 릴리즈 노트
+- 변경 유형별 필터
+- Before/After 이미지 비교
+
+### 8.5 공지문 생성 화면
+
+- 자동 생성된 메신저 공지문
+- 복사 버튼
+- export 버튼
+
+## 9. 데이터 모델 초안
+
+```ts
+type ReleaseStatus = 'DRAFT' | 'QC_READY' | 'RELEASED' | 'ARCHIVED';
+
+type ChangeCategory = 'MAJOR' | 'MINOR' | 'PATCH' | 'BUGFIX';
+
+type TestStatus = 'NOT_STARTED' | 'PASSED' | 'FAILED' | 'BLOCKED';
+
+type Release = {
+  id: string;
+  version: string;
+  title: string;
+  status: ReleaseStatus;
+  releasedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ReleaseItem = {
+  id: string;
+  releaseId: string;
+  gitlabIssueUrl: string;
+  gitlabMergeRequestUrl: string | null;
+  ticketNumber: string;
+  title: string;
+  category: ChangeCategory;
+  isPublic: boolean;
+  changelogSummary: string;
+  userDescription: string;
+  assigneeName: string;
+  beforeImageUrls: string[];
+  afterImageUrls: string[];
+  testCases: QCTestCase[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+type QCTestCase = {
+  id: string;
+  releaseItemId: string;
+  description: string;
+  expectedResult: string;
+  status: TestStatus;
+  testerName: string | null;
+  failedReason: string | null;
+};
+```
+
+## 10. 성공 기준
+
+- 하나의 릴리즈 항목 입력만으로 3개 문서 뷰가 생성된다.
+- 릴리즈 버전 기준으로 Major / Minor 변경사항을 확인할 수 있다.
+- QC 테스트 케이스를 체크리스트 형태로 관리할 수 있다.
+- 릴리즈 노트를 Google Docs보다 읽기 쉬운 UI로 확인할 수 있다.
+- 전사 메신저 공지문을 자동 생성하고 복사할 수 있다.
+- GitLab 이슈/MR 정보를 기반으로 문서 초안을 만들 수 있는 구조가 드러난다.
+
+## 11. 추천 기술 스택
+
+- React 19
+- TypeScript
+- Vite
+- TanStack Query
+- React Hook Form
+- Zod
+- Jotai 또는 searchParams
+- Tailwind CSS
+- MSW
+- Vitest
+- React Testing Library
+
+프로토타입은 Next.js보다 Vite SPA가 적합하다. 실제 배포, 인증, 권한, 사내 도메인 연동까지 고려하는 단계가 되면 Next.js App Router로 확장할 수 있다.
+
+## 12. 우선순위
+
+### 1차
+
+- 릴리즈 목록
+- 릴리즈 상세
+- 릴리즈 항목 등록
+- CHANGELOG 자동 미리보기
+- QC 테스트 케이스 미리보기
+- 릴리즈 노트 미리보기
+
+### 2차
+
+- 공지문 생성기
+- CSV/HTML export
+- 이미지 업로드 UX 개선
+- GitLab mock 연동
+
+### 3차
+
+- 실제 GitLab API 연동
+- Google Drive 백업 연동
+- 권한별 화면 분기
+- AI 기반 문서 초안 생성
+
+## 13. 한 줄 소개
+
+ReleaseHub는 GitLab 기반 개발 흐름에서 발생하는 릴리즈 정보를 하나의 원본 데이터로 관리하고, CHANGELOG, QC 테스트 케이스, 릴리즈 노트, 전사 공지문을 자동 생성하는 릴리즈 커뮤니케이션 허브이다.

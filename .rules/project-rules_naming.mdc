@@ -1,0 +1,50 @@
+---
+version: v1.2
+description: 프로젝트 수행 시 파일, 변수, 함수, 훅, 타입 등에 대한 네이밍 규칙
+globs: ["src/**/*.{ts,tsx}", "shared/**/*.{ts,tsx}"]
+alwaysApply: true
+---
+
+# 네이밍 규칙 (Naming Rules)
+
+## 1. 파일 및 디렉토리 네이밍
+- **디렉토리**: 소문자 `kebab-case` (예: `manage-user-info/`)
+- **React 컴포넌트 파일**: `PascalCase` (예: `HeaderAvatar.tsx`)
+- **스타일 파일**: `PascalCase` + `.styled.tsx` (예: `HeaderAvatar.styled.tsx`)
+- **기타 파일(API, Hook, Utils, Types)**: `camelCase` (예: `readUserInfo.ts`, `useBaseQuery.ts`)
+- **인덱스 파일**: 배럴 익스포트용 `index.ts` 고정
+
+## 2. 변수 및 상태 네이밍
+- **일반 변수**: `camelCase` (예: `userName`)
+- **Boolean 변수**: `camelCase` + `is`, `has`, `can`, `should`, `did`, `will` 접두사 필수 (ESLint 적용). (예: `isLoading`)
+- **설정 및 상수 (Config)**: `UPPER_SNAKE_CASE` (예: `API_BASE_URL`). 🚨 순수 함수에는 이 형식을 쓰지 않습니다.
+
+## 3. 함수 및 컴포넌트 네이밍
+- **일반 함수**: `camelCase` + 화살표 함수 권장
+- **React 컴포넌트**: `PascalCase` + 화살표 함수 필수 (function 키워드 지양)
+- **이벤트 핸들러**: `camelCase` + `handle` 접두사 (예: `handleRefreshClick`)
+
+## 4. 3단계 API 아키텍처 네이밍 (핵심)
+- **[1단계] 순수 Fetcher 함수 (`api/`)**: `camelCase` 사용. `read`, `create`, `update`, `delete` 등의 CRUD 접두사를 사용합니다. (예: `readUserInfo`, `updateDevice`)
+- **[2단계] Custom Hook (`hook/`)**: `camelCase` + `use` 접두사 필수. (예: `useProcessedUserInfo`)
+- **Jotai Atom (`store/`)**: `camelCase` + `Atom` 접미사. (예: `userParamsAtom`)
+- **범위 한정:** 본 문서는 "이름 규칙"만 다루며, 엔드포인트 경로/HTTP 메서드/쿼리 계약은 `project-rules_api-spec-contract.mdc`를 따릅니다.
+
+## 5. TypeScript 타입 네이밍
+- **일반 원칙**: `PascalCase` 사용, `interface` 우선 사용.
+- **Props**: `{Component명}Props` (예: `UserCardProps`)
+- **API 파라미터/응답**: `{Action}{Entity}Params`, `{Action}{Entity}Response` (예: `ReadUserInfoParams`, `ReadUserInfoResponse`)
+- **제네릭**: `T` 지양, 추론 가능한 이름(`ItemType` 등) 사용.
+
+## 6. import alias path
+- **일반 원칙**: typescript alias path 사용. (relative path 지양)
+- **예시**: `@features/chart`, `@shared/ui/form`
+
+## 7. 가독성 원칙 (Readability)
+- **의도를 드러내는 이름**: 변수·함수명만으로 역할을 파악할 수 있어야 한다.
+  - ❌ `data`, `info`, `temp`, `result`, `val` 등 범용 이름을 직접 선언하는 변수에 사용 금지.
+  - ✅ React Query의 `const { data }` 등 라이브러리 관례적 구조 분해 할당은 허용하되, 즉시 의미 있는 이름으로 재할당을 권장. (예: `const { data: deviceList } = ...`)
+  - ✅ 반복문 인덱스(`i`, `j`) 등 관례적 단문맥 변수는 허용하나 콜백 단일 인자(`item`, `el`) 는 되도록 사용자가 대략적인 데이터 성격을 예측 가능한 최소한의 단어로 변수 네이밍을 정의한다. (예_ `el` 대신 `element`)
+- **함수 단일 책임 (SRP)**: 하나의 함수는 하나의 책임만 가진다.
+  - 기본적으로는 `45줄` 초과 시 분리를 검토하되, 줄 수 자체가 목적이 아니라 **"이 함수의 역할을 한 문장으로 설명할 수 있는가"**가 기준.
+  - 분리 시 응집도가 깨지거나 오히려 흐름 파악이 어려워진다면 그대로 유지.

@@ -1,0 +1,153 @@
+---
+version: v2.0
+updated: 2026-05-20
+description: 프로젝트의 Feature-Sliced Design (FSD) 아키텍처, 3단계 API 통신 및 Jotai 상태 관리 패턴 정의
+globs: ["src/**/*.{ts,tsx}"]
+alwaysApply: true
+---
+
+# Feature-Sliced Design (FSD) & 아키텍처
+
+## 1. FSD 구조 패턴 (Layers · Slices · Segments)
+
+FSD는 3가지 차원으로 코드를 구분합니다 ([참고: 카카오페이 FSD 적용기](https://tech.kakaopay.com/post/fsd/)):
+
+- **Layers (레이어):** 재사용 범위·의존성에 따른 수직 계층 (`apps > pages > widgets > features > entities > shared`)
+- **Slices (슬라이스):** 레이어 내 비즈니스 도메인별 분할. 같은 레이어 내 Cross-import 금지.
+- **Segments (세그먼트):** 슬라이스 내 역할·목적별 구분. `ui`, `api`, `hook`, `store` 등 목적을 나타내는 이름 사용 (`components`, `hooks` 등 성격 기반 네이밍 지양).
+
+### enbrix 2.0 세그먼트 규칙
+
+| 레이어 | 세그먼트 | 용도 |
+|--------|----------|------|
+| entities | api, hook, store, model, ui(선택) | API Fetcher, 전처리 훅, Jotai Atom, 도메인 타입·인터페이스, 도메인 UI |
+| features | {slice}/ui, hook(선택) | 비즈니스 기능, 상호작용 기능 UI 관리 |
+| shared | api, ui, lib, config, types | 전역 공통 코드 |
+
+## 2. FSD 레이어 구조
+FSD는 계층적 구조로 설계되며, 상위 레이어는 하위 레이어만 import할 수 있습니다:
+- `apps/` → 모든 레이어 import 사용 가능 (최상위)
+- `pages/` → widgets, features, entities, shared 만 import 가능
+- `widgets/` → features, entities, shared 만 import 가능
+- `features/` → entities, shared 만 import 가능
+- `entities/` → shared 만 import 가능
+- `shared/` → 의존성 없음 (최하위)
+
+🚨 **레이어 역참조 금지:** `entities`는 `features` / `widgets` / `pages` / `apps`를 import하지 않습니다. (예: `entities/device/hook`에서 `widgets/...` 유틸 import 금지 — 공통 로직은 `shared/lib` 등으로 이동)
+
+🚨 **주의 (Cross-import 금지):** 같은 레이어 내의 다른 슬라이스(도메인)를 import하는 것은 강하게 지양합니다. 공통 로직은 하위 레이어로 이동하거나 상위에서 조합하세요.
+
+### 🛡️ Public API (`index.ts`) 및 캡슐화 규칙 (필수)
+- **배럴 파일(Barrel File) 강제:** 각 슬라이스(도메인)나 레이어에서 외부로 노출해야 하는 모든 컴포넌트, 훅, 스토어, 타입 등은 반드시 해당 폴더 최상단의 `index.ts` (Public API) 파일에서 명시적으로 `export` 해야 합니다.
+- **Deep Import 절대 금지:** 외부 레이어에서 다른 레이어의 내부 파일 경로를 직접 파고들어 참조하는 것을 엄격히 금지합니다.
+  - ❌ Bad: `import { UserProfile } from '@features/user/ui/UserProfile'`
+  - ✅ Good: `import { UserProfile } from '@features/user'`
+
+## 3. 3단계 API 통신 및 상태 관리 패턴 (핵심)
+이 프로젝트는 관심사 분리(Separation of Concerns)를 위해 3단계 구조를 엄격하게 따릅니다.
+
+### API 배치 규칙
+- **현재 규칙:** 현재 팀의 규모와 프로젝트 진행 상황을 고려하여 모든 API Fetcher는 `entities/` 레이어에서만 작성합니다. `features/`, `pages/`에는 `api/` 세그먼트를 두지 않습니다.
+- **전제:** 추후 entities 슬라이스가 과도하게 비대해질 경우, 재사용 범위에 따라 `pages/`, `features/`로 API를 분산하는 방안을 검토합니다.
+  - **레퍼런스:** [카카오페이 FSD 적용기 - API 배치 기준](https://tech.kakaopay.com/post/fsd/#3-pagessliceapi-vs-featuressliceapi-vs-entitiesdomainapi)
+- **API Contract 단일 기준(SSOT):** 엔드포인트 경로, HTTP 메서드, 쿼리/바디 전달 규칙은 `project-rules_api-spec-contract.mdc`를 단일 기준으로 따릅니다.
+
+### entities 슬라이스(도메인) 선택 기준
+
+Fetcher·연관 타입·전처리 훅·Jotai 스토어를 둘 **`entities/{domain}/`** 폴더(`domain` = 슬라이스)는 아래를 우선합니다.
+
+1. **반환·소유 모델:** 성공 응답의 **주된 데이터 타입**과 그 타입을 **소유·정의**하는 도메인(예: 장치 목록 → `device`, 사용자 → `user`)을 기준으로 슬라이스를 정합니다. 엔드포인트 URL의 첫 경로 세그먼트(`zone/`, `group/` 등)만으로 슬라이스를 결정하지 않습니다. (`path`·`params`는 API 계약이지, 코드 폴더 경계의 단일 기준이 아닙니다.)
+2. **응집도:** 해당 Fetcher를 주로 소비하는 **2단계 훅·스토어·도메인 타입**이 같은 슬라이스에 모이도록 맞춥니다.
+3. **애매한 경우:** 응답에 여러 도메인 개념이 섞이면 **UI·비즈니스에서 주로 다루는 주체**에 두거나, 팀 합의·ADR로 한 번만 명시합니다.
+
+### [1단계] 순수 Fetcher 함수 (`entities/{domain}/api/`)
+- **역할:** API 호출 및 Raw Response를 반환합니다.
+- **규칙:** React Hook(`use-`)을 절대 사용하지 않는 순수 비동기 함수여야 합니다.
+- **구현 주의:** URL/메서드/쿼리/바디 설계는 이 문서가 아닌 `project-rules_api-spec-contract.mdc` 기준을 따릅니다.
+```typescript
+// ✅ entities/user/api/readUserInfo.ts
+import { baseApiModule } from '@shared/api/client/baseApiModule';
+
+export const readUserInfo = async (params: ReadUserInfoParams) => {
+  const response = await baseApiModule({ method: 'GET', path: 'user', params });
+  return response.data;
+};
+```
+
+### [2단계] Custom Hook (`entities/{domain}/hook/`)
+
+1단계 Fetcher를 React Query로 연결합니다. **조회(GET)**와 **변경(Mutation)** 패턴을 구분합니다. 반드시 `use` 접두사를 사용합니다.
+
+#### 2-1. 조회(GET) — 데이터 전처리
+
+- **역할:** `queryFn`으로 Fetcher 호출 후 UI에 맞게 가공(선택).
+- **표준:** `project-rules_api-error-handling.mdc` §5-1 (`useSuspenseQuery` + 상위 `ApiQueryBoundary`).
+- **네이밍:** `useSuspense{Entity}…`, 레거시 `useProcessed{Entity}…` 등.
+
+```typescript
+// ✅ entities/user/hook/useSuspenseUserInfo.ts (신규 조회 권장 패턴)
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { readUserInfo, ReadUserInfoParams } from '../api/readUserInfo';
+
+export const useSuspenseUserInfo = (params: ReadUserInfoParams) => {
+  const { data } = useSuspenseQuery({
+    queryKey: ['user', params],
+    queryFn: () => readUserInfo(params),
+  });
+
+  const processedUserInfo = data
+    ? { fullName: `${data.firstName} ${data.lastName}`, ...data }
+    : null;
+  return { userInfo: processedUserInfo };
+};
+```
+
+#### 2-2. 변경(Mutation) — `useCreate` / `useUpdate` / `useDelete`
+
+- **역할:** `useBaseMutation` + Fetcher `mutationFn`, 성공 시 **공통 `invalidateQueries`만** hook `onSuccess`에 작성.
+- **표준:** `project-rules_api-error-handling.mdc` §5-2.
+- **네이밍:** Fetcher 접두사와 맞춤 — `useCreateZone`, `useUpdateDeviceInfo`, `useDeleteDevice` 등. (`useProcessed…`는 조회 전처리용)
+- **금지:** `useToast`, `useModal`, features/widgets import.
+
+```typescript
+// ✅ entities/schedule/hook/useCreateSchedule.ts
+import { useQueryClient } from '@tanstack/react-query';
+import { useBaseMutation } from '@shared/api/hooks/useBaseQuery';
+import { createSchedule, CreateScheduleBody } from '../api/createSchedule';
+import { API_PATH_SCHEDULE_LIST } from '../api/constants';
+
+export const useCreateSchedule = () => {
+  const queryClient = useQueryClient();
+  return useBaseMutation<CreateScheduleBody, { data: { schedule_idx: number } }>({
+    mutationFn: params => createSchedule(params),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [API_PATH_SCHEDULE_LIST] });
+    },
+  });
+};
+```
+
+### [3단계] 비즈니스 UI (`features/{domain}/ui/`, `features/{domain}/hook/`)
+
+- **역할:** entities 2단계 Hook을 호출해 UI·Dialog·Wizard를 구성합니다.
+- **조회:** `ApiQueryBoundary` 하위에서 Suspense hook 사용 (§5-1).
+- **변경(Dialog 등):** entities `useCreateX` 등만 사용하고, **`mutateAsync` 호출 시** toast·`closeModal` 처리 (§5-2). features에서 Fetcher/`useBaseMutation` 직접 사용 금지.
+- **Dialog hook 네이밍 예:** `useCreateZoneDialog` — Modal/Form + `useCreateZone` 조합.
+
+## 4. Jotai 상태 관리 (파라미터 스토어)
+- 쿼리 파라미터는 `entities/{domain}/store/` 내의 **Jotai Atom**으로 관리합니다.
+- 페이지나 위젯 최상단에 `<Provider>`를 선언하여, 컴포넌트 언마운트 시 상태(파라미터)가 자동으로 클린업(GC) 되도록 설계합니다. `useEffect`를 통한 수동 초기화는 지양합니다.
+- **atom 선언 위치·공유 범위·패턴(A/B/C) 세부 기준은 `project-rules_jotai-atom-declaration.mdc`를 단일 기준으로 따릅니다.**
+
+### 4-1. Query Params Store 작성 표준 (`createQueryParamsStore`)
+- 신규 Query Params 훅은 `@shared/jotai/createQueryParamsStore`를 **우선 사용**하여 작성합니다.
+- 도메인별 스토어 파일명은 `*.atom.ts`를 권장합니다. (`entities/{domain}/store/*.atom.ts`)
+  - `.store.ts` 확장자는 강제하지 않습니다. (혼란 방지를 위해 지양)
+- 훅은 `use{Domain}QueryParams` 형태로 노출하고, 반환값은 `params`, `setParams` 형태를 기본으로 유지합니다.
+- 기본 구현 패턴은 `entities/usage-rank/store/usageRankQueryParams.store.ts`를 레퍼런스로 따릅니다.
+- 수동 `resetParams` 또는 `useEffect` 기반 초기화 로직은 지양하고, `<Provider>` 언마운트 기반 자동 클린업 전략을 따릅니다.
+- `createQueryParamsStore`의 상세 동작 및 패턴(A/B/C) 예시는 `project-rules_jotai-atom-declaration.mdc`를 단일 기준으로 참조합니다.
+
+## 5. 리팩토링 원칙
+- **중복 코드 발견 시**: 현재 태스크 범위 내의 중복은 즉시 공통 모듈로 추출한다. 태스크 범위 밖의 중복은 코드 수정 없이 **주석 또는 TODO로 표시**만 하고, 사용자에게 리팩토링 필요성을 보고한다.
+- **조기 추상화 금지**: 2회 이상 반복이 확인되기 전까지는 "유사해 보이는" 코드를 억지로 합치지 않는다. (Rule of Three: 3번째 중복에서 추상화)

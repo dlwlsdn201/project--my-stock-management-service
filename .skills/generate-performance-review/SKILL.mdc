@@ -1,0 +1,148 @@
+---
+version: v1.1
+name: generate-performance-review
+description: "[AI Action] 코드베이스 기능 로직을 성능 개선 또는 최적화가 필요한지를 기준으로 리뷰를 진행할 때 호출하세요."
+---
+
+# 자동화 성능 개선 필요 여부 리뷰 스킬
+
+이 스킬이 호출되면, AI는 반드시 아래 문서를 먼저 확인한 뒤 성능/품질 리뷰를 수행합니다.
+- `@project-rules_review.mdc`
+- `@project-rules_architecture.mdc`
+- `@project-rules_working.mdc`
+- `@project-rules_api-error-handling.mdc`
+- `@project-rules_testing-policy.mdc`
+
+리뷰의 목적은 "코드를 직접 수정"하는 것이 아니라, 병목 지점과 유지보수 리스크를 근거 기반으로 식별하고 우선순위를 제시하는 것입니다.
+
+## 1. 호출 조건 (When to Use)
+
+다음 상황에서 이 스킬을 우선 사용합니다.
+- 신규 기능 구현 후 머지 전 성능/품질 점검이 필요할 때
+- Hook/Store/API 전처리 로직이 복잡해져 리렌더/중복 호출이 의심될 때
+- 버그 수정 이후 성능 회귀(regression) 가능성을 확인할 때
+- 컴포넌트가 비대해져 가독성·응집도 저하가 발생했을 때
+
+## 2. 필수 리뷰 관점 (What to Audit)
+
+### 2-1. 알고리즘/복잡도
+- 주요 함수/훅의 시간복잡도와 공간복잡도를 추정합니다. (예: O(n), O(n log n), O(n^2))
+- 반복문 내부의 중복 연산, 불필요한 정렬/필터 체인을 찾습니다.
+- 데이터셋 증가 시 병목이 되는 지점을 수치화해 설명합니다.
+
+### 2-2. React 렌더링/상태 흐름
+- 리렌더를 유발하는 불안정 참조(객체/함수 재생성) 여부를 점검합니다.
+- 동일 데이터 소스를 여러 훅/컴포넌트에서 중복 구독하는 구조를 점검합니다.
+- 파생값 계산이 렌더 가독성을 해치는지(책임 과다) 확인합니다.
+
+### 2-3. API/조회 패턴
+- 조회 트리거가 분산되어 중복 refetch가 발생하는지 확인합니다.
+- 필터/파라미터가 의존성 배열에는 있으나 실제 API params로 전달되지 않는 버그를 점검합니다.
+- React Query의 queryKey 안정성, 요청 중복 방지, 캐시 활용 관점을 확인합니다.
+
+### 2-4. 메모리/생명주기
+- 언마운트 cleanup 누락, 이벤트/타이머 해제 누락 가능성을 점검합니다.
+- Jotai Provider 스코프/자동 GC 철학과 충돌하는 수동 reset 패턴을 점검합니다.
+
+### 2-5. 아키텍처/유지보수성
+- FSD layer 규칙 및 deep import 위반 여부를 점검합니다.
+- SRP 관점에서 컴포넌트/훅이 과도한 책임을 갖는지 평가합니다.
+- 즉시 수정 vs 보류 항목을 구분하여 팀 리소스 관점으로 우선순위를 제시합니다.
+
+## 3. 절대 금지 (Do Not)
+
+- 코드 수정을 전제로 한 과도한 리팩터링 강요
+- 근거 없는 성능 추측 ("느릴 것 같다" 수준)
+- 프로젝트 규칙을 무시한 일반론적 가이드
+- 단순 스타일/취향을 성능 이슈처럼 포장
+
+## 4. 출력 템플릿 (Required Output Format)
+
+반드시 아래 템플릿으로 리뷰 결과를 작성합니다.
+
+### ⚡ 성능/품질 감사 요약
+- 리뷰 범위: (검토 파일/기능)
+- 전체 위험도: (Low / Medium / High)
+- 즉시 수정 권장: (개수)
+- 보류 권장: (개수)
+
+### 🔴 Critical (즉시 수정)
+- **위치**: 파일 경로
+- **문제**: 무엇이 문제인지
+- **영향**: 성능/안정성/유지보수에 미치는 영향
+- **권장 조치**: 최소 변경 기준의 해결책
+
+### 🟡 Important (단기 개선)
+- **위치**
+- **문제**
+- **영향**
+- **권장 조치**
+
+### ⏸️ Backlog (보류)
+- **위치**
+- **보류 이유**: 현재 리스크 대비 비용이 큰지 여부
+- **재평가 트리거**: 어떤 조건에서 다시 손볼지
+
+### 📊 복잡도/효율 표
+| 대상(Function/Hook) | Time | Space | 이슈 | 권장 조치 |
+|---|---|---|---|---|
+
+### ✅ 검증 체크리스트
+- [ ] 중복 조회 트리거 위치를 모두 확인했는가?
+- [ ] 필터/파라미터가 API 호출 payload에 실제 반영되는가?
+- [ ] Jotai/React Query 상태 흐름이 프로젝트 규칙과 충돌하지 않는가?
+- [ ] 즉시 수정/보류 구분이 근거와 함께 제시되었는가?
+
+## 5. 리뷰 원칙
+
+- "문제 식별 → 영향 설명 → 최소 변경 조치" 순서로 작성합니다.
+- 팀 리소스(소규모)를 고려해 우선순위를 과감히 제시합니다.
+- 필요 시 Before/After 스니펫을 제시하되, 전체 코드 재작성은 금지합니다.
+
+## 6. 샘플 리뷰 출력 예시 (1회 호출 기준)
+
+아래 예시는 실제 리뷰 결과의 최소 기준 형태입니다.
+
+### ⚡ 성능/품질 감사 요약
+- 리뷰 범위: `GroupControlWidget`, `GroupDevicesTree`, `useGroupSelection`
+- 전체 위험도: Medium
+- 즉시 수정 권장: 2건
+- 보류 권장: 2건
+
+### 🔴 Critical (즉시 수정)
+- **위치**: `src/features/tree/ui/GroupDevicesTree.tsx`
+- **문제**: `effectiveFilters`가 의존성 배열에는 있으나 API params로 전달되지 않음
+- **영향**: 필터 UI와 실제 조회 결과가 불일치하여 기능 오동작 발생
+- **권장 조치**: `refetchGroupDevicesTreeData` 호출 시 `filters: effectiveFilters`를 함께 전달
+
+- **위치**: `src/widgets/batch-control/ui/GroupControlWidget.tsx`
+- **문제**: `TitleBreadcrumbLayout` deep import 사용
+- **영향**: Public API 캡슐화 원칙 위반, 내부 경로 변경 시 취약
+- **권장 조치**: `@shared/ui/layout` 배럴 import로 교체
+
+### 🟡 Important (단기 개선)
+- **위치**: `src/widgets/batch-control/hook/useGroupSelection.ts`, `src/features/tree/ui/GroupDevicesTree.tsx`
+- **문제**: 조회 트리거가 두 경로에 분산되어 흐름 추적 난이도 상승
+- **영향**: 디버깅/유지보수 비용 증가
+- **권장 조치**: 조회 트리거 책임을 단일 컴포넌트(예: `GroupDevicesTree`)로 통일
+
+### ⏸️ Backlog (보류)
+- **위치**: `src/widgets/batch-control/hook/useCheckedGroupDevices.ts`
+- **보류 이유**: 이중 구독 구조는 존재하나 React Query 캐시로 네트워크 중복 호출 리스크는 낮음
+- **재평가 트리거**: 동일 데이터 구독 훅이 3개 이상으로 증가하거나 렌더 지연 지표가 관측될 때
+
+- **위치**: `src/widgets/batch-control/ui/GroupControlWidget.tsx`
+- **보류 이유**: 파생값 계산 블록은 현재 연산량이 작아 성능 이슈로 보기 어려움
+- **재평가 트리거**: 파생값/조건 분기 증가로 파일 복잡도가 상승할 때
+
+### 📊 복잡도/효율 표
+| 대상(Function/Hook) | Time | Space | 이슈 | 권장 조치 |
+|---|---|---|---|---|
+| `useCheckedGroupDevices` | O(n) | O(n) | 데이터 변환 체인 길어질 가능성 | 입력 데이터/구독 경로 증가 시 재평가 |
+| `GroupControlWidget` 파생값 계산 | O(1) | O(1) | 성능 이슈 없음, 가독성만 개선 여지 | 렌더 직전 블록 정리로 읽기 흐름 개선 |
+
+### ✅ 검증 체크리스트
+- [x] 중복 조회 트리거 위치를 모두 확인했는가?
+- [x] 필터/파라미터가 API 호출 payload에 실제 반영되는가?
+- [x] Jotai/React Query 상태 흐름이 프로젝트 규칙과 충돌하지 않는가?
+- [x] 즉시 수정/보류 구분이 근거와 함께 제시되었는가?
