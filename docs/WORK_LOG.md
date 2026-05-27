@@ -14,7 +14,7 @@
 | --- | --- | --- | --- | --- |
 | Unit 0 — 프로젝트 스캐폴딩과 개발 도구 구성 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-26 GPT 재리뷰 통과 |
 | Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-27 GPT 재리뷰 통과 |
-| Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축 | PLANNED | Claude Code | NOT REQUESTED | Unit 0, Unit 1 이후 |
+| Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축 | DONE | Claude Code | NOT REQUESTED | 2026-05-27 구현 완료, GPT 리뷰 요청 예정 |
 | Unit 3 — 인증 UI와 mock 로그인 플로우 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 2 이후 |
 | Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 2, Unit 3 이후 |
 | Unit 5 — 수동 자산 입력과 목표 비중 설정 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 2 이후 |
@@ -26,6 +26,98 @@
 | Unit 11 — 최종 검증, 문서 정리, 릴리즈 후보 정리 | PLANNED | Claude Code | NOT REQUESTED | Unit 0~10 이후 |
 
 ## 2. 단위 작업 결과
+
+---
+
+### Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축
+
+- **작업 일자**: 2026-05-27
+- **작업 단위명**: Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축
+- **작업 브랜치**: `claude/unit-2-app-shell-HX9k2`
+
+#### 변경 파일
+
+**신규 생성**
+
+| 파일 | 설명 |
+| --- | --- |
+| `src/shared/config/theme.ts` | ThemeMode 타입, DEFAULT_THEME, THEME_STORAGE_KEY, themeAtom (Jotai) |
+| `src/shared/config/navigation.ts` | NavItem 타입, NAV_ITEMS 상수 (5개 내비게이션 항목) |
+| `src/shared/ui/AppShell/AppShell.tsx` | sidebar/header/children slot 기반 앱 쉘 레이아웃 |
+| `src/shared/ui/AppShell/index.ts` | AppShell public API |
+| `src/shared/ui/AuthLayout/AuthLayout.tsx` | 로그인 전용 5:5 분할 레이아웃 (Outlet 포함) |
+| `src/shared/ui/AuthLayout/index.ts` | AuthLayout public API |
+| `src/shared/ui/MetricCard/MetricCard.tsx` | 지표 카드 UI primitive (trend 방향 지원) |
+| `src/shared/ui/MetricCard/index.ts` | MetricCard public API |
+| `src/shared/ui/EmptyState/EmptyState.tsx` | 빈 상태 UI primitive |
+| `src/shared/ui/EmptyState/index.ts` | EmptyState public API |
+| `src/shared/ui/ErrorState/ErrorState.tsx` | 에러 상태 UI primitive (재시도 버튼 선택) |
+| `src/shared/ui/ErrorState/index.ts` | ErrorState public API |
+| `src/widgets/app-sidebar/ui/AppSidebar.tsx` | NavLink 기반 사이드바 (isActive로 active 상태 표시) |
+| `src/widgets/app-sidebar/ui/AppSidebar.test.tsx` | 렌더링 · active 상태 · 브랜드명 테스트 (5 tests) |
+| `src/widgets/app-sidebar/index.ts` | app-sidebar slice public API |
+| `src/widgets/app-header/ui/AppHeader.tsx` | 테마 토글 버튼 + document.dark class 적용 효과 |
+| `src/widgets/app-header/ui/AppHeader.test.tsx` | 테마 토글 · dark class 검증 테스트 (4 tests) |
+| `src/widgets/app-header/index.ts` | app-header slice public API |
+| `src/pages/login/ui/LoginPage.tsx` | 로그인 페이지 placeholder |
+| `src/pages/login/index.ts` | login slice public API |
+| `src/pages/dashboard/ui/DashboardPage.tsx` | 대시보드 페이지 placeholder |
+| `src/pages/dashboard/index.ts` | dashboard slice public API |
+| `src/pages/onboarding-brokerage/ui/OnboardingBrokeragePage.tsx` | 온보딩 페이지 placeholder |
+| `src/pages/onboarding-brokerage/index.ts` | onboarding-brokerage slice public API |
+| `src/pages/rebalance/ui/RebalancePage.tsx` | 리밸런싱 페이지 placeholder |
+| `src/pages/rebalance/index.ts` | rebalance slice public API |
+| `src/pages/portfolio/ui/PortfolioPage.tsx` | 포트폴리오 페이지 placeholder |
+| `src/pages/portfolio/index.ts` | portfolio slice public API |
+| `src/pages/settings/ui/SettingsPage.tsx` | 설정 페이지 placeholder |
+| `src/pages/settings/index.ts` | settings slice public API |
+
+**수정**
+
+| 파일 | 설명 |
+| --- | --- |
+| `src/shared/index.ts` | theme, navigation, UI primitives re-export 추가 |
+| `src/widgets/index.ts` | app-sidebar, app-header re-export 추가 |
+| `src/pages/index.ts` | 6개 page slice re-export 추가 |
+| `src/apps/router/index.tsx` | AppShell + AuthLayout 레이아웃 분기 라우팅으로 재구성 |
+| `src/apps/providers/AppProviders.tsx` | Jotai Provider 추가 |
+| `src/apps/styles/index.css` | Tailwind v4 dark mode class variant 추가 |
+
+#### 구현 내용
+
+- **FSD 레이어 준수**:
+  - `shared/ui` 컴포넌트는 외부 라이브러리(react-router-dom)만 참조
+  - `widgets`는 `shared` 공개 API만 import
+  - `apps/router`에서 widgets + pages 조합
+- **AppShell 설계**: slot 기반 (sidebar/header props)으로 FSD 위반 없이 widgets를 주입 가능
+- **AuthLayout**: `<Outlet />`을 포함해 React Router nested route로 동작, 5:5 브랜딩 레이아웃 구현
+- **테마 상태**: Jotai atom(`themeAtom`) → AppHeader가 toggle 및 `document.documentElement.classList` 직접 관리
+- **Tailwind v4 dark mode**: `@custom-variant dark (&:is(.dark *))` 추가로 `.dark` 클래스 기반 전환 활성화
+- **신규 테스트 9개**: AppSidebar(5) + AppHeader(4)
+
+#### 테스트 및 검증 결과
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `pnpm test` | ✅ PASS | 8 test files, 38 tests passed |
+| `pnpm lint` | ✅ PASS | 오류 없음 |
+| `pnpm typecheck` | ✅ PASS | `tsc -b --noEmit` |
+| `pnpm build` | ✅ PASS | dist 332KB (gzip 106KB) |
+| `git diff --check` | ✅ PASS | whitespace 오류 없음 |
+
+#### 남은 리스크
+
+| 리스크 | 설명 | 대응 |
+| --- | --- | --- |
+| 테마 지속성 미구현 | localStorage 저장/복원 없음. 페이지 새로고침 시 항상 light 모드 시작 | Unit 10 또는 Unit 3 이후 세션 persistent 처리 |
+| onboarding-brokerage 라우트 위치 | 현재 AppShell 내부에 위치. Unit 4에서 온보딩 플로우 구현 시 AuthLayout 이동 가능성 | Unit 4에서 라우트 구조 재검토 |
+| `@custom-variant dark` 호환성 | Tailwind v4 CSS 문서 기준 정합성. 빌드는 통과함 | Unit 10 접근성/스타일 검증 시 재확인 |
+
+#### 리뷰 요청 포인트 (GPT 검토용)
+
+1. AppShell을 `shared/ui`에 slot 기반으로 배치한 방식이 FSD 의도에 적합한지 (대안: widget 레이어 이동)
+2. themeAtom + useEffect를 AppHeader에 함께 둔 단일 책임 위반 여부
+3. Tailwind v4 `@custom-variant dark` 선언 방식의 정확성 확인
 
 ---
 
