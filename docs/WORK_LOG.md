@@ -13,7 +13,7 @@
 | Unit | 상태 | 담당 | 리뷰 상태 | 비고 |
 | --- | --- | --- | --- | --- |
 | Unit 0 — 프로젝트 스캐폴딩과 개발 도구 구성 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-26 GPT 재리뷰 통과 |
-| Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축 | PLANNED | Claude Code | NOT REQUESTED | `NEXT_TASK_DRAFT.md` 작성 완료 |
+| Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-27 GPT 재리뷰 통과 |
 | Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축 | PLANNED | Claude Code | NOT REQUESTED | Unit 0, Unit 1 이후 |
 | Unit 3 — 인증 UI와 mock 로그인 플로우 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 2 이후 |
 | Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 2, Unit 3 이후 |
@@ -26,6 +26,94 @@
 | Unit 11 — 최종 검증, 문서 정리, 릴리즈 후보 정리 | PLANNED | Claude Code | NOT REQUESTED | Unit 0~10 이후 |
 
 ## 2. 단위 작업 결과
+
+---
+
+### Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축
+
+- **작업 일자**: 2026-05-27
+- **작업 단위명**: Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축
+- **작업 브랜치**: `main`
+
+#### 변경 파일
+
+**신규 생성**
+
+| 파일 | 설명 |
+| --- | --- |
+| `src/entities/portfolio/model/types.ts` | CurrencyCode, AssetType, AllocationGroup 등 portfolio 도메인 타입 |
+| `src/entities/portfolio/model/constants.ts` | BASE_CURRENCY_CODE, INVESTMENT_PRESET_ALLOCATIONS 등 portfolio 상수 |
+| `src/entities/portfolio/model/mockPortfolio.ts` | 5종목 mock holdings, mock 목표 비중, mock portfolio summary |
+| `src/entities/portfolio/model/calculatePortfolioSummary.ts` | 총 평가액 및 자산군별 비중 계산 순수 함수 |
+| `src/entities/portfolio/model/calculatePortfolioSummary.test.ts` | calculatePortfolioSummary 6개 테스트 |
+| `src/entities/portfolio/model/calculateAllocationGap.ts` | 목표 비중 차이 및 리밸런싱 액션 계산 순수 함수 |
+| `src/entities/portfolio/model/calculateAllocationGap.test.ts` | calculateAllocationGap 6개 테스트 |
+| `src/entities/portfolio/model/applyInvestmentPreset.ts` | 투자 성향 프리셋 목표 비중 반환 순수 함수 |
+| `src/entities/portfolio/model/applyInvestmentPreset.test.ts` | applyInvestmentPreset 4개 테스트 (3개 프리셋 합계 100%) |
+| `src/entities/portfolio/model/calculateExpectedValue.ts` | 기간별 복리 예상 자산 가치 계산 순수 함수 |
+| `src/entities/portfolio/model/calculateExpectedValue.test.ts` | calculateExpectedValue 6개 테스트 (3/6/12개월) |
+| `src/entities/portfolio/index.ts` | portfolio slice public API |
+| `src/entities/brokerage/model/types.ts` | BrokerageProvider, BrokerageAccount 등 brokerage 도메인 타입 |
+| `src/entities/brokerage/model/constants.ts` | 4개 증권사 BROKERAGE_PROVIDERS, SECURITY_BADGES 상수 |
+| `src/entities/brokerage/model/mockBrokerages.ts` | 연결완료(키움) + 실패(토스) mock 계좌 2개 |
+| `src/entities/brokerage/index.ts` | brokerage slice public API |
+| `src/entities/rebalancing/model/types.ts` | RebalancingAction, RebalancingRecommendationItem 등 rebalancing 타입 |
+| `src/entities/rebalancing/model/constants.ts` | 액션/사유 레이블, 투자 판단 고지 문구 |
+| `src/entities/rebalancing/model/mockRecommendations.ts` | 자산군 추천 3개, 종목 추천 5개, 3/6/12개월 시나리오 mock |
+| `src/entities/rebalancing/index.ts` | rebalancing slice public API |
+
+**수정**
+
+| 파일 | 설명 |
+| --- | --- |
+| `src/entities/index.ts` | 3개 entity slice re-export 추가 |
+| `index.html` | Unit 0 Warning: `<meta>` 태그 들여쓰기 정리 |
+
+#### 구현 내용
+
+- **FSD 레이어 준수**: `entities`는 `shared`만 참조, slice 간 cross-import 없음
+- **순수 계산 함수 4개**: `calculatePortfolioSummary`, `calculateAllocationGap`, `applyInvestmentPreset`, `calculateExpectedValue`
+- **도메인 정책 구현**: 비중 소수점 2자리, 허용 오차 0.5%p, 복리 계산, KRW 기준
+- **mock 데이터**: 총 20,000,000 KRW 포트폴리오 (삼성전자·SK하이닉스·KODEX200·국고채·MMF)
+- **투자 고지 문구**: `REBALANCING_DISCLOSURE`에 포함, mock 추천 데이터에서 참조
+- **타입 안전성**: `any` 미사용, literal union type 기반 상수 참조
+
+#### 테스트 및 검증 결과
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `pnpm test` | ✅ PASS | 6 test files, 29 tests passed (GPT 재보완 후) |
+| `pnpm lint` | ✅ PASS | 오류 없음 |
+| `pnpm typecheck` | ✅ PASS | `tsc -b --noEmit` |
+| `pnpm build` | ✅ PASS | dist 316KB (gzip 100KB) |
+| `git diff --check` | ✅ PASS | whitespace 오류 없음 |
+
+#### 남은 리스크
+
+| 리스크 | 설명 | 대응 |
+| --- | --- | --- |
+| `AllocationGroup` 타입 중복 | rebalancing types.ts에 로컬 타입 선언으로 cross-import 회피함. 구조적 타입 호환은 되지만 공식 공유 타입이 아님 | Unit 5+ 에서 공유 필요성 확인 시 `shared/types`로 이동 검토 |
+| mock 데이터 정합성 | `MOCK_PORTFOLIO_SUMMARY`의 값은 `MOCK_HOLDINGS`를 직접 계산하지 않고 하드코딩됨 | `calculatePortfolioSummary.test.ts`에 정합성 가드 테스트 추가로 방어 |
+| `entities/index.ts` export * | 슬라이스 증가 시 이름 충돌 가능성 | Unit 5+ 에서 슬라이스 추가 시 충돌 여부 모니터링 |
+
+#### 코드 리뷰 반영 내역 (2026-05-27)
+
+| 분류 | 내용 | 처리 |
+| --- | --- | --- |
+| Critical (1차) | `MOCK_REBALANCING_SCENARIOS` 수치가 `calculateExpectedValue` 공식과 불일치 | 수정 완료 (6% 연수익, 2천만 기준 정확한 복리 계산값 적용) |
+| Important (1차) | KODEX 200 `action: 'hold'` vs gapPercent +2.5%p 모순 | `action: 'buy'`로 수정 |
+| Important (1차) | `MOCK_PORTFOLIO_SUMMARY`와 `MOCK_HOLDINGS` 정합성 가드 테스트 미비 | `calculatePortfolioSummary.test.ts`에 정합성 검증 테스트 추가 |
+| Critical (GPT) | 삼성전자 `action: 'hold'` vs gap -4%p 모순 (허용 오차 0.5%p 초과) | `action: 'sell'`, `reasonSummary` 수정 |
+| GPT 보완 지시 | 종목 단위 mock action 정합성 테스트 추가 | `mockRecommendations.test.ts` 신규 생성 (3개 테스트) |
+| GPT 보완 지시 | `index.html` charset meta 태그 들여쓰기 8칸 오류 | 4칸으로 수정 |
+| Suggestion | `AllocationGroup` rebalancing 로컬 재선언 → shared 이동 권장 | 현 상태 유지, Unit 5+ 이후 shared 이동 검토 |
+| Suggestion | `adjustmentAmount` 절댓값 방식 → JSDoc에 규칙 명시 권장 | 리뷰 요청 포인트로 남김 (설계 의도 보존) |
+
+#### 리뷰 요청 포인트 (GPT 검토용)
+
+1. `AllocationGroup` 타입을 rebalancing 슬라이스에서 로컬 재선언한 방식 vs. `shared`로 이동하는 방식의 적합성
+2. `calculateAllocationGap`에서 `adjustmentAmount`를 절댓값으로 계산한 설계 의도가 이후 Unit에서도 적합한지 확인
+3. `entities/index.ts`의 `export *` 방식이 슬라이스 증가 시 충돌 위험을 감수할 만한지
 
 ---
 

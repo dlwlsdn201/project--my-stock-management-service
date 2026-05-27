@@ -2,96 +2,108 @@
 
 ## 0. 문서 목적
 
-이 문서는 Unit 0 완료 후 이어서 착수할 가능성이 높은 Unit 1 작업 후보를 정리한다. Unit 0 리뷰가 PASS 또는 PASS WITH WARNINGS 상태가 된 뒤, 이 내용을 `CURRENT_TASK.md`로 승격한다.
+이 문서는 Unit 1 완료 후 이어서 착수할 가능성이 높은 Unit 2 작업 후보를 정리한다. Unit 1 리뷰가 PASS 또는 PASS WITH WARNINGS 상태가 된 뒤, 이 내용을 `CURRENT_TASK.md`로 승격한다.
 
 ## 1. 다음 작업 후보
 
-Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축
+Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축
 
-목표는 AssetFlow AI MVP의 모든 화면이 공유할 portfolio, brokerage, rebalancing 도메인 타입과 순수 계산 로직을 먼저 고정하는 것이다.
+목표는 AssetFlow AI MVP의 모든 내부 화면이 공유할 앱 레이아웃, 라우팅 구조, 라이트/다크 테마 기반, 공통 UI primitive를 만드는 것이다.
 
 ## 2. 선행 작업과의 연결점
 
-- Unit 0에서 React + TypeScript + 테스트 환경이 정상 구성되어야 한다.
-- Unit 0에서 `src/entities`, `src/shared`, path alias, Vitest setup이 준비되어야 한다.
-- Unit 1은 UI 구현 전 단계이며, 이후 Unit 5~8의 데이터 계산 기준이 된다.
-- Unit 1 결과는 대시보드, 리밸런싱, 포트폴리오 관리, 설정 화면이 모두 참조하는 SSOT가 된다.
+- Unit 0에서 Vite, React Router, Tailwind CSS 기반이 준비됐다.
+- Unit 1에서 portfolio, brokerage, rebalancing 도메인 타입과 mock 데이터가 준비되어야 한다.
+- Unit 2는 실제 기능 화면 구현 전 단계이며, Unit 3~8의 페이지가 공통 레이아웃을 재사용하도록 한다.
+- Unit 2에서 `index.html` 들여쓰기 Warning도 함께 정리할 수 있다.
 
 ## 3. 예상 범위
 
 ### 포함 후보
 
-- PRD의 데이터 모델을 TypeScript 타입으로 변환
-- AssetFlow 도메인 상수 정의
-- mock user, mock brokerage, mock holdings, mock target allocation, mock recommendation 작성
-- 총 자산 가치 계산
-- 자산군별 현재 비중 계산
-- 목표 비중 차이 계산
-- 투자 성향 프리셋 적용
-- 3개월/6개월/12개월 예상 자산 가치 계산
-- 순수 계산 로직 테스트
+- 로그인 레이아웃과 인증 후 앱 레이아웃 분리
+- AppShell, AppSidebar, AppHeader 구조 작성
+- 라우트별 placeholder page slice 작성
+- 라이트/다크 모드 class 또는 data attribute 전환
+- 공통 카드, 버튼, 섹션 헤더, 수치 표시, 빈 상태 컴포넌트 기반 작성
+- 주요 nav item과 active 상태 구현
+- 기본 접근성 속성 추가
 
 ### 제외 후보
 
-- 실제 API Fetcher 구현
-- TanStack Query hook 구현
-- MSW handler 상세 구현
-- 화면 컴포넌트 구현
-- 로그인/온보딩/대시보드 UI 구현
-- Supabase 연동
+- 실제 로그인 폼 구현
+- 증권사 연동 플로우 구현
+- 대시보드 데이터 시각화 구현
+- 리밸런싱 추천 상세 UI 구현
+- 포트폴리오 테이블 구현
+- shadcn/ui 전체 컴포넌트 대량 도입
 
 ## 4. 설계 메모
 
-예상 slice 구조:
+예상 구조:
 
 ```text
-src/entities/portfolio/
-  model/
-    types.ts
-    constants.ts
-    mockPortfolio.ts
-    calculatePortfolioSummary.ts
-    calculateAllocationGap.ts
-    applyInvestmentPreset.ts
-    calculateExpectedValue.ts
+src/pages/login/
   index.ts
+  ui/LoginPage.tsx
 
-src/entities/brokerage/
-  model/
-    types.ts
-    constants.ts
-    mockBrokerages.ts
+src/pages/dashboard/
   index.ts
+  ui/DashboardPage.tsx
 
-src/entities/rebalancing/
-  model/
-    types.ts
-    constants.ts
-    mockRecommendations.ts
+src/pages/onboarding-brokerage/
   index.ts
+  ui/OnboardingBrokeragePage.tsx
+
+src/pages/rebalance/
+  index.ts
+  ui/RebalancePage.tsx
+
+src/pages/portfolio/
+  index.ts
+  ui/PortfolioPage.tsx
+
+src/pages/settings/
+  index.ts
+  ui/SettingsPage.tsx
+
+src/widgets/app-shell/
+  index.ts
+  ui/AppShell.tsx
+
+src/widgets/app-sidebar/
+  index.ts
+  ui/AppSidebar.tsx
+
+src/widgets/app-header/
+  index.ts
+  ui/AppHeader.tsx
+
+src/shared/ui/
+  Button.tsx
+  Surface.tsx
+  MetricValue.tsx
+  EmptyState.tsx
 ```
-
-테스트는 도메인 함수와 같은 위치에 co-location으로 둘 수 있다. 테스트 파일명은 프로젝트 설정에 맞춰 `*.test.ts`를 사용한다.
 
 핵심 정책:
 
-- magic number는 상수로 둔다.
-- 금액과 비중 계산 함수는 순수 함수로 유지한다.
-- 비중은 퍼센트 단위 숫자로 통일한다.
-- 가격 계산은 MVP에서 단순히 `quantity * currentPrice` 기준으로 한다.
-- AI 추천 문구는 mock recommendation 데이터에 포함한다.
+- 화면별 실제 기능 구현은 placeholder 수준으로 유지한다.
+- 공통 레이아웃은 Unit 3~8에서 기능 UI를 얹을 수 있게 여백과 영역만 안정화한다.
+- 테마 토큰은 Unit 0의 CSS variables를 우선 활용한다.
+- 접근성 label과 landmark를 초기에 잡아둔다.
 
 ## 5. 착수 전 결정 필요 사항
 
-1. Unit 0에서 선택한 테스트 파일 위치와 alias 설정이 Unit 1 구조와 충돌하지 않는지 확인한다.
-2. 비중 소수점 반올림 단위를 상수로 정한다.
-3. `CASH`와 `ALTERNATIVE`를 별도 자산군으로 둘지, UI 표시에서 `CASH_AND_ALTERNATIVE`로 합쳐 보여줄지 결정한다.
-4. KRW와 USD 혼합 자산의 환율 처리는 MVP에서 고정 mock 환율을 둘지, 같은 통화로 정규화된 mock 데이터를 사용할지 결정한다.
+1. shadcn/ui CLI를 Unit 2에서 실제로 초기화할지, 자체 최소 shared UI로 먼저 갈지 결정한다.
+2. 테마 상태를 `localStorage`에 저장할지, MVP에서는 현재 세션 상태만 사용할지 결정한다.
+3. 라우트 보호 mock 정책을 Unit 2에서 둘지, Unit 3 인증 플로우에서 둘지 결정한다.
+4. 사이드바 반응형 동작을 Unit 2에서 어디까지 구현할지 결정한다.
 
 ## 6. 예상 검증
 
 ```bash
-pnpm test -- --run
+pnpm test
 ```
 
 ```bash
@@ -100,6 +112,10 @@ pnpm lint
 
 ```bash
 pnpm typecheck
+```
+
+```bash
+pnpm build
 ```
 
 ```bash

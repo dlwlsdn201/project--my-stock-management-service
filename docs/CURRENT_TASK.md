@@ -2,9 +2,9 @@
 
 ## 0. 작업 요약
 
-Unit 0 — AssetFlow AI MVP 구현을 시작하기 위한 React 프로젝트 기반을 구축한다. 현재 저장소는 문서/규칙 중심 상태이므로, Vite 기반 React 19 + TypeScript 앱을 스캐폴딩하고 FSD 디렉토리, 개발 도구, 테스트 도구, mock API 준비 구조를 만든다.
+Unit 1 — AssetFlow AI MVP의 도메인 모델, 상수, mock 데이터, 순수 계산 로직을 SSOT로 구축한다.
 
-이번 Unit은 실제 AssetFlow 기능 화면을 구현하지 않는다. 목표는 이후 Unit 1~8이 안정적으로 구현될 수 있는 실행 가능한 앱 기반을 만드는 것이다.
+이번 Unit은 화면 UI, API fetcher, TanStack Query hook을 구현하지 않는다. 이후 대시보드, 설정, 리밸런싱, 포트폴리오 관리 화면이 모두 같은 타입과 계산 함수를 참조할 수 있도록 `entities` 레이어에 안정적인 도메인 기반을 만든다.
 
 ## 1. 반드시 읽을 문서
 
@@ -14,101 +14,209 @@ Unit 0 — AssetFlow AI MVP 구현을 시작하기 위한 React 프로젝트 기
 - `docs/WORK_LOG.md`
 - `docs/REVIEW_LOG.md`
 - `docs/SESSION_STATE.md`
+- `docs/handoff/unit-1-domain-model-handoff.md`
 - `.rules/project-rules_architecture.mdc`
 - `.rules/project-rules_working.mdc`
 - `.rules/project-rules_naming.mdc`
 - `.rules/project-rules_testing-policy.mdc`
-- `.rules/project-rules_api-error-handling.mdc`
-- `.rules/project-rules_mock-api.mdc`
+- `.rules/project-rules_api-response-interface.mdc`
+- `.rules/project-rules_review.mdc`
 
-## 2. 작업 범위
+## 2. 선행 상태
+
+- Unit 0은 `PASS WITH WARNINGS` 상태로 완료됐다.
+- 현재 앱은 Vite + React 19 + TypeScript 기반이며 `src/entities`, `src/shared`, path alias, Vitest가 준비되어 있다.
+- Unit 0 Warning 중 `index.html` 들여쓰기 정리는 이번 Unit에서 같이 처리해도 된다.
+- shadcn/ui 초기화, MSW service worker 생성, 화면 구현은 이번 Unit 범위가 아니다.
+
+## 3. 작업 범위
 
 ### 포함
 
-- Vite 기반 React 19 + TypeScript 프로젝트 스캐폴딩
-- pnpm 기반 script 구성
-- ESLint, Prettier, TypeScript, Vitest, React Testing Library 설정
-- MSW 사용을 위한 기본 디렉토리와 테스트 setup 준비
-- shadcn/ui 도입을 위한 Tailwind CSS 기반 스타일 환경 준비
-- FSD 기본 디렉토리 생성
-- path alias 설정
-- 최소 앱 엔트리와 기본 라우팅 준비
-- Unit 0 완료 후 Claude Code가 `WORK_LOG.md`, `SESSION_STATE.md` 갱신
+- portfolio, brokerage, rebalancing 도메인 타입 정의
+- 도메인 상수와 프리셋 정의
+- MVP mock 데이터 작성
+- 총 자산 가치 계산
+- 자산군별 현재 비중 계산
+- 목표 비중 차이 계산
+- 투자 성향 프리셋 적용
+- 3개월, 6개월, 12개월 예상 자산 가치 계산
+- 순수 계산 로직 테스트 작성
+- `src/entities/index.ts` public API 갱신
+- 작업 완료 후 `docs/WORK_LOG.md`, `docs/SESSION_STATE.md` 갱신
 
 ### 제외
 
-- 로그인, 온보딩, 대시보드, 리밸런싱, 포트폴리오, 설정 화면 구현
-- 실제 카카오 OAuth 연동
-- 실제 증권사 API 연동
-- Supabase 실제 연동
-- 도메인 모델, mock portfolio data, 계산 로직 구현
-- AGENTS.md 제품 설명 갱신
-- unrelated 변경 되돌리기
+- 실제 API Fetcher 구현
+- TanStack Query hook 구현
+- MSW handler 상세 구현
+- 로그인, 온보딩, 대시보드, 리밸런싱, 설정 UI 구현
+- Supabase 연동
+- 실시간 시세 또는 환율 연동
+- AI 모델 호출 또는 실제 투자 자문 로직
+- 범위 밖 스타일 리팩터링
 
-## 3. 예상 변경 파일
+## 4. 도메인 정책
+
+- 금액 계산은 MVP에서 모두 KRW 기준 mock 데이터로 처리한다. 환율 변환 로직은 만들지 않는다.
+- 보유 자산의 현재 평가액은 `quantity * currentPrice`로 계산한다.
+- 비중은 0~100 사이의 퍼센트 숫자로 통일한다.
+- 비중 반올림은 소수점 2자리로 통일한다.
+- 목표 비중 합계 기준은 100%다.
+- 목표 비중과 현재 비중 차이의 허용 오차는 0.5%p로 둔다.
+- 자산 타입은 `stock`, `etf`, `bond`, `cash`, `alternative`로 둔다.
+- 리밸런싱 비교용 자산군은 `equity`, `bond`, `cash-and-alternative`로 둔다.
+- `stock`과 `etf`는 `equity` 그룹으로 집계한다.
+- `cash`와 `alternative`는 `cash-and-alternative` 그룹으로 집계한다.
+- 투자 성향은 `aggressive`, `balanced`, `defensive` 3종으로 둔다.
+- 예상 자산 가치는 연 기대 수익률을 기간 월수에 맞춰 복리 계산한다.
+- 추천 결과와 mock 문구에는 "투자 판단 보조 정보이며 수익을 보장하지 않는다"는 고지 문구를 포함한다.
+
+## 5. 예상 변경 파일
 
 ### 신규 후보
 
-- `package.json`
-- `pnpm-lock.yaml`
-- `index.html`
-- `vite.config.ts`
-- `vitest.config.ts`
-- `tsconfig.json`
-- `tsconfig.node.json`
-- `eslint.config.js`
-- `.prettierrc`
-- `postcss.config.js`
-- `tailwind.config.ts`
-- `src/main.tsx`
-- `src/apps/App.tsx`
-- `src/apps/router/index.tsx`
-- `src/apps/providers/AppProviders.tsx`
-- `src/apps/styles/index.css`
-- `src/pages/index.ts`
-- `src/widgets/index.ts`
-- `src/features/index.ts`
-- `src/entities/index.ts`
-- `src/shared/index.ts`
-- `src/shared/config/routes.ts`
-- `src/shared/api/mocks/browser.ts`
-- `src/shared/api/mocks/server.ts`
-- `src/shared/api/mocks/handlers.ts`
-- `src/shared/test/setupTests.ts`
-- `src/shared/ui/README.md`
-- `src/shared/lib/README.md`
+- `src/entities/portfolio/model/types.ts`
+- `src/entities/portfolio/model/constants.ts`
+- `src/entities/portfolio/model/mockPortfolio.ts`
+- `src/entities/portfolio/model/calculatePortfolioSummary.ts`
+- `src/entities/portfolio/model/calculatePortfolioSummary.test.ts`
+- `src/entities/portfolio/model/calculateAllocationGap.ts`
+- `src/entities/portfolio/model/calculateAllocationGap.test.ts`
+- `src/entities/portfolio/model/applyInvestmentPreset.ts`
+- `src/entities/portfolio/model/applyInvestmentPreset.test.ts`
+- `src/entities/portfolio/model/calculateExpectedValue.ts`
+- `src/entities/portfolio/model/calculateExpectedValue.test.ts`
+- `src/entities/portfolio/index.ts`
+- `src/entities/brokerage/model/types.ts`
+- `src/entities/brokerage/model/constants.ts`
+- `src/entities/brokerage/model/mockBrokerages.ts`
+- `src/entities/brokerage/index.ts`
+- `src/entities/rebalancing/model/types.ts`
+- `src/entities/rebalancing/model/constants.ts`
+- `src/entities/rebalancing/model/mockRecommendations.ts`
+- `src/entities/rebalancing/index.ts`
+- `docs/handoff/unit-1-domain-model-handoff.md`
 
 ### 수정 후보
 
+- `src/entities/index.ts`
+- `index.html` (Unit 0 Warning 들여쓰기 정리만 허용)
 - `docs/WORK_LOG.md`
 - `docs/SESSION_STATE.md`
-- 필요 시 `.gitignore`
 
-## 4. 구현 규칙
+## 6. 구현 규칙
 
-- 프로젝트 기존 문서 규칙과 `.rules`를 우선한다.
-- 현재 Unit은 기반 구축만 수행한다. 화면/도메인 기능을 앞당겨 구현하지 않는다.
-- PRD의 기술 스택 보완 사항을 반영하되, MVP 첫 스캐폴딩은 SSR 요구가 없으므로 Vite를 사용한다.
-- React 19 기준으로 불필요한 `import React from 'react'`를 추가하지 않는다.
-- 디렉토리는 kebab-case를 사용한다.
-- FSD public API를 고려해 각 레이어에 `index.ts`를 둔다.
-- path alias는 `@apps`, `@pages`, `@widgets`, `@features`, `@entities`, `@shared`를 준비한다.
-- 테스트 setup은 실제 테스트가 하나 이상 실행 가능해야 한다.
-- MSW handler는 빈 배열 또는 health-check용 mock만 둔다. 실제 AssetFlow API mock은 Unit 1 이후 작성한다.
-- `AGENTS.template.md` 삭제 상태는 기존 worktree 변경이므로 되돌리지 않는다.
-- `PRD.mdc`, `docs/PROJECT_GUIDE.md`는 이번 Unit에서 수정하지 않는다.
+- FSD 규칙을 지킨다. `entities`는 `shared`만 참조할 수 있고, `apps`, `pages`, `widgets`, `features`를 참조하지 않는다.
+- 각 entity slice 외부 노출은 해당 slice의 `index.ts`와 `src/entities/index.ts`를 경유한다.
+- slice 내부 파일 간 상대 import는 허용한다.
+- TypeScript 타입에 `any`를 사용하지 않는다.
+- magic number와 magic string은 `constants.ts`에 둔다.
+- 계산 함수는 순수 함수로 작성한다. React hook, 브라우저 API, localStorage, 날짜 현재값 의존성을 넣지 않는다.
+- exported 계산 함수에는 간결한 JSDoc을 작성하고 `@returns`를 포함한다.
+- mock 데이터는 UI가 바로 활용할 수 있을 만큼 충분히 현실적인 값을 가진다.
+- 테스트는 구현 세부가 아니라 입력 대비 결과를 검증한다.
+- 실패 테스트를 먼저 작성하고, 최소 구현으로 통과시킨 뒤 필요한 정리를 한다.
 - 커밋은 사용자가 명시적으로 요청하기 전까지 만들지 않는다.
 
-## 5. 테스트 및 검증
+## 7. 필수 구현 상세
 
-아래 명령을 가능한 범위에서 실행하고 결과를 `WORK_LOG.md`에 기록한다.
+### 7.1 Portfolio
 
-```bash
-pnpm lint
-```
+필수 타입:
+
+- `CurrencyCode`
+- `AssetType`
+- `AllocationGroup`
+- `InvestmentProfile`
+- `HoldingAsset`
+- `TargetAllocation`
+- `AllocationBreakdown`
+- `AllocationGap`
+- `PortfolioSummary`
+- `ExpectedValuePoint`
+
+필수 상수:
+
+- `BASE_CURRENCY_CODE`
+- `TARGET_ALLOCATION_TOTAL_PERCENT`
+- `PERCENT_DECIMAL_PLACES`
+- `ALLOCATION_TOLERANCE_PERCENT`
+- `SIMULATION_PERIOD_MONTHS`
+- `ANNUAL_EXPECTED_RETURN_BY_PROFILE`
+- `INVESTMENT_PRESET_ALLOCATIONS`
+- `ASSET_TYPE_TO_ALLOCATION_GROUP`
+
+필수 함수:
+
+- `calculatePortfolioSummary(holdings: HoldingAsset[]): PortfolioSummary`
+- `calculateAllocationGap(summary: PortfolioSummary, targetAllocation: TargetAllocation): AllocationGap[]`
+- `applyInvestmentPreset(profile: InvestmentProfile): TargetAllocation`
+- `calculateExpectedValue(totalValue: number, annualReturnPercent: number, periodMonths: number[]): ExpectedValuePoint[]`
+
+### 7.2 Brokerage
+
+필수 타입:
+
+- `BrokerageProvider`
+- `BrokerageConnectionStatus`
+- `BrokerageConnectionStep`
+- `BrokerageAccount`
+
+필수 상수:
+
+- `BROKERAGE_PROVIDERS`
+- `BROKERAGE_CONNECTION_STEPS`
+- `SECURITY_BADGES`
+
+필수 mock:
+
+- 키움증권, 토스증권, 미래에셋증권, 삼성증권 mock provider
+- 연결 완료 1개, 연결 대기 또는 실패 상태 1개 이상
+
+### 7.3 Rebalancing
+
+필수 타입:
+
+- `RebalancingAction`
+- `RebalancingReasonCode`
+- `RebalancingRecommendationItem`
+- `RebalancingScenario`
+- `StockActionRecommendation`
+
+필수 상수:
+
+- `REBALANCING_ACTION_LABELS`
+- `REBALANCING_REASON_LABELS`
+- `REBALANCING_DISCLOSURE`
+
+필수 mock:
+
+- 자산군 단위 추천 3개 이상
+- 종목 단위 AI 액션 추천 4개 이상
+- 추천 근거 reason code 3종 이상
+- 3개월, 6개월, 12개월 예상 결과
+
+## 8. 테스트 및 검증
+
+아래 테스트를 최소 포함한다.
+
+- 총 평가액이 `quantity * currentPrice` 합계로 계산된다.
+- 자산군별 비중 합계가 100%에 근접한다.
+- 목표 비중 차이가 `targetPercent - currentPercent`로 계산된다.
+- 허용 오차 이내 차이는 `hold` 액션으로 분류된다.
+- 공격형, 중립형, 방어형 프리셋이 합계 100%의 목표 비중을 반환한다.
+- 예상 자산 가치가 기간별 복리 기대 수익률을 반영한다.
+- 빈 holdings 입력 시 총액 0과 빈 breakdown을 반환한다.
+
+작업 완료 전 아래 명령을 실행하고 결과를 `WORK_LOG.md`에 기록한다.
 
 ```bash
 pnpm test
+```
+
+```bash
+pnpm lint
 ```
 
 ```bash
@@ -123,52 +231,64 @@ pnpm build
 git diff --check
 ```
 
-패키지 설치 또는 dev server 실행이 네트워크/권한 문제로 막히면, 실패 로그와 원인을 `WORK_LOG.md`와 `SESSION_STATE.md`에 기록한다.
+## 12. 재리뷰 결과
 
-## 6. 완료 기준
+2026-05-27 GPT 2차 검증 리뷰 결과: PASS WITH WARNINGS.
 
-- `package.json`에 `dev`, `build`, `lint`, `test`, `typecheck` script가 존재한다.
-- 앱이 Vite 엔트리에서 렌더링 가능한 상태다.
-- FSD 기본 레이어 디렉토리가 존재한다.
-- path alias가 TypeScript와 Vite 설정에 반영되어 있다.
-- Vitest + RTL setup이 동작한다.
-- MSW 기본 구조가 존재한다.
-- Tailwind/shadcn 기반 스타일 준비가 되어 있다.
-- `pnpm lint`, `pnpm test`, `pnpm typecheck`, `pnpm build`, `git diff --check` 결과가 `WORK_LOG.md`에 기록되어 있다.
-- 작업 중단 또는 완료 시 `SESSION_STATE.md`가 최신화되어 있다.
+- C1 resolved: 삼성전자 종목 추천 mock이 `sell` 액션과 비중 초과 설명으로 수정됐다.
+- W1 resolved: `index.html` charset meta 태그 들여쓰기가 정리됐다.
+- 보완 테스트 확인: `src/entities/rebalancing/model/mockRecommendations.test.ts`가 종목별 action 정합성을 검증한다.
+- 남은 Warning: rebalancing 테스트의 허용 오차 상수 중복과 현재 비중 합계 검증 정밀도는 Unit 5 이전 보강 대상으로 남긴다.
 
-## 7. 완료 보고 형식
+Unit 1은 완료로 보고 커밋 및 Unit 2 착수가 가능하다.
+
+## 9. 완료 기준
+
+- 도메인 타입, 상수, mock 데이터가 entity public API로 노출된다.
+- 계산 로직 테스트가 통과한다.
+- `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `git diff --check`가 통과한다.
+- Unit 2~8에서 참조할 수 있는 mock portfolio, brokerage, rebalancing 데이터가 준비된다.
+- `docs/WORK_LOG.md`에 변경 파일, 구현 내용, 검증 결과, 남은 리스크, 리뷰 요청 포인트가 기록된다.
+- `docs/SESSION_STATE.md`가 최신 상태로 갱신된다.
+
+## 10. 완료 보고 형식
 
 Claude Code는 작업 완료 후 `WORK_LOG.md` 상단에 아래 항목을 기록한다.
 
 - 작업 일자
-- 작업 단위명: Unit 0 — 프로젝트 스캐폴딩과 개발 도구 구성
+- 작업 단위명: Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축
 - 작업 브랜치
 - 변경 파일
 - 구현 내용
-- 검증 결과
+- 테스트 및 검증 결과
 - 남은 리스크
 - 리뷰 요청 포인트
 
 `SESSION_STATE.md`에는 현재 브랜치, 마지막 완료 작업, 미완료 작업, 커밋 여부, worktree 주의사항, 다음 액션을 기록한다.
 
-## 8. 리뷰 결과 및 보완 지시
+## 11. 리뷰 결과 및 보완 지시
 
-2026-05-26 GPT 리뷰 결과: NOT PASS.
+2026-05-27 GPT 리뷰 결과: NOT PASS.
 
-아래 Critical 2건을 보완한 뒤 Unit 0 재리뷰를 요청한다.
+아래 Critical 1건을 보완한 뒤 Unit 1 재리뷰를 요청한다.
 
-- `package.json`의 `typecheck` 스크립트가 루트 `tsconfig.json`의 references를 실제로 검증하지 않는다. `tsc -b` 또는 동등하게 `tsconfig.app.json`, `tsconfig.node.json`까지 검증하는 명령으로 수정한다.
-- `src/apps/router/index.tsx`에서 `@shared/config/routes` deep import를 사용하고 있다. `src/shared/index.ts` public API를 경유하도록 `@shared` import로 수정한다.
+- `src/entities/rebalancing/model/mockRecommendations.ts`의 삼성전자 종목 추천 mock이 현재 비중 39%, 목표 비중 35%인데 `action: 'hold'`와 "허용 범위(0.5%p) 내" 설명을 사용한다. Unit 1 정책상 허용 오차는 0.5%p이므로 데이터, 액션, 설명을 일관되게 수정한다.
 
-보완 후 아래 명령을 재실행하고 결과를 `docs/WORK_LOG.md`, `docs/SESSION_STATE.md`에 기록한다.
+보완 범위:
 
-```bash
-pnpm lint
-```
+- 삼성전자 종목 추천의 `action`, `currentWeightPercent`, `targetWeightPercent`, `reasonSummary` 정합성 수정
+- 종목 단위 mock recommendation action 정합성 테스트 추가
+- `index.html` 들여쓰기 정리
+- `docs/WORK_LOG.md`, `docs/SESSION_STATE.md` 갱신
+
+보완 후 아래 명령을 재실행하고 결과를 문서에 기록한다.
 
 ```bash
 pnpm test
+```
+
+```bash
+pnpm lint
 ```
 
 ```bash
@@ -182,14 +302,3 @@ pnpm build
 ```bash
 git diff --check
 ```
-
-## 9. 재리뷰 결과
-
-2026-05-26 GPT 1차 보완 재리뷰 결과: PASS WITH WARNINGS.
-
-- C1 resolved: `package.json`의 `typecheck` 스크립트가 `tsc -b --noEmit`로 변경됐다.
-- C2 resolved: `src/apps/router/index.tsx`가 `@shared` public API 경유 import로 변경됐다.
-- W1 resolved: Vite 기본 favicon 참조가 제거됐다.
-- 남은 Warning: `index.html` 들여쓰기 정리, shadcn/ui 초기화와 Tailwind v4 호환성 검증은 후속 Unit에서 처리한다.
-
-Unit 0은 완료로 보고 Unit 1 착수 문서 승격이 가능하다.

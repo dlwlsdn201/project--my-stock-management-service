@@ -11,6 +11,83 @@
 
 ---
 
+## 2026-05-27 / Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축 (재리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `src/entities/rebalancing/model/mockRecommendations.test.ts:4`에서 `const TOLERANCE_PERCENT = 0.5`를 직접 리터럴로 선언하고 있다. `ALLOCATION_TOLERANCE_PERCENT` 상수가 `entities/portfolio/model/constants.ts`에 이미 존재하지만, entities 간 cross-import 금지 규칙으로 직접 import가 불가능하다. 허용 오차 정책이 바뀔 경우 테스트가 구현과 다른 기준으로 검증하게 된다. Unit 5에서 `ALLOCATION_TOLERANCE_PERCENT`를 `shared`로 이동할 때 함께 처리한다.
+- [W2] `mockRecommendations.test.ts:32`의 `toBeCloseTo(100, 0)` 정밀도가 ±0.5를 허용해 느슨하다. 소수점 비중 값이 추가될 때 잘못된 데이터가 통과할 수 있으므로 정밀도를 1 이상으로 높이는 것이 방어적이다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 6 files / 29 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- C1 (1차 NOT PASS) resolved: 삼성전자 `action: 'sell'`, `reasonSummary` 수정 완료
+- W1 (1차 Warning) resolved: `index.html` charset meta 태그 들여쓰기 4칸으로 정리 완료
+- 종목 단위 action 정합성 테스트 (`mockRecommendations.test.ts`) 추가 완료
+
+### 후속 권장 사항
+
+- Unit 1 커밋 및 Unit 2 착수 가능.
+- `ALLOCATION_TOLERANCE_PERCENT` 상수는 Unit 5 이전에 `shared`로 이동을 검토한다.
+- `mockRecommendations.test.ts`의 현재 비중 합계 검증은 Unit 5 전까지 정밀도를 1 이상으로 높인다.
+- `AllocationGroup` 타입의 rebalancing 로컬 재선언은 Unit 5 착수 전에 `shared` 이동 여부를 재판단한다.
+- `entities/index.ts`의 `export *`는 5개 이상 슬라이스 추가 시 명시 export 전환을 검토한다.
+
+---
+
+## 2026-05-27 / Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축 (1차 리뷰)
+
+### 최종 판단
+
+- NOT PASS
+
+### Critical
+
+- [C1] `src/entities/rebalancing/model/mockRecommendations.ts:38`의 삼성전자 종목 추천 action이 `hold`인데, 같은 항목의 `currentWeightPercent`는 39이고 `targetWeightPercent`는 35라 차이가 -4%p다. Unit 1 정책의 허용 오차는 0.5%p이고, 이미 `calculateAllocationGap`은 허용 오차 초과 과잉을 `sell`로 분류한다. 또한 `reasonSummary`는 "허용 범위(0.5%p) 내"라고 설명해 데이터와 설명이 동시에 모순된다. 이 mock은 이후 포트폴리오 관리 화면의 AI 액션 SSOT가 되므로 보완해야 한다.
+
+### Warning
+
+- [W1] `index.html:4`의 `<meta charset>` 들여쓰기가 여전히 깨져 있다. Unit 0 Warning을 이번 Unit에서 정리했다고 `WORK_LOG.md`에 기록했지만 실제 diff는 정리되지 않았다.
+- [W2] `docs/SESSION_STATE.md:36`은 `pnpm test` 결과를 25 tests로 기록했지만, GPT 재검증 결과는 26 tests였다. `WORK_LOG.md`의 26 tests 기록과 맞추는 것이 좋다.
+- [W3] `calculateAllocationGap`의 `adjustmentAmount`는 절댓값이다. 설계 의도 자체는 수용 가능하지만, 이후 UI에서 매수/매도 방향을 `action`과 함께 해석해야 하므로 JSDoc 또는 타입 주석에 명확히 남기는 것이 좋다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 5 files / 26 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`
+- `git diff --check`: PASS
+
+### 보완 요청
+
+- 삼성전자 종목 추천 mock의 `action`, `currentWeightPercent`, `targetWeightPercent`, `reasonSummary`를 서로 일관되게 수정한다. 현재 39% vs 목표 35%를 유지한다면 `sell` 계열 설명이어야 한다. `hold`를 유지하려면 차이를 0.5%p 이내로 조정해야 한다.
+- 종목 단위 mock recommendation 정합성을 검증하는 테스트를 추가한다. 최소한 `action`이 `currentWeightPercent`와 `targetWeightPercent` 차이, `ALLOCATION_TOLERANCE_PERCENT` 정책과 충돌하지 않는지 검증한다.
+- `index.html` 들여쓰기를 정리한다.
+- `docs/SESSION_STATE.md`, `docs/WORK_LOG.md`의 검증 결과와 남은 리스크를 실제 상태에 맞게 갱신한다.
+
+### 후속 권장 사항
+
+- `AllocationGroup`을 rebalancing slice에 로컬 재선언한 것은 이번 Unit의 blocker로 보지 않는다. 다만 Unit 5 이후 portfolio와 rebalancing이 같은 입력으로 결합될 때 shared 또는 portfolio public type 재사용 여부를 다시 판단한다.
+- `entities/index.ts`의 `export *`는 현재 slice 수와 명명 충돌 상태에서는 수용 가능하다. 타입/상수명이 충돌하기 시작하면 명시 export로 전환한다.
+
+---
+
 ## 2026-05-26 / Unit 0 — 1차 보완 재리뷰
 
 ### 최종 판단
