@@ -14,7 +14,7 @@
 | --- | --- | --- | --- | --- |
 | Unit 0 — 프로젝트 스캐폴딩과 개발 도구 구성 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-26 GPT 재리뷰 통과 |
 | Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-27 GPT 재리뷰 통과 |
-| Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축 | PLANNED | Claude Code | NOT REQUESTED | Unit 0, Unit 1 이후 |
+| Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-28 GPT 3차 리뷰 통과 |
 | Unit 3 — 인증 UI와 mock 로그인 플로우 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 2 이후 |
 | Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 2, Unit 3 이후 |
 | Unit 5 — 수동 자산 입력과 목표 비중 설정 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 2 이후 |
@@ -26,6 +26,113 @@
 | Unit 11 — 최종 검증, 문서 정리, 릴리즈 후보 정리 | PLANNED | Claude Code | NOT REQUESTED | Unit 0~10 이후 |
 
 ## 2. 단위 작업 결과
+
+---
+
+### Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축
+
+- **작업 일자**: 2026-05-28
+- **작업 단위명**: Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축
+- **작업 브랜치**: `main`
+
+#### 변경 파일
+
+**신규 생성**
+
+| 파일 | 설명 |
+| --- | --- |
+| `src/shared/config/navigation.ts` | NAV_ITEMS 배열 (5개 메뉴, NavItem 타입) |
+| `src/shared/config/theme.ts` | Theme 타입, DEFAULT_THEME 상수 |
+| `src/shared/lib/useTheme.ts` | light/dark 토글 훅, documentElement class 적용 |
+| `src/shared/lib/index.ts` | shared/lib 레이어 public API |
+| `src/shared/lib/useTheme.test.ts` | useTheme 훅 3개 테스트 (초기값, dark 적용, 복귀) |
+| `src/shared/ui/Button.tsx` | primary/secondary/ghost variant 버튼 |
+| `src/shared/ui/Surface.tsx` | 카드/패널용 as=section or div 래퍼 |
+| `src/shared/ui/MetricValue.tsx` | label, value, optional description 표시 컴포넌트 |
+| `src/shared/ui/EmptyState.tsx` | title, description, optional action 영역 |
+| `src/shared/ui/index.ts` | shared/ui 레이어 public API |
+| `src/widgets/app-header/ui/AppHeader.tsx` | 페이지 title, 설명, 테마 토글 버튼 포함 헤더 |
+| `src/widgets/app-header/ui/AppHeader.test.tsx` | AppHeader 5개 테스트 (title, description, aria-pressed, toggle) |
+| `src/widgets/app-header/index.ts` | app-header slice public API |
+| `src/widgets/app-sidebar/ui/AppSidebar.tsx` | 5개 nav link, useLocation으로 aria-current 적용 |
+| `src/widgets/app-sidebar/ui/AppSidebar.test.tsx` | AppSidebar 4개 테스트 (렌더링, active, inactive, 경로 변경) |
+| `src/widgets/app-sidebar/index.ts` | app-sidebar slice public API |
+| `src/widgets/app-shell/ui/AppShell.tsx` | skip link, header/sidebar slot, main#main-content 레이아웃 (slot 패턴, sibling import 없음) |
+| `src/widgets/app-shell/index.ts` | app-shell slice public API |
+| `src/pages/login/ui/LoginPage.tsx` | 로그인 placeholder |
+| `src/pages/login/index.ts` | login slice public API |
+| `src/pages/dashboard/ui/DashboardPage.tsx` | 대시보드 placeholder |
+| `src/pages/dashboard/index.ts` | dashboard slice public API |
+| `src/pages/onboarding-brokerage/ui/OnboardingBrokeragePage.tsx` | 증권사 연동 placeholder |
+| `src/pages/onboarding-brokerage/index.ts` | onboarding-brokerage slice public API |
+| `src/pages/rebalance/ui/RebalancePage.tsx` | 리밸런싱 placeholder |
+| `src/pages/rebalance/index.ts` | rebalance slice public API |
+| `src/pages/portfolio/ui/PortfolioPage.tsx` | 포트폴리오 placeholder |
+| `src/pages/portfolio/index.ts` | portfolio slice public API |
+| `src/pages/settings/ui/SettingsPage.tsx` | 설정 placeholder |
+| `src/pages/settings/index.ts` | settings slice public API |
+| `src/apps/router/router.test.tsx` | 라우터 통합 테스트 6개 (/ redirect, login, main landmark, nav, aria-current) |
+
+**수정**
+
+| 파일 | 설명 |
+| --- | --- |
+| `src/shared/index.ts` | navigation, theme, lib, ui re-export 추가 |
+| `src/widgets/index.ts` | app-header, app-shell, app-sidebar re-export 추가 |
+| `src/pages/index.ts` | 6개 page slice re-export 추가 |
+| `src/apps/router/index.tsx` | inline placeholder → page slice + AppShell 레이아웃 조합 구조로 전환 |
+
+#### 구현 내용
+
+- **라우팅**: `/` → `/login` redirect, `/login` 단독 레이아웃, 5개 내부 화면은 AppShell children로 렌더링
+- **AppShell**: 접근성 skip link("본문으로 건너뛰기"), AppHeader + AppSidebar + `<main id="main-content">` 조합
+- **AppSidebar**: useLocation 기반 active 감지, aria-current="page" 적용, max-lg 수평 배치
+- **AppHeader**: title + optional description + 테마 토글 버튼 (aria-pressed, 텍스트 레이블)
+- **useTheme**: useState(light) + useEffect → documentElement.classList.toggle('dark')
+- **Shared UI**: Button(3 variant), Surface(as prop), MetricValue, EmptyState — 모두 className override 지원
+- **FSD 레이어 준수**: shared ← widgets ← pages ← apps/router 방향 유지; @shared/*, @widgets/* 경유 import
+
+#### 테스트 및 검증 결과 (초기 구현)
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `pnpm test` | ✅ PASS | 10 test files, 46 tests passed |
+| `pnpm lint` | ✅ PASS | 오류 없음 |
+| `pnpm typecheck` | ✅ PASS | `tsc -b --noEmit` |
+| `pnpm build` | ✅ PASS | dist 322KB (gzip 102KB) |
+| `git diff --check` | ✅ PASS | whitespace 오류 없음 |
+
+#### GPT Critical 보완 내역 (2026-05-28)
+
+| 분류 | 내용 | 처리 |
+| --- | --- | --- |
+| C1 | AppShell이 sibling widget(app-header, app-sidebar)을 직접 import — FSD 위반 | AppShell을 slot 패턴(header/sidebar/children)으로 변경; AppShellLayout.tsx 분리; useTheme+AppHeader+AppSidebar 조합을 apps/router로 이동 |
+| C2 | 외부 레이어에서 `@shared/config/*`, `@shared/lib/useTheme` deep import | widgets는 `@shared` 공개 API 경유로 수정; shared 내부는 상대 경로(`../config/theme`) 사용 |
+| C3 | router.test.tsx가 실제 APP_ROUTES 미사용, `/` redirect 테스트 누락 | APP_ROUTES를 routes.config.tsx로 분리 export; router.test.tsx에서 import 재사용; `/` → `/login` redirect 테스트 추가 |
+| W1 | PAGE_TITLES가 navigation.ts와 분리 — SSOT 위반 | NavItem에 description 필드 추가; NAV_ITEMS에 통합; AppShellLayout에서 navItem 조회로 대체 |
+| W2 | React 컴포넌트가 function 선언 — 프로젝트 규칙 위반 | 모든 컴포넌트를 화살표 함수 패턴으로 변환 |
+
+#### 테스트 및 검증 결과 (GPT Critical 보완 후)
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `pnpm test` | ✅ PASS | 10 test files, 47 tests passed (redirect 테스트 +1) |
+| `pnpm lint` | ✅ PASS | 오류/경고 없음 |
+| `pnpm typecheck` | ✅ PASS | `tsc -b --noEmit` |
+| `pnpm build` | ✅ PASS | dist 322KB (gzip 102KB) |
+| `git diff --check` | ✅ PASS | whitespace 오류 없음 |
+
+#### 남은 리스크
+
+| 리스크 | 설명 | 대응 |
+| --- | --- | --- |
+| 반응형 사이드바 | max-lg CSS 처리만 있고 실제 모바일 overflow 테스트 미검증 | Unit 10 반응형 보강 단계에서 처리 |
+| theme persistence 미구현 | localStorage 저장 미포함 (Unit 2 의도적 제외) | Unit 3 또는 Unit 5에서 sessionStorage/localStorage 도입 검토 |
+
+#### 리뷰 요청 포인트
+
+- `useTheme`가 AppShellLayout에 직접 들어있어 layout이 theme state를 소유하는 구조 — Unit 3 인증 컨텍스트 추가 시 theme provider 분리 필요 여부
+- router.test.tsx가 `createMemoryRouter`로 실제 page 컴포넌트를 마운트하는 통합 방식 — 향후 테스트 속도 관리 여부
 
 ---
 

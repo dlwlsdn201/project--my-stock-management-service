@@ -11,6 +11,118 @@
 
 ---
 
+## 2026-05-28 / Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축 (4차 재리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `docs/WORK_LOG.md:74`에서 `src/apps/router/router.test.tsx` 설명이 아직 "라우터 통합 테스트 5개"로 남아 있다. 현재 실제 테스트는 6개(`/` redirect 케이스 포함)이므로 문서 수치를 최신 상태로 맞추는 것이 좋다.
+- [W2] `src/apps/router/AppShellLayout.tsx:13`은 `routePath === item.path` 직접 일치 매핑만 사용한다. 현재 flat route에서는 문제 없지만, 하위 경로가 추가되면 title/description 조회 누락 가능성이 있다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 10 files / 47 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 121 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- 이전 Critical(C1, C2, C3)는 유지 해소 상태로 확인됨.
+- AppShell slot 패턴, shared public API 경유, `APP_ROUTES` 재사용 + `/` redirect 테스트가 코드와 테스트 결과에서 확인됨.
+
+### 후속 권장 사항
+
+- Unit 2 커밋/푸시 진행 가능.
+- Unit 3 착수 전 `WORK_LOG.md`의 테스트 개수 표기를 실제 값(6개)으로 정리한다.
+
+---
+
+## 2026-05-28 / Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축 (3차 재리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `src/apps/router/AppShellLayout.tsx:13`에서 `routePath` 기반으로 `NAV_ITEMS.find`를 수행해 title/description을 조회한다. 현재 라우트는 flat 구조라 문제 없지만, 향후 child route(`'/dashboard/...'`)가 추가되면 직접 일치 비교만으로는 메타 매핑이 누락될 수 있다. `pathname` 기반 prefix 매칭 또는 route meta SSOT를 별도 구성하면 확장성이 좋아진다.
+- [W2] `docs/WORK_LOG.md`의 Unit 2 "신규 생성 파일" 설명에 `src/widgets/app-shell/ui/AppShell.tsx`를 여전히 "AppHeader, AppSidebar 조합"으로 서술하고 있다. 실제 구현은 slot 패턴으로 변경되었으므로 문서 설명을 최신 구조와 맞추는 것이 좋다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 10 files / 47 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 121 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- C1 resolved: `AppShell`에서 sibling widget 직접 import 제거, slot 패턴으로 전환됨 (`src/widgets/app-shell/ui/AppShell.tsx`)
+- C2 resolved: widgets 외부에서 shared deep import 제거, `@shared` public API 및 shared 내부 상대 경로로 정리됨 (`src/widgets/app-header/ui/AppHeader.tsx`, `src/widgets/app-sidebar/ui/AppSidebar.tsx`, `src/shared/lib/useTheme.ts`)
+- C3 resolved: `APP_ROUTES` 분리 후 라우터 테스트에서 동일 config 재사용, `/` → `/login` redirect 테스트 추가됨 (`src/apps/router/routes.config.tsx`, `src/apps/router/router.test.tsx`)
+
+### 후속 권장 사항
+
+- Unit 2 커밋/푸시 진행 가능.
+- Unit 3 착수 전 `WORK_LOG.md`의 Unit 2 파일 설명을 실제 slot 기반 구조로 정리한다.
+- Unit 3 또는 Unit 10에서 라우트 메타 매핑 전략(직접 일치 vs prefix/route meta)을 확정한다.
+
+---
+
+## 2026-05-28 / Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축 (재검증)
+
+### 최종 판단
+
+- NOT PASS
+
+### Critical
+
+- [C1] `src/widgets/app-shell/ui/AppShell.tsx:2-4`가 `@shared/lib/useTheme`, `@widgets/app-header`, `@widgets/app-sidebar`를 직접 import한다. `CURRENT_TASK.md`는 `widgets/*`가 entities/shared만 import해야 한다고 명시했고, `.rules/project-rules_architecture.mdc`도 같은 레이어 cross-import를 금지한다. `AppShell`은 app-header/app-sidebar sibling widget slice를 직접 조합하지 말고, `apps/router` 또는 app 레벨 layout에서 `AppShell`, `AppHeader`, `AppSidebar`, `useTheme`를 조합하도록 재구성해야 한다.
+- [C2] `src/widgets/app-sidebar/ui/AppSidebar.tsx:2`, `src/widgets/app-sidebar/ui/AppSidebar.test.tsx:4`, `src/widgets/app-header/ui/AppHeader.tsx:1`, `src/shared/lib/useTheme.ts:2`가 public API를 우회해 `@shared/config/*` 또는 `@shared/lib/useTheme` 내부 경로를 직접 참조한다. `src/shared/index.ts`와 `src/shared/lib/index.ts`가 이미 export를 제공하므로 외부 레이어는 `@shared` 또는 segment public API를 경유해야 한다. shared 내부 참조는 상대 경로로 정리한다.
+- [C3] `src/apps/router/router.test.tsx:9-24`가 실제 `AppRouter` 라우트 정의를 검증하지 않고 별도 `createMemoryRouter` 구성을 재작성한다. 특히 `CURRENT_TASK.md`의 최소 테스트 항목인 `/` 진입 시 `/login` redirect 검증이 없고, 테스트 라우트의 `/`는 `element: null`이라 실제 redirect 요구사항을 방어하지 못한다. 실제 route config를 재사용할 수 있게 분리하고 `/` redirect 테스트를 추가해야 한다.
+
+### Warning
+
+- [W1] `src/apps/router/index.tsx:11-17`의 `PAGE_TITLES`가 `src/shared/config/navigation.ts`의 navigation label/path와 분리되어 있다. Unit 2 지시의 "필요한 label/config는 navigation.ts에 둔다" 기준과 SSOT 원칙을 고려하면 title/description 같은 route meta도 navigation config로 통합하는 편이 안전하다.
+- [W2] `src/widgets/app-header/ui/AppHeader.tsx:10`, `src/widgets/app-sidebar/ui/AppSidebar.tsx:4`, `src/widgets/app-sidebar/ui/AppSidebar.tsx:23`, `src/widgets/app-shell/ui/AppShell.tsx:12` 등 React 컴포넌트가 `function` 선언으로 작성되어 있다. 프로젝트 네이밍 규칙은 React 컴포넌트는 화살표 함수가 필수라고 명시하므로 보완 시 함께 정리한다.
+- [W3] `docs/WORK_LOG.md`와 `docs/SESSION_STATE.md`는 아직 Unit 2 리뷰 상태를 `NOT REQUESTED` 또는 `GPT 리뷰 대기`로 기록하고 있다. 보완 완료 후 Claude Code가 실제 리뷰 상태와 검증 결과로 갱신해야 한다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 10 files / 46 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 119 modules transformed
+- `git diff --check`: PASS
+
+### 보완 요청
+
+- `AppShell`이 sibling widget slice를 import하지 않도록 구조를 변경한다. 권장안: `AppShell`은 skip link, shell frame, `main#main-content`, `header`/`sidebar` slot만 담당하고, `apps/router`의 layout 컴포넌트가 `useTheme`, `AppHeader`, `AppSidebar`, page outlet을 조합한다.
+- shared public API 위반을 정리한다. 외부 레이어는 `@shared` 또는 공개 segment index만 사용하고, shared 내부 파일끼리는 상대 경로를 사용한다.
+- 실제 라우트 정의를 테스트에서 재사용할 수 있게 `APP_ROUTES` 또는 router factory를 분리한 뒤, `/` -> `/login` redirect를 테스트로 추가한다.
+- 보완 후 `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `git diff --check`를 다시 실행하고 `WORK_LOG.md`, `SESSION_STATE.md`를 갱신한다.
+
+### 후속 권장 사항
+
+- route title/description은 `NAV_ITEMS` 또는 별도 `ROUTE_META`로 navigation config에 통합한다.
+- React 컴포넌트 선언은 프로젝트 규칙에 맞게 `export const ComponentName = (...) =>` 패턴으로 정리한다.
+
+---
+
 ## 2026-05-27 / Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축 (재리뷰)
 
 ### 최종 판단
