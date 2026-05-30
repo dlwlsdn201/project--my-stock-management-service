@@ -11,6 +11,60 @@
 
 ---
 
+## 2026-05-30 / Unit 3 — 인증 UI와 mock 로그인 플로우 구현 (1차 리뷰 보완 완료)
+
+### 보완 완료 사항
+
+- `feature/unit3-auth-login` 브랜치를 `main`에 머지
+- `src/entities/session`, `src/features/auth-login` 전체 구현 완료
+- `LoginSuccessResult` 및 `MockAccount`에 `aiTrialRemainingCount: number` 필드 추가
+- `DEFAULT_AI_TRIAL_COUNT = 3` 상수 추가
+- MOCK_ACCOUNTS: 신규 사용자 `aiTrialRemainingCount: 3`, 기존 사용자 `aiTrialRemainingCount: 1`
+- 54 tests / 11 files PASS (워크스페이스 기준 재검증 완료)
+- **2차 리뷰 요청 필요**
+
+---
+
+## 2026-05-28 / Unit 3 — 인증 UI와 mock 로그인 플로우 구현 (1차 리뷰)
+
+### 최종 판단
+
+- NOT PASS
+
+### Critical
+
+- [C1] Unit 3 구현물이 현재 워크스페이스에 존재하지 않는다. `src/entities/session`, `src/features/auth-login` 경로가 없고, `src/entities/index.ts`도 session slice를 export하지 않는다. 따라서 mock 인증 타입, mock login 함수, 신규/기존 사용자 분기, AI 무료 제안 기본 횟수 정책을 검증할 수 없다.
+- [C2] `src/pages/login/ui/LoginPage.tsx`가 여전히 Unit 2 placeholder 상태다. 현재 화면은 비활성화된 `로그인 (준비 중)` 버튼만 렌더링하며, PRD/Unit 3 요구사항인 5:5 분할 레이아웃, 이메일/비밀번호 로그인 폼, 카카오 mock 로그인 버튼, 보안/투자 고지 문구를 충족하지 않는다.
+- [C3] Unit 3 테스트가 없다. 요청된 `features/auth-login/ui/LoginForm.test.tsx`와 로그인 7개 핵심 케이스가 현재 테스트 목록에 포함되지 않았고, 실제 `pnpm test` 결과도 10 files / 47 tests로 Unit 2 상태와 동일하다. 사용자가 전달한 "54 tests, 11 files" 검증 결과와 현재 워크스페이스 상태가 일치하지 않는다.
+
+### Warning
+
+- [W1] `docs/WORK_LOG.md`와 `docs/SESSION_STATE.md`에 Unit 3 작업 완료 결과가 기록되어 있지 않다. 현재 문서상 Unit 3은 여전히 `PLANNED / NOT REQUESTED` 상태다.
+- [W2] 현재 `git status --short`에는 `PRD.mdc`, `docs/PROJECT_GUIDE.md`, `docs/CURRENT_TASK.md` 등 문서 변경만 보이며, Unit 3 코드 변경 파일은 확인되지 않는다. Claude Code가 다른 브랜치 또는 다른 worktree에 작업했을 가능성이 있다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 10 files / 47 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 121 modules transformed
+- `git diff --check`: PASS
+
+### 보완 요청
+
+- Claude Code가 실제 작업한 브랜치 또는 worktree가 현재 워크스페이스에 반영되어 있는지 먼저 확인한다.
+- 현재 워크스페이스 기준으로 Unit 3 구현 파일을 추가한다: `src/entities/session`, `src/features/auth-login`, `src/pages/login/ui/LoginPage.tsx` 업데이트, 관련 public API 갱신.
+- 신규 사용자 session mock에 `aiTrialRemainingCount: 3` 또는 동등한 무료 제안 횟수 필드를 포함한다.
+- 로그인 테스트 7개를 추가하고, 검증 결과가 실제로 11 files / 54 tests 수준으로 증가하는지 확인한다.
+- 보완 후 `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `git diff --check`를 다시 실행하고 `WORK_LOG.md`, `SESSION_STATE.md`를 갱신한다.
+
+### 후속 권장 사항
+
+- 코드 리뷰 요청 시 붙여넣은 코드가 아니라 현재 워크스페이스 파일 상태를 기준으로 재요청한다.
+- 작업 브랜치가 분리되어 있다면 해당 브랜치를 현재 작업 디렉터리에 checkout 또는 merge한 뒤 재리뷰를 요청한다.
+
+---
+
 ## 2026-05-28 / Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축 (4차 재리뷰)
 
 ### 최종 판단
