@@ -1,3 +1,57 @@
+---
+
+## Unit 3 — 인증 UI와 mock 로그인 플로우 구현
+
+- 작업 일자: 2026-05-28
+- 작업 브랜치: feature/unit3-auth-login
+
+### 변경 파일
+
+신규:
+- src/entities/session/model/types.ts
+- src/entities/session/model/constants.ts
+- src/entities/session/model/mockSession.ts
+- src/entities/session/api/login.ts
+- src/entities/session/index.ts
+- src/features/auth-login/ui/LoginForm.tsx
+- src/features/auth-login/ui/LoginForm.test.tsx
+- src/features/auth-login/index.ts
+
+수정:
+- src/entities/index.ts (session export 추가)
+- src/features/index.ts (auth-login export 추가)
+- src/pages/login/ui/LoginPage.tsx (5:5 레이아웃 + LoginForm 조합)
+
+### 구현 내용
+
+- `entities/session` 슬라이스: UserStatus/LoginResult discriminated union, MockAccount 타입, LOGIN_ERROR_MESSAGES 상수, MOCK_ACCOUNTS fixture (신규/기존 사용자), loginWithEmail/loginWithKakao in-memory 순수 async 함수
+- `features/auth-login/LoginForm`: RHF native validate + zod safeParse 조합 (resolvers 없음), useNavigate 라우팅 분기, 별도 isKakaoLoading 상태, isFormDisabled 동시 제출 방지, role="alert" 접근성
+- `pages/login/LoginPage`: flex min-h-screen 5:5 분할 레이아웃, 브랜딩 패널(h1, 특징 목록, 투자 고지), 폼 패널(LoginForm, 보안 안내)
+
+### 테스트 및 검증 결과
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (53 tests, 11 files) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (139 modules) |
+| `git diff --check` | ✅ PASS |
+
+### 남은 리스크
+
+- mock 계정 credentials이 소스 코드에 노출됨 (MVP 범위 내 의도적 결정)
+- route guard 미구현: 인증 없이 /dashboard 직접 접근 가능 (Unit 4 이후 처리)
+- loginWithKakao는 항상 기존 사용자 반환 (신규 카카오 사용자 시나리오 미지원)
+
+### GPT 리뷰 요청 포인트
+
+1. entities/session public API 범위 적절성 (MOCK_ACCOUNTS fixture 외부 노출 여부)
+2. loginWithKakao가 항상 'existing' 반환하는 것이 Unit 3 범위 내 적합한지
+3. LoginForm에서 useNavigate 직접 사용 vs onLoginSuccess prop 패턴 선택 근거
+
+---
+
 # Work Log — 작업 결과 로그
 
 ## 0. 운영 규칙
