@@ -11,6 +11,76 @@
 
 ---
 
+## 2026-05-31 / Unit 5 — 설정: 수동 자산·목표 비중·AI 모델/API Key UI 구현 (2차 리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `src/features/settings-portfolio/ui/AiSettingsSection.tsx`의 API key는 여전히 컴포넌트 로컬 상태만 사용한다. Unit 6 이전에 저장 범위(세션/로컬/서버)와 보안 정책(암호화/전송/폐기)을 `PRD.mdc`, `PROJECT_GUIDE.md`와 함께 SSOT로 확정해야 한다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 13 files / 69 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 158 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- 기존 Warning [W2] 해소 확인: `src/shared/ui/FieldMessage.tsx` 도입으로 에러 메시지의 `role="alert"` 기준이 컴포넌트 단에서 통일됨.
+- Unit 5 기능(수동 자산 CRUD, 목표 비중 조정/프리셋, AI 모델/API key 설정)과 테스트(`SettingsPortfolioPanel.test.tsx` 9개) 정상 동작 확인.
+
+### 후속 권장 사항
+
+- Unit 5는 커밋/푸시 진행 가능.
+- Unit 6 착수 시 API key 저장/보안 정책 결정을 먼저 문서화하고 구현에 반영한다.
+
+---
+
+## 2026-05-31 / Unit 5 — 설정: 수동 자산·목표 비중·AI 모델/API Key UI 구현 (1차 리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `src/features/settings-portfolio/ui/AiSettingsSection.tsx`는 API Key를 UI 로컬 상태 기준으로만 관리한다. Unit 6~7 착수 전에 저장 위치(메모리/스토리지/서버), 마스킹 정책, 삭제 정책을 `PROJECT_GUIDE.md`와 구현 기준으로 SSOT 고정이 필요하다.
+- [W2] `src/features/settings-portfolio/ui/*` 섹션 간 에러/상태 안내 텍스트의 접근성 표기(`role="alert"` 적용 기준)가 완전히 통일되지는 않았다. 다음 보완 시 에러 메시지 컴포넌트 기준을 통일하는 것이 좋다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 13 files / 69 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 158 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- Unit 5 범위 구현 확인: 수동 자산 CRUD, 목표 비중 및 투자성향 프리셋, AI 모델 선택 + API Key 마스킹/저장/삭제 UI
+- 관련 테스트 확인: `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` (9 tests)
+- 설정 페이지 연결 확인: `src/pages/settings/ui/SettingsPage.tsx`
+
+### 후속 권장 사항
+
+- Unit 5는 커밋/푸시 진행 가능.
+- Unit 6 착수 전 API Key 저장/보안 정책을 문서와 코드 기준으로 확정한다.
+
+---
+
 ## 2026-05-31 / Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현 (1차 리뷰)
 
 ### 최종 판단

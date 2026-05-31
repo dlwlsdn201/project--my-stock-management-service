@@ -1,5 +1,71 @@
 ---
 
+## Unit 5 — 수동 자산 입력과 목표 비중 설정 구현
+
+- 작업 일자: 2026-05-31
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- src/features/settings-portfolio/model/types.ts
+- src/features/settings-portfolio/model/constants.ts
+- src/features/settings-portfolio/ui/ManualAssetsSection.tsx
+- src/features/settings-portfolio/ui/TargetAllocationSection.tsx
+- src/features/settings-portfolio/ui/AiSettingsSection.tsx
+- src/features/settings-portfolio/ui/SettingsPortfolioPanel.tsx
+- src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx
+- src/features/settings-portfolio/index.ts
+- src/shared/ui/FieldMessage.tsx (리뷰 W2 보완: 공통 피드백 메시지 프리미티브)
+
+수정:
+- src/pages/settings/ui/SettingsPage.tsx (placeholder → SettingsPortfolioPanel 조합)
+- src/features/index.ts (settings-portfolio export 추가)
+- src/shared/ui/index.ts (FieldMessage export 추가)
+
+### 구현 내용
+
+- `features/settings-portfolio`를 3개 독립 섹션으로 분리(상태 비공유, 각 섹션 local state 소유):
+  - `ManualAssetsSection`: 티커/종목명/수량/평균단가 추가 폼, 필수값 검증, 목록 렌더링, 편집/삭제 CRUD
+  - `TargetAllocationSection`: 주식/채권/현금 및 기타 비중 입력, 합계 100% 검증, 공격형/중립형/방어형 프리셋(Unit 1 `applyInvestmentPreset`·`INVESTMENT_PRESET_ALLOCATIONS` SSOT 재사용)
+  - `AiSettingsSection`: GPT/Gemini/Claude 라디오 선택, API key 입력·저장·수정·삭제, 마스킹 표시(끝 4자리만 노출), 미설정/연동됨/오류 상태 텍스트
+- feature-local `model/constants.ts`·`model/types.ts`: AI 모델 옵션, API key 상태 라벨, 자산군/프리셋 라벨 등 매직 스트링을 상수로 분리
+- `pages/settings`: AppShell 내부에서 패널 렌더링
+- 접근성: form/section `aria-label`, 비중 입력 `aria-label`, API key 상태를 색상이 아닌 텍스트로 전달, 오류 `role="alert"`
+
+### 테스트 및 검증 결과
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (69 tests, 13 files) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (158 modules) |
+| `git diff --check` | ✅ PASS |
+
+### 코드 리뷰 반영 내역 (2026-05-31, Unit 5 1차 리뷰 PASS WITH WARNINGS)
+
+| 분류 | 내용 | 처리 |
+| --- | --- | --- |
+| Warning W2 | 섹션 간 에러/상태 텍스트의 `role="alert"` 적용 기준 불일치 | `shared/ui/FieldMessage` 프리미티브 신설(tone: error→role="alert", info→일반 텍스트). 3개 섹션의 인라인 에러/검증 메시지를 모두 FieldMessage로 통일. AI 상태값에 `aria-live="polite"` 추가 |
+| Warning W1 | API key 저장 위치/마스킹/삭제 정책 SSOT 미고정 | 후속 처리 — Unit 6 착수 전 `PROJECT_GUIDE.md`에 정책 확정 (SESSION_STATE 미완료 작업 등록) |
+
+### 남은 리스크
+
+- 수동 자산·설정 값이 컴포넌트 local state에만 존재 — 페이지 이탈 시 소실 (Unit 9 persistence에서 처리)
+- API key 오류 상태는 길이(최소 8자) 기준 mock 검증 — 실제 유효성 네트워크 검증은 범위 외(Unit 9)
+- 목표 비중은 합계 검증만 제공하고 자동 보정은 미구현 (의도적 선택)
+- 수동 자산과 목표 비중·진단 연계(계산 반영)는 Unit 6 대시보드/Unit 7에서 통합
+
+### GPT 리뷰 요청 포인트
+
+1. AI 모델/API key 개념을 `entities/settings` 슬라이스 대신 feature-local `model/`에 둔 결정의 적절성
+2. 패널을 3개 섹션으로 분리하고 각 섹션이 독립 local state를 소유한 구조
+3. 수동 자산 폼을 RHF 대신 useState 기반으로 구현한 선택(편집 in-place 제어 목적)
+4. API key 오류 트리거를 길이 기준 mock 검증으로 둔 방식
+
+---
+
 ## Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현
 
 - 작업 일자: 2026-05-31
@@ -121,8 +187,8 @@
 | Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-27 GPT 재리뷰 통과 |
 | Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-28 GPT 3차 리뷰 통과 |
 | Unit 3 — 인증 UI와 mock 로그인 플로우 구현 | DONE | Claude Code | 완료 | 2026-05-28 main 병합 완료 |
-| Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현 | DONE | Claude Code | NOT REQUESTED | 2026-05-31 구현 완료, GPT 리뷰 대기 |
-| Unit 5 — 수동 자산 입력과 목표 비중 설정 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 2 이후 |
+| Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현 | DONE | Claude Code | 완료 | 2026-05-31 main 병합 완료 |
+| Unit 5 — 수동 자산 입력과 목표 비중 설정 구현 | DONE | Claude Code | NOT REQUESTED | 2026-05-31 구현 완료, GPT 리뷰 대기 |
 | Unit 6 — 포트폴리오 대시보드 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 2, Unit 5 이후 |
 | Unit 7 — AI 리밸런싱 제안 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 5, Unit 6 이후 |
 | Unit 8 — 주식 포트폴리오 관리 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 5, Unit 7 이후 |
