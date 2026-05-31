@@ -1,5 +1,56 @@
 ---
 
+## Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현
+
+- 작업 일자: 2026-05-31
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- src/entities/brokerage/api/connectBrokerage.ts
+- src/features/brokerage-onboarding/ui/BrokerageOnboardingPanel.tsx
+- src/features/brokerage-onboarding/ui/BrokerageOnboardingPanel.test.tsx
+- src/features/brokerage-onboarding/index.ts
+
+수정:
+- src/entities/brokerage/model/types.ts (ConnectBrokerageResult 추가)
+- src/entities/brokerage/model/constants.ts (BROKERAGE_ONBOARDING_STEPS, BROKERAGE_CONNECTION_ERROR_MESSAGE 추가)
+- src/entities/brokerage/index.ts (connectBrokerage, 신규 타입/상수 export 추가)
+- src/features/index.ts (brokerage-onboarding export 추가)
+- src/pages/onboarding-brokerage/ui/OnboardingBrokeragePage.tsx (placeholder → BrokerageOnboardingPanel 조합)
+
+### 구현 내용
+
+- `entities/brokerage`: `connectBrokerage` in-memory mock async 함수 (Unit 3 `loginWithEmail` 패턴 답습). 토스증권은 항상 실패(인증 토큰 만료 재현), 나머지는 성공. `ConnectBrokerageResult` 타입, 온보딩 3단계 라벨/오류 메시지 상수 추가
+- `features/brokerage-onboarding/BrokerageOnboardingPanel`: 3단계 진행 표시(상태→단계 매핑), 증권사 검색 로컬 필터, 4개 증권사 카드(이름·지원기능·인기 배지·연결 버튼), `idle|connecting|connected|failed` 상태 머신, 성공 시 완료 메시지+대시보드 이동, 실패 시 role="alert" 오류+재시도, `나중에 하기` 대시보드 라우팅, 보안 배지 3종
+- `pages/onboarding-brokerage`: AppShell 내부에서 패널 렌더링
+- 접근성: 단계 `aria-current="step"`, 연결 버튼 `aria-label="{증권사명} 연결하기"`, 상태를 색상이 아닌 텍스트/아이콘으로 전달
+
+### 테스트 및 검증 결과
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (60 tests, 12 files) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (145 modules) |
+| `git diff --check` | ✅ PASS |
+
+### 남은 리스크
+
+- 연결 실패 트리거가 providerId 하드코딩('toss')에 의존 — 실제 API 연동(Unit 9) 시 교체 필요
+- connecting 상태에 인위적 지연이 없어 실제 네트워크 지연 UX는 미검증 (Unit 10 품질 보강에서 처리 검토)
+- route guard 미구현으로 온보딩 우회 가능 (Unit 4 범위 외, 후속 처리)
+
+### GPT 리뷰 요청 포인트
+
+1. mock connect 함수를 `entities/brokerage/api`에 둔 위치 결정의 적절성 (feature 내 배치 대비)
+2. 상태 머신을 `idle|connecting|connected|failed` 단순 enum + 단일 selectedProvider로 관리한 구조
+3. 3단계 진행 표시를 연결 상태에 매핑(STATUS_STEP_INDEX)한 방식의 직관성
+
+---
+
 ## Unit 3 — 인증 UI와 mock 로그인 플로우 구현
 
 - 작업 일자: 2026-05-28
@@ -69,8 +120,8 @@
 | Unit 0 — 프로젝트 스캐폴딩과 개발 도구 구성 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-26 GPT 재리뷰 통과 |
 | Unit 1 — 도메인 모델, 상수, mock 데이터, 계산 로직 SSOT 구축 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-27 GPT 재리뷰 통과 |
 | Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-28 GPT 3차 리뷰 통과 |
-| Unit 3 — 인증 UI와 mock 로그인 플로우 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 2 이후 |
-| Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 2, Unit 3 이후 |
+| Unit 3 — 인증 UI와 mock 로그인 플로우 구현 | DONE | Claude Code | 완료 | 2026-05-28 main 병합 완료 |
+| Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현 | DONE | Claude Code | NOT REQUESTED | 2026-05-31 구현 완료, GPT 리뷰 대기 |
 | Unit 5 — 수동 자산 입력과 목표 비중 설정 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 2 이후 |
 | Unit 6 — 포트폴리오 대시보드 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 2, Unit 5 이후 |
 | Unit 7 — AI 리밸런싱 제안 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 5, Unit 6 이후 |

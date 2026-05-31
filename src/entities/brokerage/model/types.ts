@@ -20,3 +20,9 @@ export interface BrokerageAccount {
   lastSyncedAt?: string;
   errorMessage?: string;
 }
+
+export interface ConnectBrokerageResult {
+  success: boolean;
+  providerId: string;
+  errorMessage?: string;
+}

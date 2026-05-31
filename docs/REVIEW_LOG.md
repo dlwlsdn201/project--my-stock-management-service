@@ -11,6 +11,43 @@
 
 ---
 
+## 2026-05-31 / Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현 (1차 리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `src/features/brokerage-onboarding/ui/BrokerageOnboardingPanel.tsx:181`에서 보안 배지 아이콘으로 `🔒` 이모지를 직접 사용한다. 접근성은 충족하지만 컴포넌트 일관성 관점에서는 아이콘 컴포넌트 또는 텍스트 배지 스타일로 통일하는 편이 유지보수에 유리하다.
+- [W2] `src/entities/brokerage/model/constants.ts:37-39`의 보안 문구가 PRD의 표현(예: `금융보안원 가이드라인 준수`, `데이터 제3자 미제공`)과 다르다. 기능 이슈는 아니지만 제품 문구 SSOT 관점에서 정합성을 맞추는 것이 좋다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 12 files / 60 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 145 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- 온보딩 page placeholder 제거 확인: `src/pages/onboarding-brokerage/ui/OnboardingBrokeragePage.tsx`
+- 증권사 선택/검색/연결 성공/연결 실패/재시도/나중에 하기 플로우 확인: `src/features/brokerage-onboarding/ui/BrokerageOnboardingPanel.tsx`
+- in-memory mock 연결 함수 확인: `src/entities/brokerage/api/connectBrokerage.ts`
+- Unit 4 핵심 테스트 추가 확인: `src/features/brokerage-onboarding/ui/BrokerageOnboardingPanel.test.tsx` (6 tests)
+
+### 후속 권장 사항
+
+- Unit 4는 커밋/푸시 진행 가능.
+- Unit 5 착수 전 보안 배지 문구를 PRD와 맞추는 정리 커밋을 고려한다.
+
+---
+
 ## 2026-05-30 / Unit 3 — 인증 UI와 mock 로그인 플로우 구현 (1차 리뷰 보완 완료)
 
 ### 보완 완료 사항
