@@ -26,7 +26,9 @@ describe('AppRouter routing', () => {
 
   it('renders dashboard page content inside main at /dashboard', () => {
     renderAt('/dashboard');
-    expect(screen.getByRole('main')).toContainElement(screen.getByText('포트폴리오 요약'));
+    expect(screen.getByRole('main')).toContainElement(
+      screen.getByRole('heading', { name: '자산군 비중' }),
+    );
   });
 
   it('renders navigation items at /dashboard', () => {

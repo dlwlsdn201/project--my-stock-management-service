@@ -1,11 +1,8 @@
-import type { AllocationGroup, InvestmentProfile } from '@entities/portfolio';
+import type { InvestmentProfile } from '@entities/portfolio';
 import type { AiModelId, ApiKeyStatus } from './types';
 
-export const ALLOCATION_GROUP_LABELS: Record<AllocationGroup, string> = {
-  equity: '주식',
-  bond: '채권',
-  'cash-and-alternative': '현금 및 기타',
-};
+// 자산군 라벨은 entities/portfolio SSOT를 재노출한다.
+export { ALLOCATION_GROUP_LABELS } from '@entities/portfolio';
 
 export const INVESTMENT_PROFILE_LABELS: Record<InvestmentProfile, string> = {
   aggressive: '공격형',

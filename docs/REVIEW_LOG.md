@@ -11,6 +11,42 @@
 
 ---
 
+## 2026-05-31 / Unit 6 — 포트폴리오 대시보드 구현 (1차 리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `src/features/dashboard-overview/ui/DashboardOverviewPanel.tsx`에서 `formatKrw`, `resolveDirection`, `getHoldingValue`가 컴포넌트 내부 유틸로 존재한다. Unit 7~8에서 동일 계산/표기 로직 재사용 가능성이 높으므로, 중복이 3회 이상 발생하면 `entities/portfolio/model` 또는 `shared/lib`로 승격하는 기준을 미리 `WORK_LOG.md`에 남기는 것이 좋다.
+- [W2] `src/features/dashboard-overview/ui/DashboardOverviewPanel.test.tsx`의 KPI 검증이 기본 mock 값(`20,000,000원`, `상승`)에 고정되어 있다. 현재는 통과 기준으로 충분하지만, 데이터 주입형 테스트 1개(커스텀 `summary`/`previousTotalValue`)를 추가하면 향후 mock 변경 내성을 높일 수 있다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 14 files / 74 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 166 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- `DashboardPage` placeholder 제거 후 `DashboardOverviewPanel` 연결 확인: `src/pages/dashboard/ui/DashboardPage.tsx`
+- Unit 6 요구 섹션 구현 확인: KPI, 자산군 비중, 주요 보유 종목, AI 진단 요약, Empty/Error 상태
+- Unit 6 테스트 5개 추가 확인: `src/features/dashboard-overview/ui/DashboardOverviewPanel.test.tsx`
+
+### 후속 권장 사항
+
+- Unit 6 커밋/푸시 진행 가능.
+- Unit 7 착수 전, 대시보드/리밸런싱 공통 숫자 포맷팅 유틸 재사용 기준을 문서화한다.
+
+---
+
 ## 2026-05-31 / Unit 5 — 설정: 수동 자산·목표 비중·AI 모델/API Key UI 구현 (2차 리뷰)
 
 ### 최종 판단

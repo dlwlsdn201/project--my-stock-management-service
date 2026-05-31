@@ -31,3 +31,9 @@ export const ASSET_TYPE_TO_ALLOCATION_GROUP: Record<AssetType, AllocationGroup> 
 };
 
 export const ALL_ALLOCATION_GROUPS: AllocationGroup[] = ['equity', 'bond', 'cash-and-alternative'];
+
+export const ALLOCATION_GROUP_LABELS: Record<AllocationGroup, string> = {
+  equity: '주식',
+  bond: '채권',
+  'cash-and-alternative': '현금 및 기타',
+};

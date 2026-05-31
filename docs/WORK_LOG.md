@@ -1,5 +1,83 @@
 ---
 
+## Unit 6 — 포트폴리오 대시보드 구현
+
+- 작업 일자: 2026-05-31
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- src/features/dashboard-overview/model/types.ts
+- src/features/dashboard-overview/model/constants.ts
+- src/features/dashboard-overview/ui/DashboardOverviewPanel.tsx
+- src/features/dashboard-overview/ui/DashboardOverviewPanel.test.tsx
+- src/features/dashboard-overview/index.ts
+- src/shared/ui/ErrorState.tsx (에러 상태 공통 프리미티브, role="alert")
+
+수정:
+- src/pages/dashboard/ui/DashboardPage.tsx (placeholder → DashboardOverviewPanel 조합)
+- src/features/index.ts (dashboard-overview export 추가)
+- src/shared/ui/index.ts (ErrorState export 추가)
+- src/entities/portfolio/model/constants.ts (ALLOCATION_GROUP_LABELS 승격)
+- src/entities/portfolio/index.ts (ALLOCATION_GROUP_LABELS export)
+- src/features/settings-portfolio/model/constants.ts (라벨 로컬 정의 → entities 재노출로 SSOT 통일)
+- src/apps/router/router.test.tsx (대시보드 콘텐츠 검증을 신규 UI 기준으로 갱신)
+
+### 구현 내용
+
+- `features/dashboard-overview/DashboardOverviewPanel`: 6개 필수 요소 구현
+  - 총 자산 가치 KPI (`MetricValue` 재사용)
+  - 전일 대비 증감액/증감률 KPI — 상승/하락/보합을 색상 + 텍스트 라벨 + 기호로 동시 표현
+  - 자산군 비중 요약 (`MOCK_PORTFOLIO_SUMMARY.breakdown` 재사용)
+  - 주요 보유 종목 (평가액 = 수량×현재가 상위 `TOP_HOLDINGS_COUNT`개)
+  - AI 포트폴리오 진단 요약 + `REBALANCING_DISCLOSURE` 투자 판단 보조 고지 유지
+  - 빈 데이터(`holdings` empty 또는 `status='empty'`) → `EmptyState`, `status='error'` → `ErrorState`
+- 패널은 props(status/holdings/summary/previousTotalValue/diagnosisSummary)로 상태 주입 가능, 기본값은 Unit 1 mock — 테스트에서 ready/empty/error 분기 검증
+- SSOT 정리: `ALLOCATION_GROUP_LABELS`를 `entities/portfolio`로 승격하고 `settings-portfolio`는 재노출로 전환(중복 제거)
+- 전일 대비 baseline은 대시보드 전용 표시 데이터라 feature-local mock(`MOCK_PREVIOUS_TOTAL_VALUE`)으로 유지
+
+### 테스트 및 검증 결과
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (74 tests, 14 files) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (build 성공) |
+| `git diff --check` | ✅ PASS |
+
+### 유틸 승격 기준 (리뷰 W1 반영)
+
+- `DashboardOverviewPanel`의 `formatKrw`(통화 포맷), `resolveDirection`(증감 방향), `getHoldingValue`(평가액=수량×현재가)는 현재 대시보드 전용 컴포넌트 로컬 유틸로 유지한다.
+- **승격 기준**: 동일 로직이 서로 다른 슬라이스에서 **3회 이상** 필요해지면 아래로 승격한다.
+  - 순수 도메인 계산(`getHoldingValue` 등) → `entities/portfolio/model` (Unit 1 계산 함수 패턴, 테스트 동반)
+  - 표시 포맷(`formatKrw`, 증감 표기 등) → `shared/lib`
+- Unit 7(AI 리밸런싱)·Unit 8(주식 관리)에서 동일 포맷/계산 재사용이 발생하면 이 기준에 따라 즉시 승격한다.
+
+### 코드 리뷰 반영 내역 (2026-05-31, Unit 6 1차 리뷰 PASS WITH WARNINGS)
+
+| 분류 | 내용 | 처리 |
+| --- | --- | --- |
+| Warning W1 | 컴포넌트 로컬 유틸(formatKrw/resolveDirection/getHoldingValue) 재사용 기준 부재 | 위 "유틸 승격 기준" 섹션에 3회 이상 중복 시 승격 규칙 문서화 |
+| Warning W2 | KPI 테스트가 기본 mock 값에 고정 | 데이터 주입형 테스트 추가(커스텀 summary/previousTotalValue로 하락 KPI 검증) |
+
+### 남은 리스크
+
+- 대시보드 데이터가 Unit 1 mock에 고정 — 실제 보유 자산/시세 연동은 Unit 9 이후
+- 전일 대비 baseline이 feature-local mock 상수 — 실데이터 전환 시 entities 또는 API로 이동 필요
+- AI 진단 요약이 정적 mock 문구 — 실제 AI 호출은 Unit 7 범위
+- 빈/에러 상태는 props 주입으로만 진입 — 실제 fetch 상태 연동은 후속
+
+### GPT 리뷰 요청 포인트
+
+1. `ALLOCATION_GROUP_LABELS`를 `entities/portfolio`로 승격하고 settings-portfolio를 재노출로 바꾼 SSOT 정리의 적절성
+2. 전일 대비 baseline을 entities가 아닌 dashboard feature-local mock으로 둔 결정 (단일 feature 전용 판단)
+3. 패널을 props 주입형으로 설계해 상태(ready/empty/error)를 외부에서 제어하는 구조
+4. `ErrorState` 공통 프리미티브의 책임 범위(`role="alert"` + title/description/action)
+
+---
+
 ## Unit 5 — 수동 자산 입력과 목표 비중 설정 구현
 
 - 작업 일자: 2026-05-31
@@ -188,8 +266,8 @@
 | Unit 2 — 공통 앱 쉘, 라우팅, 테마, 레이아웃 기반 구축 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-28 GPT 3차 리뷰 통과 |
 | Unit 3 — 인증 UI와 mock 로그인 플로우 구현 | DONE | Claude Code | 완료 | 2026-05-28 main 병합 완료 |
 | Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현 | DONE | Claude Code | 완료 | 2026-05-31 main 병합 완료 |
-| Unit 5 — 수동 자산 입력과 목표 비중 설정 구현 | DONE | Claude Code | NOT REQUESTED | 2026-05-31 구현 완료, GPT 리뷰 대기 |
-| Unit 6 — 포트폴리오 대시보드 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 2, Unit 5 이후 |
+| Unit 5 — 수동 자산 입력과 목표 비중 설정 구현 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-31 GPT 2차 리뷰 통과, main 병합 |
+| Unit 6 — 포트폴리오 대시보드 구현 | DONE | Claude Code | NOT REQUESTED | 2026-05-31 구현 완료, GPT 리뷰 대기 |
 | Unit 7 — AI 리밸런싱 제안 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 5, Unit 6 이후 |
 | Unit 8 — 주식 포트폴리오 관리 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 5, Unit 7 이후 |
 | Unit 9 — Supabase 연동 후보 검증과 persistence 전환 | PLANNED | Claude Code | NOT REQUESTED | Unit 1~8 이후 |
