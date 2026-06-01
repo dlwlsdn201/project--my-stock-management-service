@@ -1,5 +1,83 @@
 ---
 
+## Unit 10 — 접근성/반응형/상태 UI 품질 보강
+
+- 작업 일자: 2026-06-01
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- src/shared/ui/common/Modal.tsx (접근성 다이얼로그 프리미티브)
+
+수정:
+- src/shared/ui/index.ts (Modal export)
+- src/shared/ui/FieldMessage.tsx (`id` prop 추가 — aria-describedby 연결용)
+- src/shared/ui/MetricValue.tsx (긴 값 줄바꿈/overflow 가드: min-w-0/break-words/tabular-nums)
+- src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx (수동 다이얼로그 → Modal 적용)
+- src/features/rebalancing-proposal/model/constants.ts (다이얼로그 title/description id 상수)
+- src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx (+3 다이얼로그 a11y 테스트)
+- src/features/settings-portfolio/ui/AiSettingsSection.tsx (API key 입력 aria-invalid/aria-describedby 연결)
+- src/features/settings-portfolio/model/constants.ts (`API_KEY_ERROR_ID` 상수)
+- src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx (+1 폼 aria 연결 테스트)
+
+### 1) 보강한 접근성 항목
+
+- **다이얼로그 a11y (Unit 7 W2 이연분 해소)**: 공통 `Modal` 프리미티브 신설 후 API key 연동 유도 팝업에 적용
+  - 열릴 때 포커스를 다이얼로그 내부 첫 포커스 요소로 이동, 닫힐 때 트리거 버튼으로 **포커스 복귀**
+  - **ESC 키 닫기**, **Tab/Shift+Tab 포커스 트랩**(순환), 배경 클릭 닫기
+  - `role="dialog"` + `aria-modal` + `aria-labelledby`(제목) + `aria-describedby`(설명) 연결 (기존 aria-label → labelledby/describedby로 강화)
+- **폼 a11y**: API key 입력에 `aria-invalid`/`aria-describedby`로 오류 메시지(`role="alert"`, `id`) 연결. `FieldMessage`에 `id` prop 추가로 입력-메시지 연결 표준화
+- **상태 색상 단독 금지 유지**: 액션/증감/차이 표현은 색상 + 텍스트 라벨 동반(기존 SSOT 유지)
+
+### 2) 반응형/레이아웃 보강
+
+- `MetricValue`: 큰 KPI 숫자/설명에 `min-w-0`/`break-words`/`tabular-nums` 적용 → 좁은 폭(768)에서 숫자 오버플로우 방지(대시보드/리밸런싱 시뮬레이션 카드 공통 적용)
+- 다이얼로그 액션 영역 `flex-wrap`으로 버튼 줄바꿈 안정화
+- 기존 구조적 반응형 가드 확인: 페이지 `max-w-*` 컨테이너, `sm:grid-cols-*` 반응형 그리드, 테이블 `overflow-x-auto`, 비교 카드 `items-stretch`+`h-full` 동일 높이
+
+### 3) 상태 UI 일관성 기준 정리(SSOT)
+
+- 데이터 조회(Suspense) 에러 → `ApiQueryBoundary` + `ApiErrorFallback`(**재시도 버튼 제공**)
+- prop/상태 주입형 화면의 빈/에러 → `EmptyState`/`ErrorState`(재시도 없음 — 재요청 대상이 없으므로 일관)
+- 폼 검증/저장 피드백 → `FieldMessage`(error=`role="alert"`, info=일반 텍스트)
+
+### 1차 리뷰 보완 (2026-06-01, PASS WITH WARNINGS → W1 실측 검증)
+
+- [W1 해소] 1280/1024/768 뷰포트에서 dev 서버 실측 점검 수행(Vite dev + 프리뷰). 각 화면에서 문서 가로 오버플로우(`documentElement.scrollWidth > innerWidth`) 없음, 테이블은 `overflow-x-auto` 컨테이너 내 contain, 비교 카드 동일 높이 확인:
+
+  | 화면 | 1280 | 1024 | 768 | 비고 |
+  | --- | --- | --- | --- | --- |
+  | dashboard | ✅ overflow 없음 | — | — | KPI 숫자 줄바꿈 가드 정상 |
+  | portfolio | — | ✅ table contained | ✅ table contained | 종목 테이블 가로 스크롤 컨테이너 내 |
+  | settings | — | — | ✅ overflow 없음 | 폼 2열 그리드/입력 정상, 목표비중 suspense 로드 OK |
+  | rebalance | — | ✅ 카드 동일높이 | ✅ 카드 동일높이 | 비교 카드 146px 동일, 시뮬레이션 숫자 오버플로우 없음 |
+
+  - 점검 방식: 코드 레벨 측정(`scrollWidth/clientWidth` 비교) + 스크린샷 캡처 병행. `.claude/launch.json`에 dev 서버 구성 추가
+  - 잔여: login/onboarding은 단순 레이아웃이라 구조 변경 없이 점검만(데이터 밀집 4개 화면 우선 검증)
+
+### 테스트 및 검증 결과
+
+- `RebalancingProposalPanel.test.tsx` +3 (포커스 이동 / ESC 닫기+포커스 복귀 / aria-labelledby·describedby)
+- `SettingsPortfolioPanel.test.tsx` +1 (API key 오류 시 aria-invalid·aria-describedby 연결)
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (99 tests, 18 files) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (gzip JS 138.53 kB) |
+| `git diff --check` | ✅ PASS |
+| 반응형 실측(1280/1024/768) | ✅ 오버플로우 없음 |
+
+### 남은 리스크
+
+- 다이얼로그 포커스 트랩은 단일 Modal 기준 구현 — 중첩 다이얼로그/포털 시나리오는 현재 범위 밖
+- onboarding/login 화면은 기존 구현이 이미 label/role 기준을 충족하여 본 Unit에서 구조 변경 없음(점검만)
+- 실측은 라이트 테마 기준 — 다크 테마 픽셀 QA는 후속 확인 권장
+
+---
+
 ## Unit 9 — Supabase 연동 후보 검증과 persistence 전환
 
 - 작업 일자: 2026-06-01

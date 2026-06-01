@@ -11,6 +11,86 @@
 
 ---
 
+## 2026-06-01 / Unit 10 — 접근성/반응형/상태 UI 품질 보강 (2차 재리뷰)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Important
+
+- 없음
+
+### Suggestion
+
+- 없음
+
+### 검증 결과
+
+- `pnpm test`: PASS, 18 files / 99 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 178 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- 이전 W1 해소 확인: 해상도 1280/1024/768 실측 점검 결과가 `WORK_LOG.md` Unit 10 보완 섹션에 기록됨.
+- 다이얼로그 접근성 보강(`Modal`) 및 테스트(포커스 이동/ESC/aria 연결) 유지 확인.
+- API key 입력의 `aria-invalid`/`aria-describedby` 연결 및 오류 메시지 id 연결 유지 확인.
+
+### 후속 권장 사항
+
+- Unit 10 커밋/푸시 진행 가능.
+
+---
+
+## 2026-06-01 / Unit 10 — 접근성/반응형/상태 UI 품질 보강 (1차 리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] 반응형 품질 보강은 코드 레벨 가드(`break-words`, `min-w-0`, `flex-wrap`)로 반영되었지만, 1280/1024/768 실측 뷰포트 스크린샷 기반 검증 증거는 아직 없다. Unit 11 최종 검증에서 브라우저 실측 점검 로그를 남기는 것을 권장한다.
+  - **[해소 2026-06-01]** Unit 11 이연 대신 본 Unit에서 직접 실측: Vite dev 서버 + 프리뷰로 1280/1024/768 점검(dashboard/portfolio/settings/rebalance). 문서 가로 오버플로우 없음, 테이블 `overflow-x-auto` contain, 비교 카드 동일 높이(146px) 확인. 측정값·표는 `WORK_LOG.md` Unit 10 「1차 리뷰 보완」에 기록.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 18 files / 99 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 178 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- `Modal` 공통 프리미티브 도입 및 팝업 교체 확인:
+  - `src/shared/ui/common/Modal.tsx`
+  - `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx`
+- 다이얼로그 접근성 테스트 보강 확인(포커스 이동, ESC 닫기+복귀, aria 연결):
+  - `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx`
+- 폼 오류 aria 연결 보강 확인:
+  - `src/features/settings-portfolio/ui/AiSettingsSection.tsx`
+  - `src/shared/ui/FieldMessage.tsx`
+  - `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx`
+
+### 후속 권장 사항
+
+- Unit 10은 커밋/푸시 진행 가능.
+- Unit 11에서 실측 반응형 체크리스트(해상도별 캡처/점검표)를 포함해 최종 품질 검증을 완료한다.
+
+---
+
 ## 2026-06-01 / Unit 9 — Supabase 연동 후보 검증과 persistence 전환 (2차 재리뷰)
 
 ### 최종 판단

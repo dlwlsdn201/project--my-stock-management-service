@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -74,6 +74,43 @@ describe('RebalancingProposalPanel — 무료 3회 + API key 정책', () => {
       'href',
       '/settings',
     );
+  });
+
+  it('팝업이 열리면 포커스가 다이얼로그 내부로 이동한다', async () => {
+    const user = userEvent.setup();
+    renderPanel({ isApiKeyConnected: false, aiTrialRemainingCount: 0 });
+
+    await user.click(screen.getByRole('button', { name: 'AI 추천 받기' }));
+
+    const dialog = screen.getByRole('dialog');
+    await waitFor(() =>
+      expect(dialog).toContainElement(document.activeElement as HTMLElement | null),
+    );
+  });
+
+  it('ESC 키로 팝업을 닫고 포커스를 트리거 버튼으로 복귀한다', async () => {
+    const user = userEvent.setup();
+    renderPanel({ isApiKeyConnected: false, aiTrialRemainingCount: 0 });
+
+    const trigger = screen.getByRole('button', { name: 'AI 추천 받기' });
+    await user.click(trigger);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+
+  it('다이얼로그가 제목/설명과 aria로 연결된다', async () => {
+    const user = userEvent.setup();
+    renderPanel({ isApiKeyConnected: false, aiTrialRemainingCount: 0 });
+
+    await user.click(screen.getByRole('button', { name: 'AI 추천 받기' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAttribute('aria-labelledby', 'api-key-prompt-title');
+    expect(dialog).toHaveAttribute('aria-describedby', 'api-key-prompt-description');
   });
 
   it('API key 연동 상태면 잔여 횟수 없이 차단 없는 제안을 표시한다', () => {

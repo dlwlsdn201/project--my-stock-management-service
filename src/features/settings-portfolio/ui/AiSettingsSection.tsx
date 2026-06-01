@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button, FieldMessage, Surface } from '@shared';
 import {
   AI_MODEL_OPTIONS,
+  API_KEY_ERROR_ID,
   API_KEY_MIN_LENGTH,
   API_KEY_STATUS_LABELS,
   API_KEY_VISIBLE_SUFFIX_COUNT,
@@ -114,6 +115,8 @@ export const AiSettingsSection = () => {
               value={keyInput}
               onChange={(event) => setKeyInput(event.target.value)}
               placeholder="개인 API key를 입력하세요"
+              aria-invalid={status === 'error'}
+              aria-describedby={status === 'error' ? API_KEY_ERROR_ID : undefined}
             />
             <Button type="button" variant="primary" onClick={handleSave}>
               저장
@@ -122,7 +125,7 @@ export const AiSettingsSection = () => {
         )}
 
         {status === 'error' && (
-          <FieldMessage tone="error">
+          <FieldMessage tone="error" id={API_KEY_ERROR_ID}>
             API key는 최소 {API_KEY_MIN_LENGTH}자 이상이어야 합니다.
           </FieldMessage>
         )}

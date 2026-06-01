@@ -34,6 +34,8 @@ export const API_KEY_MIN_LENGTH = 8;
 
 export const API_KEY_VISIBLE_SUFFIX_COUNT = 4;
 
+export const API_KEY_ERROR_ID = 'api-key-error';
+
 export const TARGET_ALLOCATION_SAVE_LABEL = '목표 비중 저장';
 
 export const TARGET_ALLOCATION_SAVING_LABEL = '저장 중...';

@@ -15,10 +15,12 @@ import type {
   StockActionRecommendation,
 } from '@entities/rebalancing';
 import { DEFAULT_AI_TRIAL_COUNT } from '@entities/session';
-import { Button, MetricValue, ROUTES, Surface } from '@shared';
+import { Button, MetricValue, Modal, ROUTES, Surface } from '@shared';
 import {
   API_KEY_CONNECTED_NOTE,
   API_KEY_PROMPT,
+  API_KEY_PROMPT_DESCRIPTION_ID,
+  API_KEY_PROMPT_TITLE_ID,
   buildTrialRemainingLabel,
   PROPOSAL_REQUEST_CTA_LABEL,
   PROPOSAL_SECTION_LABELS,
@@ -163,34 +165,35 @@ export const RebalancingProposalPanel = ({
         <p className="text-xs text-[hsl(var(--muted-foreground))]">{REBALANCING_DISCLOSURE}</p>
       </Surface>
 
-      {isApiKeyPromptOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={API_KEY_PROMPT.dialogLabel}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-        >
-          <Surface className="flex w-full max-w-sm flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-semibold">{API_KEY_PROMPT.title}</h2>
-              <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                {API_KEY_PROMPT.description}
-              </p>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={handleDismissPrompt}>
-                {API_KEY_PROMPT.dismissLabel}
-              </Button>
-              <Link
-                to={ROUTES.SETTINGS}
-                className="inline-flex items-center justify-center rounded-[var(--radius)] bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-              >
-                {API_KEY_PROMPT.settingsCtaLabel}
-              </Link>
-            </div>
-          </Surface>
-        </div>
-      )}
+      <Modal
+        isOpen={isApiKeyPromptOpen}
+        onClose={handleDismissPrompt}
+        labelledById={API_KEY_PROMPT_TITLE_ID}
+        describedById={API_KEY_PROMPT_DESCRIPTION_ID}
+        className="w-full max-w-sm"
+      >
+        <Surface className="flex w-full flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h2 id={API_KEY_PROMPT_TITLE_ID} className="text-lg font-semibold">
+              {API_KEY_PROMPT.title}
+            </h2>
+            <p id={API_KEY_PROMPT_DESCRIPTION_ID} className="text-sm text-[hsl(var(--muted-foreground))]">
+              {API_KEY_PROMPT.description}
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={handleDismissPrompt}>
+              {API_KEY_PROMPT.dismissLabel}
+            </Button>
+            <Link
+              to={ROUTES.SETTINGS}
+              className="inline-flex items-center justify-center rounded-[var(--radius)] bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+            >
+              {API_KEY_PROMPT.settingsCtaLabel}
+            </Link>
+          </div>
+        </Surface>
+      </Modal>
     </div>
   );
 };

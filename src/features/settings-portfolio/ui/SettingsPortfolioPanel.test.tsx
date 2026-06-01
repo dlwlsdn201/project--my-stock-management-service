@@ -124,6 +124,20 @@ describe('SettingsPortfolioPanel — AI 모델/API key', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('최소 8자 이상');
   });
 
+  it('API key 오류 시 입력과 오류 메시지가 aria로 연결된다', async () => {
+    const { user } = renderPanel();
+    await user.type(screen.getByLabelText('API key'), 'short');
+    await user.click(screen.getByRole('button', { name: '저장' }));
+
+    const input = screen.getByLabelText('API key');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAttribute('aria-describedby', 'api-key-error');
+    expect(screen.getByText('API key는 최소 8자 이상이어야 합니다.')).toHaveAttribute(
+      'id',
+      'api-key-error',
+    );
+  });
+
   it('저장된 API key를 삭제하면 미설정 상태로 돌아간다', async () => {
     const { user } = renderPanel();
     await user.type(screen.getByLabelText('API key'), 'secret-key-1234');

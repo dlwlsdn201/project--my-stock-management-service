@@ -6,11 +6,11 @@ interface MetricValueProps {
 }
 
 export const MetricValue = ({ label, value, description, className = '' }: MetricValueProps) => (
-  <div className={`flex flex-col gap-1 ${className}`}>
+  <div className={`flex min-w-0 flex-col gap-1 ${className}`}>
     <span className="text-xs text-[hsl(var(--muted-foreground))]">{label}</span>
-    <span className="text-2xl font-semibold">{value}</span>
+    <span className="text-2xl font-semibold break-words tabular-nums">{value}</span>
     {description && (
-      <span className="text-xs text-[hsl(var(--muted-foreground))]">{description}</span>
+      <span className="break-words text-xs text-[hsl(var(--muted-foreground))]">{description}</span>
     )}
   </div>
 );

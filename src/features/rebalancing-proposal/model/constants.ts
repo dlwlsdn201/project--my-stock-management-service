@@ -23,3 +23,7 @@ export const API_KEY_PROMPT = {
   settingsCtaLabel: '설정으로 이동',
   dismissLabel: '닫기',
 } as const;
+
+export const API_KEY_PROMPT_TITLE_ID = 'api-key-prompt-title';
+
+export const API_KEY_PROMPT_DESCRIPTION_ID = 'api-key-prompt-description';
