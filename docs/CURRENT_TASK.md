@@ -2,9 +2,9 @@
 
 ## 0. 작업 요약
 
-Unit 8 — 주식 포트폴리오 관리 구현
+Unit 9 — Supabase 연동 후보 검증과 persistence 전환
 
-이번 Unit은 `portfolio` 화면을 실제 관리 화면으로 구현한다. 종목별 현재 비중/목표 비중/차이/AI 액션을 테이블로 제공하고, 제안 검토 흐름을 리밸런싱 화면과 연결한다.
+이번 Unit은 Unit 1~8 mock 기반 흐름 중 저장이 필요한 데이터(수동 자산, 목표 비중, AI 설정)를 Supabase로 전환 가능한 구조로 검증하고, 최소 1개 플로우를 실제 persistence 경로로 전환한다.
 
 ## 1. 반드시 읽을 문서
 
@@ -16,95 +16,97 @@ Unit 8 — 주식 포트폴리오 관리 구현
 - `docs/SESSION_STATE.md`
 - `.rules/project-rules_architecture.mdc`
 - `.rules/project-rules_working.mdc`
-- `.rules/project-rules_naming.mdc`
+- `.rules/project-rules_api-spec-contract.mdc`
+- `.rules/project-rules_api-response-interface.mdc`
+- `.rules/project-rules_api-error-handling.mdc`
 - `.rules/project-rules_testing-policy.mdc`
-- `.rules/project-rules_review.mdc`
 
 ## 2. 선행 상태
 
-- Unit 7 AI 리밸런싱 제안 화면이 구현되어 있다.
-- Unit 5 목표 비중 설정 UI가 구현되어 있다.
-- Unit 1 포트폴리오 계산/리밸런싱 mock 데이터가 준비되어 있다.
+- Unit 8까지 주요 UI/도메인 플로우가 mock 기반으로 완료되어 있다.
+- 설정/리밸런싱/포트폴리오 화면의 상태와 상수 SSOT가 정리되어 있다.
 
 ## 3. 작업 범위
 
 ### 포함
 
-- `PortfolioPage`를 실제 포트폴리오 관리 화면으로 구현
-- 종목 테이블: 종목명/티커, 현재 비중, 목표 비중, 차이, AI 액션
-- 비중 차이 강조(텍스트 + 색상) 및 정렬 가능한 구조
-- `전체보기`/`지금 리밸런싱하기` 연계 흐름 정리(적어도 라우팅 경로 연결)
-- Empty/Error 상태 처리
-- Unit 8 핵심 테스트 작성
+- Supabase 적용 범위 확정 문서화(세션/자산/목표 비중/AI 설정 중 우선순위)
+- schema 초안 및 타입 매핑 정의
+- 최소 1개 저장 플로우 persistence 전환(권장: 수동 자산 + 목표 비중)
+- entities `api` fetcher 계층 추가 또는 교체
+- entities `hook`에 TanStack Query 기반 조회/변경 훅 추가
+- features에서 기존 local 상태와 연동되는 저장/불러오기 UX 정리
+- 실패/로딩 상태 처리
+- Unit 9 테스트 작성(MSW 또는 mock client)
 - 작업 완료 후 `docs/WORK_LOG.md`, `docs/SESSION_STATE.md` 갱신
 
 ### 제외
 
-- 실제 주문 실행
-- 자동매매
-- 서버 저장/동기화
+- 실제 주문/자동매매
+- 운영 배포 수준 보안 강화
+- 전체 화면의 완전한 서버 상태 전환(부분 전환만 수행)
 - 커밋 생성
 
 ## 4. 설계 결정
 
-- Unit 8은 Unit 1 mock 데이터 + 계산 로직으로 테이블 완성도를 우선 확보한다.
-- AI 액션 라벨/톤은 `entities/rebalancing` SSOT를 재사용한다.
-- 표 컴포넌트는 접근성 우선(`table`, `thead`, `tbody`, scope, caption 또는 aria-label)으로 구현한다.
+- FSD 3단계 API 원칙 준수:
+  1) `entities/*/api`: 순수 fetcher
+  2) `entities/*/hook`: query/mutation
+  3) `features/*/ui`: 훅 사용 + UX 처리
+- Supabase 연동은 환경변수 기반으로 구성하고, 미설정 시 mock fallback 정책을 명시한다.
+- API key 등 민감 정보는 평문 저장 금지 원칙을 유지한다.
 
 ## 5. 예상 변경 파일
 
 ### 신규 후보
 
-- `src/features/portfolio-management/index.ts`
-- `src/features/portfolio-management/ui/PortfolioManagementPanel.tsx`
-- `src/features/portfolio-management/ui/PortfolioManagementPanel.test.tsx`
-- `src/features/portfolio-management/model/constants.ts` (필요 시)
+- `src/shared/api/supabaseClient.ts` (또는 동등 경로)
+- `src/entities/portfolio/api/*`
+- `src/entities/portfolio/hook/*`
+- `src/entities/settings/api/*` 또는 기존 slice 내 api/hook
+- `src/entities/settings/hook/*`
+- 관련 테스트 파일
 
 ### 수정 후보
 
-- `src/pages/portfolio/ui/PortfolioPage.tsx`
-- `src/features/index.ts`
-- `src/entities/portfolio/index.ts` (필요 시 export 보강)
+- `src/features/settings-portfolio/ui/*`
+- `src/features/portfolio-management/ui/*` (필요 시)
+- `src/entities/*/index.ts` (public API export 보강)
 - `docs/WORK_LOG.md`
 - `docs/SESSION_STATE.md`
 
 ## 6. 구현 규칙
 
-- FSD 의존성 방향 준수 (`features` → `entities/shared`)
 - deep import 금지, public API 경유
 - `any` 금지
-- React 컴포넌트는 화살표 함수
-- 매직넘버/매직스트링 상수화
-- 차이값은 색상 단독 표현 금지(문구/기호 포함)
+- API 계약과 타입 SSOT 유지
+- 에러 처리 메시지 일관성 유지
+- 환경변수 누락/오류 시 안전한 fallback 또는 명시적 에러 처리
 
 ## 7. 필수 구현 상세
 
-### 7.1 종목 관리 테이블
+### 7.1 데이터 모델/스키마
 
-- 컬럼: 종목, 현재 비중, 목표 비중, 차이, AI 액션
-- 차이는 `+/-` 부호 포함
-- 액션은 매수/매도/유지 라벨 표기
+- 수동 자산, 목표 비중, AI 설정 필드 매핑
+- mock 계약과 Supabase 컬럼명 정합성 확보
 
-### 7.2 요약/연계
+### 7.2 persistence 전환
 
-- 총 종목 수 또는 편중 경고 요약 제공
-- 리밸런싱 화면 이동 CTA 제공
+- 저장(create/update) + 조회(read) 최소 1개 플로우 구현
+- 성공 시 UI 반영, 실패 시 사용자 메시지 표시
 
-### 7.3 상태 처리
+### 7.3 품질/리스크
 
-- 보유 종목 없음: EmptyState
-- 데이터 오류: ErrorState
+- 연결 실패, 인증 실패, 데이터 없음 케이스 처리
+- WORK_LOG에 전환 범위/미전환 범위/리스크 명시
 
 ## 8. 테스트 및 검증
 
 아래 테스트를 최소 포함한다.
 
-- 종목 테이블 컬럼/행 렌더링
-- 비중 차이(+/-) 렌더링
-- AI 액션 라벨 렌더링
-- Empty 상태 렌더링
-- Error 상태 렌더링
-- 리밸런싱 이동 CTA 경로 검증
+- persistence 전환 대상 플로우의 성공 케이스
+- 저장 실패 또는 조회 실패 케이스
+- fallback 또는 에러 분기 케이스
 
 작업 완료 전 아래 명령 실행:
 
@@ -118,7 +120,7 @@ git diff --check
 
 ## 9. 완료 기준
 
-- Portfolio 페이지가 placeholder가 아니라 실제 관리 테이블 화면으로 동작
-- 종목별 현재/목표/차이/AI 액션이 확인 가능
-- 핵심 테스트 통과
+- Supabase 적용 범위와 스키마 매핑이 문서화됨
+- 최소 1개 저장 플로우가 실제 persistence 경로로 동작
+- 테스트/검증 통과
 - `WORK_LOG.md`, `SESSION_STATE.md` 최신화
