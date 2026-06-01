@@ -1,5 +1,85 @@
 ---
 
+## Unit 9 — Supabase 연동 후보 검증과 persistence 전환
+
+- 작업 일자: 2026-06-01
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- src/shared/api/supabaseClient.ts (env 기반 Supabase 설정 감지 SSOT)
+- src/entities/portfolio/api/targetAllocationStore.ts (persistence port + in-memory 어댑터 + fallback 해석)
+- src/entities/portfolio/api/targetAllocationStore.test.ts
+- src/entities/portfolio/api/targetAllocationApi.ts (1단계 fetcher)
+- src/entities/portfolio/hook/useTargetAllocation.ts (2단계 query/mutation 훅)
+- src/entities/portfolio/hook/useTargetAllocation.test.tsx
+
+수정:
+- src/vite-env.d.ts (VITE_SUPABASE_URL/ANON_KEY 타입 선언 — any 회피)
+- src/shared/index.ts (supabaseClient export)
+- src/entities/portfolio/index.ts (api/hook/store public API 보강)
+- src/features/settings-portfolio/ui/TargetAllocationSection.tsx (로컬 state → 조회/저장 훅 연동, 로딩/성공/실패 UX)
+- src/features/settings-portfolio/model/constants.ts (저장/로드 메시지 상수)
+- src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx (QueryClientProvider 래핑 + 저장 성공/실패 테스트)
+
+### 구현 내용 (3-tier API + persistence port)
+
+- FSD 3단계 API 원칙 준수:
+  1) `entities/portfolio/api`: 순수 fetcher(`readTargetAllocation`/`saveTargetAllocation`) + persistence port(`TargetAllocationStore`)
+  2) `entities/portfolio/hook`: TanStack Query 조회(`useTargetAllocationQuery`) / 변경(`useSaveTargetAllocationMutation`, 성공 시 캐시 setQueryData)
+  3) `features/settings-portfolio/ui`: 훅 사용 + 로딩/성공/실패 UX 처리
+- persistence port 패턴: `TargetAllocationStore` 인터페이스 + `createInMemoryTargetAllocationStore`(mock 어댑터, 현재 기본 경로) + `configure/reset`(어댑터 주입 지점)
+- Supabase 설정은 `shared/api/supabaseClient`의 `isSupabaseConfigured()`(VITE_SUPABASE_URL/ANON_KEY 존재 판정)로 감지하고, **미설정 시 in-memory mock으로 fallback**
+
+### Supabase 적용 범위 / 스키마 매핑 (SSOT)
+
+- 적용 우선순위: **목표 비중(이번 전환 완료)** > 수동 자산 > AI 설정
+- 이번 Unit 전환 대상: 목표 비중 read/update 1개 플로우
+- 스키마 초안 (table `target_allocations`):
+  | 컬럼 | 타입 | 매핑 |
+  | --- | --- | --- |
+  | `user_id` | uuid (FK auth.users) | 인증 사용자 |
+  | `equity` | numeric | `TargetAllocation.equity` |
+  | `bond` | numeric | `TargetAllocation.bond` |
+  | `cash_and_alternative` | numeric | `TargetAllocation['cash-and-alternative']` (kebab → snake) |
+  | `updated_at` | timestamptz | 갱신 시각 |
+- 타입 SSOT: `entities/portfolio`의 `TargetAllocation`을 그대로 사용. Supabase row ↔ `TargetAllocation` 매핑은 supabase 어댑터 구현 시 `targetAllocationStore`에 추가
+- 보안: API key 등 민감 정보 평문 저장 금지 원칙 유지(목표 비중은 민감정보 아님)
+
+### 전환 범위 / 미전환 범위 / 리스크
+
+- 전환: 목표 비중 저장/조회를 port 기반 persistence 경로로 이관(현재 어댑터 = in-memory mock)
+- 미전환: 수동 자산, AI 설정(후속 Unit), 실제 `@supabase/supabase-js` 클라이언트 연동
+- 리스크/대응:
+  - 실제 Supabase 인스턴스/자격증명 부재 → env 미설정 fallback으로 안전 동작, 실연동은 supabase 어댑터 교체로 추가(코드 지점 명시됨)
+  - in-memory 어댑터는 모듈 싱글톤 → 세션 간 비영속(새로고침 시 초기화). 영속화는 supabase 어댑터 연결 시 해소
+  - `configureTargetAllocationStore`는 어댑터 구성 seam(앱 부트스트랩/테스트). 운영 부트스트랩 배선은 supabase 어댑터 도입 시 추가
+
+### 1차 리뷰 보완 (2026-06-01, NOT PASS → 보완)
+
+- [C1 해소] `useUpdateTargetAllocation`(구 `useSaveTargetAllocationMutation`)의 `onSuccess`를 `invalidateQueries`만 수행하도록 수정(setQueryData 제거). 성공/실패 UX 피드백은 features 호출부(`TargetAllocationSection`)의 `mutateAsync` try/catch + 로컬 `saveStatus`로 분리(api-error-handling §5-2 레이어 분리 준수)
+- [C2 해소] 조회 훅을 `useSuspenseTargetAllocation`(`useSuspenseQuery`, 네이밍 `useSuspense{Entity}`)으로 전환. 표준 `<ApiQueryBoundary>` + `ApiErrorFallback`를 `src/shared/ui/common/ApiQueryBoundary.tsx`에 신규 스캐폴딩(첫 데이터-페칭 Unit이라 공통 프리미티브 부재 → SSOT 신설). `SettingsPortfolioPanel`에서 `TargetAllocationSection`을 바운더리로 감싸고, 로드 에러는 `ApiErrorFallback`(재시도) + `QueryErrorResetBoundary`로 처리
+  - 신규: `src/shared/ui/common/ApiQueryBoundary.tsx`(+`shared/ui/index.ts` export). 조회 hydrate는 `useEffect` 제거 후 `useState(persistedAllocation)` 초기화로 단순화
+- [W1 해소] `targetAllocationStore.test.ts`의 env 의존 단정(`isSupabaseConfigured()`) 제거 → 기본 fallback 어댑터의 read 동작만 검증
+- 재검증: `pnpm test`(95) / `lint` / `typecheck` / `build` / `git diff --check` 전체 PASS
+
+### 테스트 및 검증 결과
+
+- `targetAllocationStore.test.ts` 3개 (in-memory 저장/조회 영속, seed 기본값, 미설정 fallback read)
+- `useTargetAllocation.test.tsx` 3개 (suspense 조회, 저장 성공+invalidate 반영, 저장 실패 에러 상태)
+- `SettingsPortfolioPanel.test.tsx` +2개 (목표 비중 저장 성공 메시지, 저장 실패 에러 메시지) — QueryClientProvider 래핑 + suspense 대기(findBy)로 갱신
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (95 tests, 18 files) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (gzip JS 138.01 kB) |
+| `git diff --check` | ✅ PASS |
+
+---
+
 ## Unit 8 — 주식 포트폴리오 관리 구현
 
 - 작업 일자: 2026-06-01

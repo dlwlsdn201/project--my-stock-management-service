@@ -34,3 +34,17 @@ export {
   MOCK_PORTFOLIO_SUMMARY,
   MOCK_TARGET_ALLOCATION,
 } from './model/mockPortfolio';
+
+export type { TargetAllocationStore } from './api/targetAllocationStore';
+export {
+  configureTargetAllocationStore,
+  createInMemoryTargetAllocationStore,
+  getTargetAllocationStore,
+  resetTargetAllocationStore,
+} from './api/targetAllocationStore';
+export { readTargetAllocation, saveTargetAllocation } from './api/targetAllocationApi';
+export {
+  TARGET_ALLOCATION_QUERY_KEY,
+  useSuspenseTargetAllocation,
+  useUpdateTargetAllocation,
+} from './hook/useTargetAllocation';

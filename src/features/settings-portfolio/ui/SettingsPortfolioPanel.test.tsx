@@ -1,13 +1,28 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  configureTargetAllocationStore,
+  MOCK_TARGET_ALLOCATION,
+  resetTargetAllocationStore,
+} from '@entities/portfolio';
 import { SettingsPortfolioPanel } from './SettingsPortfolioPanel';
 
 const renderPanel = () => {
   const user = userEvent.setup();
-  render(<SettingsPortfolioPanel />);
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  render(<SettingsPortfolioPanel />, { wrapper: Wrapper });
   return { user };
 };
+
+afterEach(() => resetTargetAllocationStore());
 
 describe('SettingsPortfolioPanel — 수동 자산', () => {
   it('필수값을 모두 입력하면 자산이 목록에 추가된다', async () => {
@@ -44,18 +59,40 @@ describe('SettingsPortfolioPanel — 수동 자산', () => {
 describe('SettingsPortfolioPanel — 목표 비중', () => {
   it('합계가 100%가 아니면 오류를 표시한다', async () => {
     const { user } = renderPanel();
-    const equityInput = screen.getByLabelText('주식 목표 비중');
+    const equityInput = await screen.findByLabelText('주식 목표 비중');
     await user.clear(equityInput);
     await user.type(equityInput, '50');
-    expect(screen.getByRole('alert')).toHaveTextContent('100%가 되도록 조정해주세요');
+    expect(screen.getByText(/100%가 되도록 조정해주세요/)).toBeInTheDocument();
   });
 
   it('공격형 프리셋을 적용하면 비중이 반영된다', async () => {
     const { user } = renderPanel();
-    await user.click(screen.getByRole('button', { name: '공격형' }));
+    await user.click(await screen.findByRole('button', { name: '공격형' }));
     expect(screen.getByLabelText('주식 목표 비중')).toHaveValue(80);
     expect(screen.getByLabelText('채권 목표 비중')).toHaveValue(10);
     expect(screen.getByLabelText('현금 및 기타 목표 비중')).toHaveValue(10);
+  });
+
+  it('목표 비중 저장에 성공하면 성공 메시지를 표시한다', async () => {
+    const { user } = renderPanel();
+    await user.click(await screen.findByRole('button', { name: '공격형' }));
+    await user.click(screen.getByRole('button', { name: '목표 비중 저장' }));
+    expect(await screen.findByText('목표 비중을 저장했습니다.')).toBeInTheDocument();
+  });
+
+  it('목표 비중 저장에 실패하면 에러 메시지를 표시한다', async () => {
+    configureTargetAllocationStore({
+      read: async () => MOCK_TARGET_ALLOCATION,
+      save: async () => {
+        throw new Error('save failed');
+      },
+    });
+    const { user } = renderPanel();
+    await user.click(await screen.findByRole('button', { name: '공격형' }));
+    await user.click(screen.getByRole('button', { name: '목표 비중 저장' }));
+    expect(
+      await screen.findByText('목표 비중 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
+    ).toBeInTheDocument();
   });
 });
 

@@ -11,6 +11,95 @@
 
 ---
 
+## 2026-06-01 / Unit 9 — Supabase 연동 후보 검증과 persistence 전환 (2차 재리뷰)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Important
+
+- 없음
+
+### Suggestion
+
+- `ApiQueryBoundary`가 `settings-portfolio`에 도입되었으므로, Unit 10에서 동일 패턴을 다른 suspense 조회 지점에도 확대 적용하면 로딩/에러 UX 일관성이 좋아진다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 18 files / 95 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 177 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- 이전 C1 해소: mutation `onSuccess`가 `invalidateQueries`만 수행하도록 변경됨  
+  - `src/entities/portfolio/hook/useTargetAllocation.ts`
+- 이전 C2 해소: 조회 훅이 `useSuspenseQuery` 기반으로 전환되고, 상위 boundary(`ApiQueryBoundary`) 적용됨  
+  - `src/entities/portfolio/hook/useTargetAllocation.ts`
+  - `src/features/settings-portfolio/ui/SettingsPortfolioPanel.tsx`
+  - `src/shared/ui/common/ApiQueryBoundary.tsx`
+- 테스트 안정화 확인: 환경 의존 단정 제거  
+  - `src/entities/portfolio/api/targetAllocationStore.test.ts`
+
+### 후속 권장 사항
+
+- Unit 9는 커밋/푸시 진행 가능.
+
+---
+
+## 2026-06-01 / Unit 9 — Supabase 연동 후보 검증과 persistence 전환 (1차 리뷰)
+
+### 최종 판단
+
+- NOT PASS
+
+### Critical
+
+- [C1] `src/entities/portfolio/hook/useTargetAllocation.ts`의 mutation `onSuccess`가 `queryClient.setQueryData(...)`를 직접 수행한다. 현재 프로젝트 규칙(3단계 API: mutation `onSuccess`는 invalidate만 담당)에 위배된다. `onSuccess`에서 `invalidateQueries({ queryKey: TARGET_ALLOCATION_QUERY_KEY })`로 전환해야 한다.
+  - **[해소 2026-06-01]** `useUpdateTargetAllocation`의 `onSuccess`를 `invalidateQueries({ queryKey: TARGET_ALLOCATION_QUERY_KEY })`만 수행하도록 수정. 성공/실패 UX는 features 호출부(`TargetAllocationSection`)의 `mutateAsync` try/catch로 분리(§5-2 레이어 분리 준수).
+- [C2] 동일 파일의 조회 훅이 `useQuery`를 사용하고 있다. 프로젝트 규칙(조회는 `useSuspenseQuery` + 상위 Boundary 사용)과 불일치한다. Suspense 기반으로 전환하거나, 이번 Unit에서 Suspense 미적용 사유와 예외 범위를 문서에 명시해야 한다.
+  - **[해소 2026-06-01]** 조회 훅을 `useSuspenseTargetAllocation`(`useSuspenseQuery`)으로 전환, 네이밍 `useSuspense{Entity}` 적용. 표준 `<ApiQueryBoundary>`(+ `ApiErrorFallback`)를 `shared/ui/common`에 신규 스캐폴딩(첫 데이터-페칭 Unit)하고 `SettingsPortfolioPanel`에서 `TargetAllocationSection`을 감쌈.
+
+### Warning
+
+- [W1] `src/entities/portfolio/api/targetAllocationStore.test.ts`의 `isSupabaseConfigured() === false` 단정은 실행 환경에 env가 주입되면 깨질 수 있다. 테스트의 목적은 fallback 동작이므로 환경 의존 단정은 분리하거나 mock 처리하는 편이 안전하다.
+  - **[해소 2026-06-01]** env 의존 단정(`isSupabaseConfigured()` 호출/import)을 제거하고, 기본(미설정 fallback) 어댑터의 read 동작만 검증하도록 변경.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 18 files / 95 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 176 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- Unit 9 전환 대상(목표 비중 persistence) 구현 자체는 확인:
+  - `src/entities/portfolio/api/targetAllocationStore.ts`
+  - `src/entities/portfolio/api/targetAllocationApi.ts`
+  - `src/entities/portfolio/hook/useTargetAllocation.ts`
+  - `src/features/settings-portfolio/ui/TargetAllocationSection.tsx`
+- 테스트 추가 확인:
+  - `src/entities/portfolio/api/targetAllocationStore.test.ts`
+  - `src/entities/portfolio/hook/useTargetAllocation.test.tsx`
+  - `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` (목표 비중 저장 성공/실패 케이스 추가)
+
+### 보완 요청
+
+- `useSaveTargetAllocationMutation`의 `onSuccess`를 invalidate-only 패턴으로 수정한다.
+- 조회 훅을 `useSuspenseQuery`로 전환하고, `TargetAllocationSection` 상위에 Suspense/Boundary를 배치한다. 만약 이번 Unit에서 범위 외라면 `CURRENT_TASK.md`/`WORK_LOG.md`에 예외 사유를 명시하고 다음 Unit에 이관한다.
+- 환경 의존 테스트 단정을 제거하거나 mock 주입으로 안정화한다.
+
+---
+
 ## 2026-06-01 / Unit 8 — 주식 포트폴리오 관리 구현 (2차 재리뷰)
 
 ### 최종 판단

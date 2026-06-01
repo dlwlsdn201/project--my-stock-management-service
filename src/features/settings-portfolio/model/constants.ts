@@ -33,3 +33,15 @@ export const API_KEY_STATUS_LABELS: Record<ApiKeyStatus, string> = {
 export const API_KEY_MIN_LENGTH = 8;
 
 export const API_KEY_VISIBLE_SUFFIX_COUNT = 4;
+
+export const TARGET_ALLOCATION_SAVE_LABEL = '목표 비중 저장';
+
+export const TARGET_ALLOCATION_SAVING_LABEL = '저장 중...';
+
+export const TARGET_ALLOCATION_SAVE_SUCCESS = '목표 비중을 저장했습니다.';
+
+export const TARGET_ALLOCATION_SAVE_ERROR =
+  '목표 비중 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+
+export const TARGET_ALLOCATION_LOAD_ERROR =
+  '저장된 목표 비중을 불러오지 못했습니다. 기본값으로 표시합니다.';
