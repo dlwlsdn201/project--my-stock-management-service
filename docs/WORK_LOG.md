@@ -1,5 +1,55 @@
 ---
 
+## Unit 7 — AI 리밸런싱 제안 구현
+
+- 작업 일자: 2026-05-31
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- src/features/rebalancing-proposal/model/constants.ts
+- src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx
+- src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx
+- src/features/rebalancing-proposal/index.ts
+
+수정:
+- src/pages/rebalance/ui/RebalancePage.tsx (placeholder EmptyState → RebalancingProposalPanel 조합)
+- src/features/index.ts (rebalancing-proposal export 추가)
+
+### 구현 내용
+
+- `features/rebalancing-proposal/RebalancingProposalPanel`: Unit 7 필수 요소 구현
+  - 제안 비교 — 현재 자산 구성 vs AI 추천 구성 2개 카드(동일 데이터 소스 `MOCK_REBALANCING_RECOMMENDATIONS`의 currentPercent/targetPercent). 카드 동일 높이는 `grid items-stretch` + Surface `h-full`로 유지
+  - 추천 근거 — `MOCK_STOCK_ACTION_RECOMMENDATIONS`의 종목/액션(매수·매도·유지)/사유. 액션은 색상(`ACTION_TONE_CLASSES`) + 텍스트 라벨(`REBALANCING_ACTION_LABELS`)을 함께 표기해 색상 단독 표현 금지 규칙 준수
+  - 시뮬레이션 — `MOCK_REBALANCING_SCENARIOS`의 3/6/12개월 예상 가치·수익·수익률(`MetricValue` 재사용)
+  - 무료 3회 + API key 정책 — `isApiKeyConnected`/`aiTrialRemainingCount` props 주입형 분기
+    - API key 미설정 + 잔여 > 0 → 무료 제안 잔여 횟수 표시
+    - API key 미설정 + 잔여 0 → 제안 요청 시 차단 + API key 연동 유도 팝업(`role="dialog"`) 표시, 팝업에서 설정 화면 이동 CTA(`<a href={ROUTES.SETTINGS}>`) 제공
+    - API key 연동 시 잔여 횟수 노출/차단 없이 제안 표시
+  - `REBALANCING_DISCLOSURE` 투자 판단 보조 고지 문구 유지
+- props 기본값은 Unit 1 mock + `DEFAULT_AI_TRIAL_COUNT`(session) → 테스트에서 정책 분기를 props 주입으로 검증
+- 설계 결정: cross-feature import(FSD 위반) 회피를 위해 Unit 5 `ApiKeyStatus` 대신 `isApiKeyConnected: boolean` prop으로 디커플링
+
+### 1차 리뷰 보완 (2026-06-01, PASS WITH WARNINGS)
+
+- [W1 해소] 팝업 설정 이동 CTA를 `<a href>` → react-router `Link`로 교체해 SPA 내비게이션 일관성 확보. 테스트는 `MemoryRouter` 래퍼(`renderPanel` 헬퍼)로 라우터 컨텍스트 제공, `href="/settings"` 검증 유지
+- [W2 이연] 다이얼로그 focus trap/ESC 닫기 등 키보드 접근성 보강은 리뷰 판단대로 Unit 10 접근성 보강 범위로 이연 (SESSION_STATE 미완료 작업 등록)
+
+### 테스트 및 검증 결과
+
+`RebalancingProposalPanel.test.tsx` 6개 (제안 비교 / 추천 근거 / 시뮬레이션 / 잔여 횟수 표시 / 잔여 0 차단·팝업 / 연동 시 차단 없음), `MemoryRouter` 래핑
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (81 tests, 15 files) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (gzip JS 132.83 kB) |
+| `git diff --check` | ✅ PASS |
+
+---
+
 ## Unit 6 — 포트폴리오 대시보드 구현
 
 - 작업 일자: 2026-05-31

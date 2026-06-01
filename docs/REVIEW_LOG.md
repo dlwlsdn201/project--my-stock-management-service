@@ -11,6 +11,44 @@
 
 ---
 
+## 2026-06-01 / Unit 7 — AI 리밸런싱 제안 구현 (1차 리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx`의 팝업 내 설정 이동 CTA가 `<a href="/settings">`로 구현되어 SPA 내비게이션 대신 전체 페이지 리로드가 발생할 수 있다. 앱 라우팅 일관성을 위해 `Link` 또는 라우터 네비게이션으로 맞추는 것을 권장한다.
+  - **[해소 2026-06-01]** 설정 이동 CTA를 react-router `Link to={ROUTES.SETTINGS}`로 교체. 테스트는 `MemoryRouter` 래핑(`renderPanel` 헬퍼)으로 라우터 컨텍스트를 제공하며 `href="/settings"` 검증 유지. 커밋 전 보완 완료.
+- [W2] API key 연동 유도 다이얼로그는 열기/닫기 동작은 구현되어 있으나, focus trap/ESC 닫기 같은 키보드 보강은 아직 없다. Unit 10 접근성 보강 시 우선 반영 필요.
+  - **[이연]** 리뷰 판단대로 Unit 10 접근성 보강 범위로 이연. `SESSION_STATE.md` 미완료 작업에 등록.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 15 files / 81 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 169 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- `RebalancePage` placeholder 제거 후 제안 패널 연결 확인: `src/pages/rebalance/ui/RebalancePage.tsx`
+- 구현 범위 확인: 현재/추천 구성 비교, 추천 근거, 3/6/12개월 시뮬레이션, 무료 잔여 횟수 표시, 잔여 0회 시 연동 유도 팝업+차단
+- Unit 7 테스트 6개 추가 확인: `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx`
+
+### 후속 권장 사항
+
+- Unit 7 커밋/푸시 진행 가능.
+- Unit 8 착수 전 설정 이동 CTA를 SPA 라우팅 방식으로 정리하는 소규모 보완을 권장한다.
+
+---
+
 ## 2026-05-31 / Unit 6 — 포트폴리오 대시보드 구현 (1차 리뷰)
 
 ### 최종 판단

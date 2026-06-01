@@ -2,9 +2,9 @@
 
 ## 0. 작업 요약
 
-Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현
+Unit 7 — AI 리밸런싱 제안 구현
 
-이번 Unit은 로그인 이후 사용자가 증권사를 선택하고 연결 과정을 진행할 수 있는 온보딩 UI와 mock 상태 흐름을 구현한다. 실제 증권사 API 연동은 하지 않고, 단계 표시/성공/실패/나중에 하기 플로우를 검증 가능한 상태로 만든다.
+이번 Unit은 `rebalance` 화면을 실제 제안 화면으로 구현한다. 현재 구성과 AI 추천 구성을 비교하고, 추천 근거/시뮬레이션/무료 3회 정책/API key 연동 유도 팝업까지 포함한다.
 
 ## 1. 반드시 읽을 문서
 
@@ -22,123 +22,114 @@ Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현
 
 ## 2. 선행 상태
 
-- Unit 3 인증 UI와 mock 로그인 플로우는 구현되어 있다.
-- 로그인 성공 시 신규 사용자 `/onboarding/brokerage`, 기존 사용자 `/dashboard` 분기 라우팅이 동작한다.
-- Unit 2에서 공통 앱 쉘, 라우팅, 테마 구조가 정리되어 있다.
+- Unit 6 대시보드 구현이 완료되어 대시보드의 진단 요약과 연계 가능한 상태다.
+- Unit 5에서 AI 모델/API key 설정 UI가 구현되어 있다.
+- Unit 3 session mock에는 `aiTrialRemainingCount`가 포함되어 있다.
+- Unit 1 리밸런싱 mock/상수/예상가치 계산 로직이 준비되어 있다.
 
 ## 3. 작업 범위
 
 ### 포함
 
-- `entities/brokerage`의 기존 타입/상수/mock 데이터 활용 또는 최소 보강
-- 온보딩 페이지 UI 고도화 (증권사 선택, 단계 표시, 보안 배지)
-- 연결 상태 mock 흐름 구현 (idle/loading/success/error)
-- 증권사 검색 필드(로컬 필터)
-- `나중에 하기` 동작 구현
-- 연결 실패 시 재시도 동작 구현
-- 핵심 플로우 테스트 작성
+- `RebalancePage`를 실제 리밸런싱 제안 화면으로 구현
+- 현재 자산 구성 vs AI 추천 구성 비교 카드(동일 높이)
+- AI 추천 근거 테이블/리스트(종목별 매수·매도 사유)
+- 3개월/6개월/12개월 시뮬레이션 요약
+- 무료 제안 잔여 횟수 표시
+- API key 미설정 + 무료 소진 시 연동 유도 팝업 표시 및 제안 차단
+- Unit 7 핵심 테스트 작성
 - 작업 완료 후 `docs/WORK_LOG.md`, `docs/SESSION_STATE.md` 갱신
 
 ### 제외
 
-- 실제 증권사 OAuth/API 연동
-- TanStack Query/MSW 기반 네트워크 통신
-- 실제 사용자 자산 동기화
-- route guard 전면 도입
+- 실제 외부 AI API 호출
+- 실제 주문/자동매매 실행
+- 서버 영속화
 - 커밋 생성
 
 ## 4. 설계 결정
 
-- 연결 요청은 in-memory mock async 함수로 처리한다.
-- 증권사 목록은 `entities/brokerage/model/mockBrokerages.ts`를 우선 SSOT로 사용한다.
-- 상태 모델은 단순 상태 머신(`idle | connecting | connected | failed`)으로 유지한다.
-- 실패 상태는 화면 유지 + 오류 문구 + 재시도 버튼을 제공한다.
-- `나중에 하기`는 대시보드로 이동시켜 로그인 이후 흐름을 막지 않는다.
-- 하단에 보안 배지/문구를 표시한다.
+- Unit 7은 mock 기반으로 제안 화면 완성도를 우선한다.
+- 무료 3회 정책은 session mock 필드(`aiTrialRemainingCount`)를 참조해 분기한다.
+- API key 연동 여부는 Unit 5 설정 상태와 연결 가능한 형태로 props/state 인터페이스를 우선 설계한다.
+- 차단 상태에서 제안 CTA는 비활성 또는 guard 처리하고 안내 팝업으로 설정 화면 이동 경로를 제공한다.
 
 ## 5. 예상 변경 파일
 
 ### 신규 후보
 
-- `src/features/brokerage-onboarding/index.ts`
-- `src/features/brokerage-onboarding/ui/BrokerageOnboardingPanel.tsx`
-- `src/features/brokerage-onboarding/ui/BrokerageOnboardingPanel.test.tsx`
+- `src/features/rebalancing-proposal/index.ts`
+- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx`
+- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx`
+- `src/features/rebalancing-proposal/model/types.ts` (필요 시)
+- `src/features/rebalancing-proposal/model/constants.ts` (필요 시)
 
 ### 수정 후보
 
-- `src/pages/onboarding-brokerage/ui/OnboardingBrokeragePage.tsx`
+- `src/pages/rebalance/ui/RebalancePage.tsx`
 - `src/features/index.ts`
-- `src/entities/brokerage/model/mockBrokerages.ts` (필요 시 상태 필드 보강)
+- `src/entities/rebalancing/index.ts` (필요 시 export 보강)
 - `docs/WORK_LOG.md`
 - `docs/SESSION_STATE.md`
 
 ## 6. 구현 규칙
 
-- FSD 의존성 방향을 지킨다.
-- `features/brokerage-onboarding`은 `entities/brokerage`와 `shared`만 import한다.
-- deep import 금지, public API 경유 원칙 준수.
-- `any` 사용 금지.
-- React 컴포넌트는 화살표 함수로 작성한다.
-- 상태 표시를 색상만으로 전달하지 않는다. 텍스트/아이콘을 함께 제공한다.
-- 테스트는 사용자 행동 기준으로 작성한다.
+- FSD 의존성 방향 준수 (`features` → `entities/shared`)
+- deep import 금지, public API 경유
+- `any` 금지
+- React 컴포넌트는 화살표 함수
+- 매직넘버/매직스트링 상수화
+- 비교 카드 2개는 동일 높이 유지
+- 상태 표현은 색상 단독 금지(텍스트 포함)
 
 ## 7. 필수 구현 상세
 
-### 7.1 온보딩 UI
+### 7.1 제안 비교 섹션
 
-- 상단에 3단계 진행 상태를 표시한다: `1 증권사 선택`, `2 간편 인증`, `3 데이터 동기화`
-- 증권사 카드는 최소 4개(키움, 토스, 미래에셋, 삼성)를 노출한다.
-- 각 카드에 증권사명, 설명, `연결하기` 버튼을 둔다.
-- 검색 입력값으로 카드 목록을 필터링할 수 있어야 한다.
+- 현재 자산 구성 카드
+- AI 추천 구성 카드
+- 두 카드 시각 높이 일치
 
-### 7.2 연결 상태
+### 7.2 추천 근거 섹션
 
-- `연결하기` 클릭 시 connecting 상태로 전환
-- 성공 시 connected 상태 메시지 표시 후 대시보드 이동 버튼 활성화 또는 자동 이동
-- 실패 시 오류 문구 + 재시도 버튼 표시
-- `나중에 하기` 클릭 시 대시보드 이동
+- 종목/액션(매수/매도/유지)/사유 표시
+- 사유 텍스트는 PRD 기준 설명 가능 수준 유지
 
-### 7.3 보안 메시지
+### 7.3 시뮬레이션 섹션
 
-- 화면 하단에 최소 3개 보안 배지를 표시한다.
-- 예시: `256비트 암호화`, `금융보안 가이드 준수`, `데이터 제3자 미제공`
+- 3개월/6개월/12개월 예상 가치 및 수익
+
+### 7.4 무료 3회 + API key 정책
+
+- API key 미설정 시 무료 잔여 횟수 표시
+- 무료 횟수 0일 때 제안 요청 차단
+- 차단 시 API key 연동 유도 팝업 표시
+- 팝업에서 설정 화면 이동 CTA 제공
 
 ## 8. 테스트 및 검증
 
 아래 테스트를 최소 포함한다.
 
-- 증권사 카드 렌더링
-- 검색 입력 시 필터링 동작
-- 연결 성공 플로우
-- 연결 실패 시 오류 및 재시도 노출
-- `나중에 하기` 라우팅 동작
+- 현재 구성/추천 구성 비교 섹션 렌더링
+- 추천 근거 목록 렌더링
+- 시뮬레이션(3/6/12개월) 렌더링
+- API key 미설정 + 잔여 횟수 > 0 표시
+- API key 미설정 + 잔여 횟수 0일 때 팝업/차단 동작
+- API key 설정 상태에서 차단 없이 제안 표시
 
-작업 완료 전 아래 명령을 실행하고 결과를 `WORK_LOG.md`에 기록한다.
+작업 완료 전 아래 명령 실행:
 
 ```bash
 pnpm test
-```
-
-```bash
 pnpm lint
-```
-
-```bash
 pnpm typecheck
-```
-
-```bash
 pnpm build
-```
-
-```bash
 git diff --check
 ```
 
 ## 9. 완료 기준
 
-- 온보딩 페이지가 placeholder가 아니라 실제 선택/상태 UI를 가진다.
-- 증권사 연결 mock 흐름(성공/실패/재시도/나중에 하기)이 동작한다.
-- 핵심 테스트가 추가되어 흐름을 방어한다.
-- `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `git diff --check`가 통과한다.
-- `docs/WORK_LOG.md`, `docs/SESSION_STATE.md`가 최신 상태로 갱신된다.
+- Rebalance 페이지가 placeholder가 아니라 제안 비교/근거/시뮬레이션 화면으로 동작
+- 무료 3회 정책 + API key 연동 유도 팝업 정책 반영
+- 핵심 테스트 통과
+- `WORK_LOG.md`, `SESSION_STATE.md` 최신화
