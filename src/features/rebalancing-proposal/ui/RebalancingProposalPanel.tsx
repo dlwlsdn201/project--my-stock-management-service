@@ -6,6 +6,7 @@ import {
   MOCK_REBALANCING_SCENARIOS,
   MOCK_STOCK_ACTION_RECOMMENDATIONS,
   REBALANCING_ACTION_LABELS,
+  REBALANCING_ACTION_TONE_CLASSES,
   REBALANCING_DISCLOSURE,
 } from '@entities/rebalancing';
 import type {
@@ -16,7 +17,6 @@ import type {
 import { DEFAULT_AI_TRIAL_COUNT } from '@entities/session';
 import { Button, MetricValue, ROUTES, Surface } from '@shared';
 import {
-  ACTION_TONE_CLASSES,
   API_KEY_CONNECTED_NOTE,
   API_KEY_PROMPT,
   buildTrialRemainingLabel,
@@ -114,7 +114,7 @@ export const RebalancingProposalPanel = ({
                 <span className="font-medium">
                   {stock.name} ({stock.ticker})
                 </span>
-                <span className={`font-semibold ${ACTION_TONE_CLASSES[stock.action]}`}>
+                <span className={`font-semibold ${REBALANCING_ACTION_TONE_CLASSES[stock.action]}`}>
                   {REBALANCING_ACTION_LABELS[stock.action]}
                 </span>
               </div>

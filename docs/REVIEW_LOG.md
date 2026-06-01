@@ -11,6 +11,85 @@
 
 ---
 
+## 2026-06-01 / Unit 8 — 주식 포트폴리오 관리 구현 (2차 재리뷰)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Important
+
+- 없음
+
+### Suggestion
+
+- `stocks` 데이터 소스는 현재 `MOCK_STOCK_ACTION_RECOMMENDATIONS` 기반이다. Unit 9에서 실제 보유 종목 + 목표 비중 계산 SSOT로 전환 시, 현재 `PortfolioManagementPanel`의 props 구조는 유지하고 entities 계층의 데이터 조합만 교체하는 방식이 안전하다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 16 files / 87 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 172 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- 이전 W1 해소 확인: 액션 톤 상수 SSOT 통합 완료 (`REBALANCING_ACTION_TONE_CLASSES`를 `entities/rebalancing`로 승격)
+  - `src/entities/rebalancing/model/constants.ts`
+  - `src/entities/rebalancing/index.ts`
+  - `src/features/portfolio-management/ui/PortfolioManagementPanel.tsx`
+  - `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx`
+- Unit 8 핵심 구현/테스트(6개) 유지 확인
+
+### 후속 권장 사항
+
+- Unit 8은 커밋/푸시 진행 가능.
+
+---
+
+## 2026-06-01 / Unit 8 — 주식 포트폴리오 관리 구현 (1차 리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `src/features/portfolio-management/model/constants.ts`에 `ACTION_TONE_CLASSES`가 재정의되어 Unit 7(`rebalancing-proposal`)과 중복된다. WORK_LOG에 기록한 대로 3회 이상 중복 기준을 충족했으므로, 다음 보완에서 `entities/rebalancing` 또는 `shared`로 승격해 SSOT 통합을 권장한다.
+  - **[해소 2026-06-01]** `entities/rebalancing`에 `REBALANCING_ACTION_TONE_CLASSES`로 승격(`REBALANCING_ACTION_LABELS`와 co-locate), 두 feature의 로컬 `ACTION_TONE_CLASSES` 제거 후 `@entities/rebalancing` public API 경유로 통일. 87 tests / lint / typecheck / build / diff-check 전체 PASS.
+- [W2] 현재 테이블 데이터는 `MOCK_STOCK_ACTION_RECOMMENDATIONS`를 그대로 사용한다. 향후 실제 포트폴리오 기준 정합성을 위해 보유 종목(`holdings`) + 목표 비중 기반 per-stock 계산 경로로 이관 계획을 명시하는 것이 좋다.
+  - **[이관 계획 명시 2026-06-01]** `WORK_LOG.md` Unit 8 「1차 리뷰 보완」에 이관 계획 기재: `entities/portfolio`에 종목별 목표 비중 소스 + per-stock 계산 함수(`calculateHoldingWeights` 가칭) 신설 → 패널은 계산 결과 props 주입, 추천 mock 의존 제거. 적용은 보유 종목 계산 경로가 도입되는 Unit 9 범위로 이관.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 16 files / 87 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 172 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- `PortfolioPage` placeholder 제거 후 관리 패널 연결 확인: `src/pages/portfolio/ui/PortfolioPage.tsx`
+- Unit 8 범위 구현 확인: 종목 테이블(현재/목표/차이/AI 액션), Empty/Error 상태, 리밸런싱 이동 CTA
+- 테스트 6개 추가 확인: `src/features/portfolio-management/ui/PortfolioManagementPanel.test.tsx`
+
+### 후속 권장 사항
+
+- Unit 8 커밋/푸시 진행 가능.
+- Unit 9 착수 전 액션 톤 상수 SSOT 통합 여부를 먼저 결정한다.
+
+---
+
 ## 2026-06-01 / Unit 7 — AI 리밸런싱 제안 구현 (1차 리뷰)
 
 ### 최종 판단

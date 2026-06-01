@@ -1,5 +1,3 @@
-import type { RebalancingAction } from '@entities/rebalancing';
-
 export const PROPOSAL_SECTION_LABELS = {
   currentComposition: '현재 자산 구성',
   recommendedComposition: 'AI 추천 구성',
@@ -25,10 +23,3 @@ export const API_KEY_PROMPT = {
   settingsCtaLabel: '설정으로 이동',
   dismissLabel: '닫기',
 } as const;
-
-// 액션은 색상 + 텍스트 라벨을 함께 표기해 색상 단독 표현을 금지한다.
-export const ACTION_TONE_CLASSES: Record<RebalancingAction, string> = {
-  buy: 'text-blue-600',
-  sell: 'text-red-600',
-  hold: 'text-[hsl(var(--muted-foreground))]',
-};

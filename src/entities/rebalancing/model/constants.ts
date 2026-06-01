@@ -6,6 +6,13 @@ export const REBALANCING_ACTION_LABELS: Record<RebalancingAction, string> = {
   hold: '유지',
 };
 
+// 액션 색상 톤 SSOT. 색상은 항상 텍스트 라벨(REBALANCING_ACTION_LABELS)과 함께 사용한다(색상 단독 표현 금지).
+export const REBALANCING_ACTION_TONE_CLASSES: Record<RebalancingAction, string> = {
+  buy: 'text-blue-600',
+  sell: 'text-red-600',
+  hold: 'text-[hsl(var(--muted-foreground))]',
+};
+
 export const REBALANCING_REASON_LABELS: Record<RebalancingReasonCode, string> = {
   overweight: '비중 초과',
   underweight: '비중 부족',

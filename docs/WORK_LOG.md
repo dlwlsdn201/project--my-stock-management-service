@@ -1,5 +1,63 @@
 ---
 
+## Unit 8 — 주식 포트폴리오 관리 구현
+
+- 작업 일자: 2026-06-01
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- src/features/portfolio-management/model/constants.ts
+- src/features/portfolio-management/ui/PortfolioManagementPanel.tsx
+- src/features/portfolio-management/ui/PortfolioManagementPanel.test.tsx
+- src/features/portfolio-management/index.ts
+
+수정:
+- src/pages/portfolio/ui/PortfolioPage.tsx (placeholder EmptyState → PortfolioManagementPanel 조합)
+- src/features/index.ts (portfolio-management export 추가)
+
+### 구현 내용
+
+- `features/portfolio-management/PortfolioManagementPanel`: Unit 8 필수 요소 구현
+  - 종목 테이블 — `table/thead/tbody`, `th scope="col"`, `caption`(sr-only)로 표 접근성 준수. 컬럼: 종목 / 현재 비중 / 목표 비중 / 차이 / AI 액션
+  - 데이터 소스는 Unit 1 `MOCK_STOCK_ACTION_RECOMMENDATIONS`(종목별 현재·목표 비중 + action) 재사용 (SSOT)
+  - 차이값 = 현재 − 목표를 부호(+/-) 텍스트 + 색상(`GAP_TONE_CLASSES`: over=red, under=blue)로 강조 → 색상 단독 표현 금지 준수, 소수점은 `GAP_DECIMAL_PLACES`로 정규화
+  - AI 액션 라벨 — `REBALANCING_ACTION_LABELS`(매수/매도/유지) + `ACTION_TONE_CLASSES` 색상 동반
+  - Empty(`status='empty'` 또는 종목 0개) → `EmptyState`, Error(`status='error'`) → `ErrorState`(role=alert)
+  - 리밸런싱 이동 CTA — react-router `Link to={ROUTES.REBALANCE}` (Unit 7 제안 화면 연결)
+  - `REBALANCING_DISCLOSURE` 투자 판단 보조 고지 유지
+- props 주입형(status/stocks)으로 ready/empty/error 분기 테스트 가능, 기본값은 Unit 1 mock
+
+### 테스트 및 검증 결과
+
+`PortfolioManagementPanel.test.tsx` 6개 (컬럼·행 렌더링 / 비중 차이 +/- / AI 액션 라벨 / EmptyState / ErrorState / 리밸런싱 CTA 경로), `MemoryRouter` 래핑
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (87 tests, 16 files) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (gzip JS 133.41 kB) |
+| `git diff --check` | ✅ PASS |
+
+### 리스크 / 후속 과제
+
+- 종목 테이블 데이터를 `MOCK_STOCK_ACTION_RECOMMENDATIONS`(리밸런싱 추천)에서 가져오므로, 향후 실제 보유 종목(`MOCK_HOLDINGS`)과 목표 비중을 결합한 per-stock 계산 SSOT로 일원화 검토 필요
+- 액션 색상 톤(`ACTION_TONE_CLASSES`)이 rebalancing/portfolio feature에 중복 정의됨 → `entities/rebalancing`로 승격 검토(리뷰 W 기준 충족)
+
+### 1차 리뷰 보완 (2026-06-01, PASS WITH WARNINGS)
+
+- [W1 해소] 중복된 `ACTION_TONE_CLASSES`를 `entities/rebalancing`의 `REBALANCING_ACTION_TONE_CLASSES`로 승격(SSOT). `rebalancing-proposal`, `portfolio-management` 두 feature는 로컬 정의를 제거하고 `@entities/rebalancing` public API에서 import. `REBALANCING_ACTION_LABELS`와 동일 위치에 co-locate. 톤은 CSS라 테스트 비대상(테스팅 정책), 렌더링 동작 불변 → 기존 87 tests 그대로 PASS
+  - 변경: `src/entities/rebalancing/model/constants.ts`(+`REBALANCING_ACTION_TONE_CLASSES`), `src/entities/rebalancing/index.ts`(export 보강), `src/features/rebalancing-proposal/{model/constants.ts, ui/RebalancingProposalPanel.tsx}`, `src/features/portfolio-management/{model/constants.ts, ui/PortfolioManagementPanel.tsx}`
+- [W2 이관 계획 명시] 종목 테이블의 per-stock 목표 비중 데이터 경로 이관 계획:
+  - 현재: `MOCK_STOCK_ACTION_RECOMMENDATIONS`(리밸런싱 추천 mock)의 `currentWeightPercent`/`targetWeightPercent`를 그대로 표시
+  - 목표: `entities/portfolio`에 종목 단위 목표 비중 소스(예: `targetWeightByTicker` 또는 보유 종목별 목표 매핑)를 추가하고, `MOCK_HOLDINGS`의 평가액 기반 현재 비중 + 종목별 목표 비중을 결합하는 per-stock 계산 함수(`calculateHoldingWeights` 가칭)를 `entities/portfolio/model`에 SSOT로 신설
+  - 패널은 계산 결과를 props로 주입받아 표시(현 props 주입형 구조 유지) → 추천 mock 의존 제거
+  - 적용 시점: 보유 종목 persistence/계산 경로가 도입되는 Unit 9 범위에서 처리(리뷰 권고대로 본 Unit에서는 계획 명시까지)
+
+---
+
 ## Unit 7 — AI 리밸런싱 제안 구현
 
 - 작업 일자: 2026-05-31
