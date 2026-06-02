@@ -5,8 +5,10 @@ import { Provider, createStore } from 'jotai';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  configureManualAssetStore,
   configureTargetAllocationStore,
   MOCK_TARGET_ALLOCATION,
+  resetManualAssetStore,
   resetTargetAllocationStore,
 } from '@entities/portfolio';
 import { aiSettingsAtom } from '@entities/settings';
@@ -27,23 +29,27 @@ const renderPanel = () => {
   return { user, store };
 };
 
-afterEach(() => resetTargetAllocationStore());
+afterEach(() => {
+  resetTargetAllocationStore();
+  resetManualAssetStore();
+});
 
 describe('SettingsPortfolioPanel — 수동 자산', () => {
   it('필수값을 모두 입력하면 자산이 목록에 추가된다', async () => {
     const { user } = renderPanel();
-    await user.type(screen.getByLabelText('티커'), '005930');
+    await user.type(await screen.findByLabelText('티커'), '005930');
     await user.type(screen.getByLabelText('종목명'), '삼성전자');
     await user.type(screen.getByLabelText('보유 수량'), '10');
     await user.type(screen.getByLabelText('평균 단가'), '70000');
     await user.click(screen.getByRole('button', { name: '자산 추가' }));
 
-    const list = screen.getByRole('list', { name: '추가된 자산 목록' });
+    const list = await screen.findByRole('list', { name: '추가된 자산 목록' });
     expect(within(list).getByText('삼성전자 (005930)')).toBeInTheDocument();
   });
 
   it('필수값 누락 시 오류를 표시하고 추가하지 않는다', async () => {
     const { user } = renderPanel();
+    await screen.findByLabelText('티커');
     await user.click(screen.getByRole('button', { name: '자산 추가' }));
     expect(screen.getByText('티커와 종목명을 입력해주세요.')).toBeInTheDocument();
     expect(screen.queryByRole('list', { name: '추가된 자산 목록' })).not.toBeInTheDocument();
@@ -51,13 +57,132 @@ describe('SettingsPortfolioPanel — 수동 자산', () => {
 
   it('추가한 자산을 삭제할 수 있다', async () => {
     const { user } = renderPanel();
-    await user.type(screen.getByLabelText('티커'), '005930');
+    await user.type(await screen.findByLabelText('티커'), '005930');
     await user.type(screen.getByLabelText('종목명'), '삼성전자');
     await user.type(screen.getByLabelText('보유 수량'), '10');
     await user.type(screen.getByLabelText('평균 단가'), '70000');
     await user.click(screen.getByRole('button', { name: '자산 추가' }));
-    await user.click(screen.getByRole('button', { name: '삼성전자 삭제' }));
-    expect(screen.getByText('아직 추가된 자산이 없습니다.')).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: '삼성전자 삭제' }));
+    expect(await screen.findByText('아직 추가된 자산이 없습니다.')).toBeInTheDocument();
+  });
+
+  it('자산 편집 후 수정하면 목록 값이 바뀐다', async () => {
+    const { user } = renderPanel();
+    await user.type(await screen.findByLabelText('티커'), 'AAPL');
+    await user.type(screen.getByLabelText('종목명'), 'Apple');
+    await user.type(screen.getByLabelText('보유 수량'), '5');
+    await user.type(screen.getByLabelText('평균 단가'), '150');
+    await user.click(screen.getByRole('button', { name: '자산 추가' }));
+
+    await user.click(await screen.findByRole('button', { name: 'Apple 편집' }));
+    await user.clear(screen.getByLabelText('종목명'));
+    await user.type(screen.getByLabelText('종목명'), 'Apple Inc');
+    await user.click(screen.getByRole('button', { name: '자산 수정' }));
+
+    expect(await screen.findByText('Apple Inc (AAPL)')).toBeInTheDocument();
+  });
+
+  it('자산 추가 성공 시 성공 메시지를 표시한다', async () => {
+    const { user } = renderPanel();
+    await user.type(await screen.findByLabelText('티커'), '005930');
+    await user.type(screen.getByLabelText('종목명'), '삼성전자');
+    await user.type(screen.getByLabelText('보유 수량'), '10');
+    await user.type(screen.getByLabelText('평균 단가'), '70000');
+    await user.click(screen.getByRole('button', { name: '자산 추가' }));
+
+    expect(await screen.findByText('자산을 추가했습니다.')).toBeInTheDocument();
+  });
+
+  it('자산 수정 성공 시 성공 메시지를 표시한다', async () => {
+    const { user } = renderPanel();
+    await user.type(await screen.findByLabelText('티커'), 'AAPL');
+    await user.type(screen.getByLabelText('종목명'), 'Apple');
+    await user.type(screen.getByLabelText('보유 수량'), '5');
+    await user.type(screen.getByLabelText('평균 단가'), '150');
+    await user.click(screen.getByRole('button', { name: '자산 추가' }));
+
+    await user.click(await screen.findByRole('button', { name: 'Apple 편집' }));
+    await user.clear(screen.getByLabelText('종목명'));
+    await user.type(screen.getByLabelText('종목명'), 'Apple Inc');
+    await user.click(screen.getByRole('button', { name: '자산 수정' }));
+
+    expect(await screen.findByText('자산을 수정했습니다.')).toBeInTheDocument();
+  });
+
+  it('자산 삭제 성공 시 성공 메시지를 표시한다', async () => {
+    const { user } = renderPanel();
+    await user.type(await screen.findByLabelText('티커'), '005930');
+    await user.type(screen.getByLabelText('종목명'), '삼성전자');
+    await user.type(screen.getByLabelText('보유 수량'), '10');
+    await user.type(screen.getByLabelText('평균 단가'), '70000');
+    await user.click(screen.getByRole('button', { name: '자산 추가' }));
+    await user.click(await screen.findByRole('button', { name: '삼성전자 삭제' }));
+
+    expect(await screen.findByText('자산을 삭제했습니다.')).toBeInTheDocument();
+  });
+
+  it('자산 추가 실패 시 에러 메시지를 표시하고 폼 값을 유지한다', async () => {
+    configureManualAssetStore({
+      read: async () => [],
+      create: async () => { throw new Error('create failed'); },
+      update: async (id, payload) => ({ id, ...payload }),
+      delete: async () => undefined,
+    });
+
+    const { user } = renderPanel();
+    await user.type(await screen.findByLabelText('티커'), 'AAPL');
+    await user.type(screen.getByLabelText('종목명'), 'Apple');
+    await user.type(screen.getByLabelText('보유 수량'), '5');
+    await user.type(screen.getByLabelText('평균 단가'), '150');
+    await user.click(screen.getByRole('button', { name: '자산 추가' }));
+
+    expect(await screen.findByText('자산 추가에 실패했습니다. 잠시 후 다시 시도해 주세요.')).toBeInTheDocument();
+    expect(screen.getByLabelText('티커')).toHaveValue('AAPL');
+  });
+
+  it('자산 수정 실패 시 에러 메시지를 표시한다', async () => {
+    const { user } = renderPanel();
+    await user.type(await screen.findByLabelText('티커'), 'AAPL');
+    await user.type(screen.getByLabelText('종목명'), 'Apple');
+    await user.type(screen.getByLabelText('보유 수량'), '5');
+    await user.type(screen.getByLabelText('평균 단가'), '150');
+    await user.click(screen.getByRole('button', { name: '자산 추가' }));
+
+    await screen.findByRole('button', { name: 'Apple 편집' });
+
+    configureManualAssetStore({
+      read: async () => [],
+      create: async () => { throw new Error('not used'); },
+      update: async () => { throw new Error('update failed'); },
+      delete: async () => undefined,
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Apple 편집' }));
+    await user.click(screen.getByRole('button', { name: '자산 수정' }));
+
+    expect(await screen.findByText('자산 수정에 실패했습니다. 잠시 후 다시 시도해 주세요.')).toBeInTheDocument();
+  });
+
+  it('자산 삭제 실패 시 에러 메시지를 표시한다', async () => {
+    const { user } = renderPanel();
+    await user.type(await screen.findByLabelText('티커'), 'AAPL');
+    await user.type(screen.getByLabelText('종목명'), 'Apple');
+    await user.type(screen.getByLabelText('보유 수량'), '5');
+    await user.type(screen.getByLabelText('평균 단가'), '150');
+    await user.click(screen.getByRole('button', { name: '자산 추가' }));
+
+    await screen.findByRole('button', { name: 'Apple 삭제' });
+
+    configureManualAssetStore({
+      read: async () => [],
+      create: async () => { throw new Error('not used'); },
+      update: async (id, payload) => ({ id, ...payload }),
+      delete: async () => { throw new Error('delete failed'); },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Apple 삭제' }));
+
+    expect(await screen.findByText('자산 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.')).toBeInTheDocument();
   });
 });
 

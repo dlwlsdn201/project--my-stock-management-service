@@ -7,6 +7,8 @@ export type {
   ExpectedValuePoint,
   HoldingAsset,
   InvestmentProfile,
+  ManualAsset,
+  ManualAssetPayload,
   PortfolioSummary,
   TargetAllocation,
 } from './model/types';
@@ -48,3 +50,19 @@ export {
   useSuspenseTargetAllocation,
   useUpdateTargetAllocation,
 } from './hook/useTargetAllocation';
+
+export type { ManualAssetStore } from './api/manualAssetStore';
+export {
+  configureManualAssetStore,
+  createInMemoryManualAssetStore,
+  getManualAssetStore,
+  resetManualAssetStore,
+} from './api/manualAssetStore';
+export { createManualAsset, deleteManualAsset, readManualAssets, updateManualAsset } from './api/manualAssetApi';
+export {
+  MANUAL_ASSETS_QUERY_KEY,
+  useCreateManualAsset,
+  useDeleteManualAsset,
+  useSuspenseManualAssets,
+  useUpdateManualAsset,
+} from './hook/useManualAssets';

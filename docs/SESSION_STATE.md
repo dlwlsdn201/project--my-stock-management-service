@@ -7,26 +7,44 @@
 ## 1. 현재 상태
 
 - 현재 브랜치: `main`
-- 현재 작업: Post-MVP Unit 14 (로그아웃 UI와 세션 종료 흐름) 구현 완료 — 코드 리뷰 대기
-- 마지막 완료 작업: Unit 14 구현 + 5개 검증 전부 PASS (2026-06-03)
-- 커밋 여부: 미커밋 (리뷰 후 커밋 예정)
-- 리뷰 상태: Unit 14 리뷰 대기
+- 현재 작업: Post-MVP Unit 15 (수동 자산 persistence 전환) 2차 재리뷰 PASS — 커밋 대기
+- 마지막 완료 작업: Unit 15 보완 완료 후 2차 재리뷰 PASS (2026-06-03)
+- 커밋 여부: Unit 14까지 원격 반영 완료 / Unit 15는 미커밋 (재리뷰 후 커밋)
+- 리뷰 상태: Unit 15 2차 재리뷰 PASS
 
 ## 2. 미완료 작업
 
 - ~~로그아웃 UI 구현~~ → **[Unit 14 완료]**
-- 수동 자산 persistence 전환 (AI 설정 원문 저장은 보안 정책상 제외)
-- 종목 테이블 per-stock 계산 SSOT 이관(`MOCK_HOLDINGS` + 목표 비중 결합)
+- ~~수동 자산 persistence 전환~~ → **[Unit 15 완료, 미커밋]**
+- 종목 테이블 per-stock 계산 SSOT 이관(`MOCK_HOLDINGS` + 목표 비중 결합) — **[Unit 16 예정]**
 - `mockRecommendations.test.ts` 비중 합계 검증 정밀도 보강
 - `msw init` 명령으로 `public/mockServiceWorker.js` 생성 (브라우저 MSW 실제 사용 전)
 - 세션/AI설정 persistence (새로고침 시 초기화 — 메모리 전용, 의도적)
 - 다크 테마 픽셀 QA, 모바일(<768) 실측 증빙
-- 실제 `@supabase/supabase-js` 어댑터(`createSupabaseTargetAllocationStore`) 연결 + 운영 부트스트랩 `configureTargetAllocationStore` 배선(env 설정 시) — 현재 in-memory mock fallback, 사용자 Supabase 정보 필요
+- 실제 `@supabase/supabase-js` 어댑터(`createSupabaseTargetAllocationStore`, `createSupabaseManualAssetStore`) 연결 — 현재 in-memory mock fallback
 - 실제 외부 AI provider 호출 및 API key 서버 저장/암호화 정책 확정 — 사용자 결정 필요
 - ~~Unit 7 후속: 무료 잔여 횟수/API key 연동 상태 배선~~ → **[Unit 13 완료]**
-- ~~API key 저장 위치/마스킹/삭제 정책 SSOT화~~ → **[Unit 13 완료]** 현재 MVP 후속 범위에서는 원문 영속 저장 없음
+- ~~API key 저장 위치/마스킹/삭제 정책 SSOT화~~ → **[Unit 13 완료]**
 
-## 3. 신규/수정 파일 목록 (Unit 14)
+## 3. 신규/수정 파일 목록 (Unit 15)
+
+신규:
+- `src/entities/portfolio/api/manualAssetStore.ts`
+- `src/entities/portfolio/api/manualAssetStore.test.ts`
+- `src/entities/portfolio/api/manualAssetApi.ts`
+- `src/entities/portfolio/hook/useManualAssets.ts`
+- `src/entities/portfolio/hook/useManualAssets.test.tsx`
+
+수정:
+- `src/entities/portfolio/model/types.ts` (ManualAsset, ManualAssetPayload 추가)
+- `src/entities/portfolio/index.ts` (타입·store·api·hook re-export 추가)
+- `src/features/settings-portfolio/model/types.ts` (ManualAsset 로컬 정의 제거 → entity re-export)
+- `src/features/settings-portfolio/model/constants.ts` (MANUAL_ASSET_LOAD_ERROR 추가)
+- `src/features/settings-portfolio/ui/ManualAssetsSection.tsx` (local state → query/mutation 전환)
+- `src/features/settings-portfolio/ui/SettingsPortfolioPanel.tsx` (ManualAssetsSection ApiQueryBoundary 래핑)
+- `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` (수동 자산 테스트 7개로 확장)
+
+## 3-1. 신규/수정 파일 목록 (Unit 14)
 
 신규:
 - `src/features/auth-logout/ui/LogoutButton.tsx`
@@ -39,26 +57,17 @@
 - `src/apps/router/AppShellLayout.tsx` (`showLogout` 전달)
 - `src/features/index.ts` (`auth-logout` 추가)
 
-## 3-1. 신규/수정 파일 목록 (Unit 13)
-
-신규:
-- `src/entities/settings/model/types.ts` (`AiModelId`, `ApiKeyStatus`, `AiSettings`)
-- `src/entities/settings/model/constants.ts` (AI 설정 관련 상수 SSOT)
-- `src/entities/settings/model/aiSettingsAtom.ts` (aiSettingsAtom + 파생/액션 atoms)
-- `src/entities/settings/model/aiSettingsAtom.test.ts` (4개)
-- `src/entities/settings/index.ts`
-
-수정:
-- `src/entities/session/model/sessionAtom.ts` (`decrementAiTrialAtom` 추가)
-- `src/entities/session/model/sessionAtom.test.ts` (3개 추가)
-- `src/features/settings-portfolio/model/types.ts` (entities/settings 재노출)
-- `src/features/settings-portfolio/model/constants.ts` (entities/settings 재노출 SSOT 정리)
-- `src/features/settings-portfolio/ui/AiSettingsSection.tsx` (atom write 연결)
-- `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` (Provider 추가, wiring 테스트 3개)
-- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx` (props 제거, atoms 직접 읽기)
-- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx` (Provider+store 전면 재작성, 횟수차감 5개)
-
 ## 4. 검증 결과 요약
+
+### Unit 15 최종 검증 (2026-06-03, 1차 리뷰 보완 후)
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (156 tests, 23 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (194 modules, gzip JS 143.19 kB) |
+| `git diff --check` | ✅ PASS |
 
 ### Unit 14 최종 검증 (2026-06-03)
 
@@ -82,9 +91,9 @@
 
 ## 5. 다음 액션
 
-1. Unit 14 코드 리뷰 실행 및 `docs/REVIEW_LOG.md` 갱신
-2. 리뷰 PASS 후 커밋/푸시
-3. Unit 15 수동 자산 persistence 전환으로 진행
+1. Unit 15 커밋/푸시
+2. Unit 16 — 포트폴리오 종목별 계산 SSOT 이관 (`MOCK_HOLDINGS` + 목표 비중 결합) 착수
+3. Unit 16 완료 후 코드 리뷰 및 `docs/REVIEW_LOG.md` 갱신
 
 ## 6. 재개 시 읽을 문서
 

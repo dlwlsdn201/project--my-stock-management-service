@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-type FieldMessageTone = 'error' | 'info';
+type FieldMessageTone = 'error' | 'info' | 'success';
 
 interface FieldMessageProps {
   tone?: FieldMessageTone;
@@ -12,6 +12,7 @@ interface FieldMessageProps {
 const TONE_CLASS: Record<FieldMessageTone, string> = {
   error: 'text-red-600',
   info: 'text-[hsl(var(--muted-foreground))]',
+  success: 'text-green-600',
 };
 
 // error 톤은 role="alert"로 즉시 안내하고, 그 외 정보 메시지는 일반 텍스트로 표시한다.

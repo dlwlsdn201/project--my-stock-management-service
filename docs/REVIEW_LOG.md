@@ -11,6 +11,100 @@
 
 ---
 
+## 2026-06-03 / Unit 15 — 수동 자산 persistence 전환 (2차 재리뷰)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- 없음
+
+### Suggestion
+
+- 없음
+
+### 검증 결과
+
+- `pnpm test`: PASS, 23 files / 156 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 194 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- [C1 해소] 수동 자산 생성/수정/삭제 성공 메시지 구현 확인:
+  - `MANUAL_ASSET_ADD_SUCCESS`
+  - `MANUAL_ASSET_UPDATE_SUCCESS`
+  - `MANUAL_ASSET_DELETE_SUCCESS`
+- 성공 메시지가 `ManualAssetsSection`의 `successMessage` 상태와 `FieldMessage tone="success"`로 표시됨 확인
+- `SettingsPortfolioPanel.test.tsx`에 생성/수정/삭제 성공 메시지 테스트 3개 추가 확인
+- [W1 해소] `docs/WORK_LOG.md`가 성공/실패 메시지 구현 및 1차 리뷰 보완 내용을 실제 구현과 일치하게 기록함 확인
+- [S1 해소] `handleEdit` 인자 타입이 `ManualAsset`으로 변경됨 확인
+- [S2 해소] 수동 자산 성공/실패 메시지가 `features/settings-portfolio/model/constants.ts`에 상수화됨 확인
+
+### 후속 권장 사항
+
+- Unit 15는 커밋/푸시 진행 가능.
+- 다음 Claude 구현 가능 작업은 Unit 16 포트폴리오 종목별 계산 SSOT 이관.
+
+---
+
+## 2026-06-03 / Unit 15 — 수동 자산 persistence 전환 (1차 리뷰)
+
+### 최종 판단
+
+- NOT PASS
+
+### Critical
+
+- [C1] 수동 자산 생성/수정/삭제 성공 메시지가 구현되지 않았다. `docs/CURRENT_TASK.md`는 저장/수정/삭제 성공 및 실패 UX 메시지를 포함 범위로 명시하고, `ManualAssetsSection UI` 상세에서도 성공 시 폼 초기화·편집 모드 해제와 함께 성공 메시지 표시를 요구한다. 현재 `ManualAssetsSection`은 성공 시 `setForm(EMPTY_FORM)`과 `setEditingId(null)`만 수행하고, 실패 메시지만 `errorMessage`로 표시한다. `SettingsPortfolioPanel.test.tsx`도 추가/수정/삭제 성공 메시지를 검증하지 않아 요구사항 누락을 방어하지 못한다.
+  - 근거: `docs/CURRENT_TASK.md` 38, 56, 137행 / `src/features/settings-portfolio/ui/ManualAssetsSection.tsx` 67-81, 95-105, 159행
+  - 보완: 생성/수정/삭제 성공 메시지 상태를 추가하고, 성공 시 각각 표시되도록 구현한다. 예: `자산을 추가했습니다.`, `자산을 수정했습니다.`, `자산을 삭제했습니다.` 테스트도 3개 추가한다.
+
+### Warning
+
+- [W1] `docs/WORK_LOG.md`는 `ManualAssetsSection`에 “성공/실패 메시지 추가”가 반영되었다고 기록하지만 실제 구현은 실패 메시지만 있다. C1 보완 후 작업 로그 표현도 실제 구현과 일치하도록 수정해야 한다.
+
+### Suggestion
+
+- [S1] `ManualAssetsSection`의 `handleEdit` 인자 타입이 inline object 타입이다. `ManualAsset`이 entity 타입으로 승격되었으므로 `import type { ManualAsset } from '@entities/portfolio'`를 사용하면 타입 SSOT 의도가 더 명확하다.
+- [S2] 수동 자산 validation/성공/실패 메시지는 현재 컴포넌트 내부 문자열이다. 반복 사용이 늘어나면 `features/settings-portfolio/model/constants.ts`로 이동해 메시지 SSOT를 맞추는 편이 좋다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 23 files / 153 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 194 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- 타입 SSOT 승격은 확인됨:
+  - `src/entities/portfolio/model/types.ts`
+  - `src/features/settings-portfolio/model/types.ts`
+- persistence port/fetcher/hook 구조는 Unit 9 패턴에 맞게 구현됨:
+  - `src/entities/portfolio/api/manualAssetStore.ts`
+  - `src/entities/portfolio/api/manualAssetApi.ts`
+  - `src/entities/portfolio/hook/useManualAssets.ts`
+- feature UI가 store/fetcher를 직접 import하지 않고 hook만 사용하는 점 확인
+- `SettingsPortfolioPanel`에서 `ManualAssetsSection`을 `ApiQueryBoundary`로 감싼 점 확인
+- CRUD 실패 테스트는 추가되었지만, CRUD 성공 메시지 테스트가 없음
+
+### 후속 권장 사항
+
+- Unit 15는 C1 보완 전 커밋하지 않는다.
+- 보완 후 재리뷰 필요.
+
+---
+
 ## 2026-06-03 / Unit 14 — 로그아웃 UI와 세션 종료 흐름 (1차 리뷰)
 
 ### 최종 판단

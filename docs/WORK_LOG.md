@@ -1,5 +1,61 @@
 ---
 
+## Unit 15 — 수동 자산 persistence 전환
+
+- 작업 일자: 2026-06-03
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- `src/entities/portfolio/api/manualAssetStore.ts` (ManualAssetStore 인터페이스 + in-memory 어댑터)
+- `src/entities/portfolio/api/manualAssetStore.test.ts` (8개 — read/create/update/delete 커버)
+- `src/entities/portfolio/api/manualAssetApi.ts` (readManualAssets, createManualAsset, updateManualAsset, deleteManualAsset)
+- `src/entities/portfolio/hook/useManualAssets.ts` (useSuspenseManualAssets + create/update/delete mutation 훅)
+- `src/entities/portfolio/hook/useManualAssets.test.tsx` (7개 — 조회·invalidate·실패 커버)
+
+수정:
+- `src/entities/portfolio/model/types.ts` (ManualAsset, ManualAssetPayload 추가)
+- `src/entities/portfolio/index.ts` (타입·store·api·hook 전체 re-export)
+- `src/features/settings-portfolio/model/types.ts` (ManualAsset 로컬 정의 제거, entity re-export로 전환)
+- `src/features/settings-portfolio/model/constants.ts` (MANUAL_ASSET_LOAD_ERROR·ADD/UPDATE/DELETE 성공·실패 메시지 상수 추가)
+- `src/features/settings-portfolio/ui/ManualAssetsSection.tsx` (local list state → useSuspenseManualAssets + mutation 기반 전환, 성공/실패 메시지 추가, ManualAsset 타입 직접 참조)
+- `src/features/settings-portfolio/ui/SettingsPortfolioPanel.tsx` (ManualAssetsSection을 ApiQueryBoundary로 감쌈)
+- `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` (수동 자산 테스트 10개로 확장: 편집·추가/수정/삭제 성공 메시지·실패 메시지 추가, resetManualAssetStore afterEach 추가)
+- `src/shared/ui/FieldMessage.tsx` (success tone 추가)
+
+### 구현 내용
+
+- **타입 SSOT**: `ManualAsset`·`ManualAssetPayload`를 `entities/portfolio/model/types.ts`로 승격. feature는 re-export로만 유지.
+- **Persistence port**: `ManualAssetStore` 인터페이스(read/create/update/delete) + `createInMemoryManualAssetStore` 어댑터. `configure`/`reset` seam으로 테스트 격리 지원.
+- **Fetcher**: `manualAssetApi.ts`가 활성 store에 위임. React hook 의존 없음.
+- **TanStack Query 훅**: `useSuspenseManualAssets` + 3개 mutation 훅. `onSuccess`는 invalidate만 수행. UX 메시지는 feature UI에서 처리.
+- **UI 전환**: `ManualAssetsSection`이 local `assets` state 제거, query/mutation 기반으로 전환. 생성/수정/삭제 성공 시 성공 메시지 표시 후 폼 초기화. 실패 시 에러 메시지 표시, 폼 값 유지.
+- **성공/실패 메시지 상수**: `features/settings-portfolio/model/constants.ts`에 ADD/UPDATE/DELETE 각각의 성공·실패 메시지 SSOT 정의.
+- **Suspense 처리**: `SettingsPortfolioPanel`이 `ManualAssetsSection`을 `ApiQueryBoundary`로 감싸 로딩/에러 경계 통합.
+- **FieldMessage 확장**: `shared/ui/FieldMessage`에 `success` tone 추가.
+
+### 1차 리뷰 보완 (2026-06-03)
+
+리뷰 C1 해소: 성공 메시지(`자산을 추가했습니다.` / `자산을 수정했습니다.` / `자산을 삭제했습니다.`) 구현 및 테스트 3개 추가. S1 해소: `handleEdit` 인자 타입을 inline에서 `ManualAsset`으로 변경. S2 해소: 메시지 문자열을 `constants.ts`로 SSOT화.
+
+### 테스트 및 검증 결과
+
+| 명령 | 결과 | 세부 |
+| --- | --- | --- |
+| `pnpm test` | ✅ PASS | 23 files / 156 tests (+3: 성공 메시지 테스트 추가) |
+| `pnpm lint` | ✅ PASS | 오류·경고 없음 |
+| `pnpm typecheck` | ✅ PASS | `tsc -b --noEmit` |
+| `pnpm build` | ✅ PASS | 194 modules, JS gzip 143.19 kB |
+| `git diff --check` | ✅ PASS | whitespace 오류 없음 |
+
+### 잔존 리스크
+
+- Supabase adapter 미구현 — 페이지 새로고침 시 수동 자산 데이터 유실 (in-memory 한계). Unit 17+ 에서 연동 예정.
+- 수동 자산이 대시보드/리밸런싱 계산에 미반영 — Unit 16 포트폴리오 SSOT 작업에서 통합 예정.
+
+---
+
 ## Unit 14 — 로그아웃 UI와 세션 종료 흐름
 
 - 작업 일자: 2026-06-03

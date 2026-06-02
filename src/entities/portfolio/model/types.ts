@@ -49,3 +49,18 @@ export interface ExpectedValuePoint {
   expectedValue: number;
   expectedReturn: number;
 }
+
+export interface ManualAsset {
+  id: string;
+  ticker: string;
+  name: string;
+  quantity: number;
+  avgPrice: number;
+}
+
+export interface ManualAssetPayload {
+  ticker: string;
+  name: string;
+  quantity: number;
+  avgPrice: number;
+}

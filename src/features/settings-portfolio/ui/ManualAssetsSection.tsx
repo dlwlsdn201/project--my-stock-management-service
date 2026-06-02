@@ -1,6 +1,20 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Button, FieldMessage, Surface } from '@shared';
-import type { ManualAsset } from '../model/types';
+import type { ManualAsset } from '@entities/portfolio';
+import {
+  useCreateManualAsset,
+  useDeleteManualAsset,
+  useSuspenseManualAssets,
+  useUpdateManualAsset,
+} from '@entities/portfolio';
+import {
+  MANUAL_ASSET_ADD_ERROR,
+  MANUAL_ASSET_ADD_SUCCESS,
+  MANUAL_ASSET_DELETE_ERROR,
+  MANUAL_ASSET_DELETE_SUCCESS,
+  MANUAL_ASSET_UPDATE_ERROR,
+  MANUAL_ASSET_UPDATE_SUCCESS,
+} from '../model/constants';
 
 interface AssetFormValues {
   ticker: string;
@@ -15,15 +29,21 @@ const inputClassName =
   'w-full rounded-[var(--radius)] border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]';
 
 export const ManualAssetsSection = () => {
-  const [assets, setAssets] = useState<ManualAsset[]>([]);
+  const { data: assets } = useSuspenseManualAssets();
+  const createMutation = useCreateManualAsset();
+  const updateMutation = useUpdateManualAsset();
+  const deleteMutation = useDeleteManualAsset();
+
   const [form, setForm] = useState<AssetFormValues>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const idCounter = useRef(0);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleChange =
-    (field: keyof AssetFormValues) => (event: React.ChangeEvent<HTMLInputElement>) =>
+    (field: keyof AssetFormValues) => (event: React.ChangeEvent<HTMLInputElement>) => {
+      setSuccessMessage(null);
       setForm((prev) => ({ ...prev, [field]: event.target.value }));
+    };
 
   const validate = (): string | null => {
     if (!form.ticker.trim() || !form.name.trim()) {
@@ -40,28 +60,36 @@ export const ManualAssetsSection = () => {
     return null;
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const message = validate();
-    if (message) {
-      setErrorMessage(message);
+    const validationMessage = validate();
+    if (validationMessage) {
+      setErrorMessage(validationMessage);
+      setSuccessMessage(null);
       return;
     }
     setErrorMessage(null);
 
-    const nextAsset: ManualAsset = {
-      id: editingId ?? `asset-${(idCounter.current += 1)}`,
+    const payload = {
       ticker: form.ticker.trim(),
       name: form.name.trim(),
       quantity: Number(form.quantity),
       avgPrice: Number(form.avgPrice),
     };
 
-    setAssets((prev) =>
-      editingId ? prev.map((asset) => (asset.id === editingId ? nextAsset : asset)) : [...prev, nextAsset],
-    );
-    setForm(EMPTY_FORM);
-    setEditingId(null);
+    try {
+      if (editingId) {
+        await updateMutation.mutateAsync({ id: editingId, payload });
+        setSuccessMessage(MANUAL_ASSET_UPDATE_SUCCESS);
+      } else {
+        await createMutation.mutateAsync(payload);
+        setSuccessMessage(MANUAL_ASSET_ADD_SUCCESS);
+      }
+      setForm(EMPTY_FORM);
+      setEditingId(null);
+    } catch {
+      setErrorMessage(editingId ? MANUAL_ASSET_UPDATE_ERROR : MANUAL_ASSET_ADD_ERROR);
+    }
   };
 
   const handleEdit = (asset: ManualAsset) => {
@@ -73,13 +101,20 @@ export const ManualAssetsSection = () => {
       avgPrice: String(asset.avgPrice),
     });
     setErrorMessage(null);
+    setSuccessMessage(null);
   };
 
-  const handleDelete = (id: string) => {
-    setAssets((prev) => prev.filter((asset) => asset.id !== id));
-    if (editingId === id) {
-      setEditingId(null);
-      setForm(EMPTY_FORM);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteMutation.mutateAsync(id);
+      if (editingId === id) {
+        setEditingId(null);
+        setForm(EMPTY_FORM);
+        setErrorMessage(null);
+      }
+      setSuccessMessage(MANUAL_ASSET_DELETE_SUCCESS);
+    } catch {
+      setErrorMessage(MANUAL_ASSET_DELETE_ERROR);
     }
   };
 
@@ -92,7 +127,7 @@ export const ManualAssetsSection = () => {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} noValidate aria-label="자산 추가 폼" className="flex flex-col gap-3">
+      <form onSubmit={(e) => void handleSubmit(e)} noValidate aria-label="자산 추가 폼" className="flex flex-col gap-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1">
             <label htmlFor="asset-ticker" className="text-sm font-medium">
@@ -135,6 +170,7 @@ export const ManualAssetsSection = () => {
         </div>
 
         {errorMessage && <FieldMessage tone="error">{errorMessage}</FieldMessage>}
+        {successMessage && <FieldMessage tone="success">{successMessage}</FieldMessage>}
 
         <div className="flex gap-2">
           <Button type="submit" variant="primary">
@@ -148,6 +184,7 @@ export const ManualAssetsSection = () => {
                 setEditingId(null);
                 setForm(EMPTY_FORM);
                 setErrorMessage(null);
+                setSuccessMessage(null);
               }}
             >
               취소
@@ -186,7 +223,7 @@ export const ManualAssetsSection = () => {
                   type="button"
                   variant="ghost"
                   aria-label={`${asset.name} 삭제`}
-                  onClick={() => handleDelete(asset.id)}
+                  onClick={() => void handleDelete(asset.id)}
                 >
                   삭제
                 </Button>

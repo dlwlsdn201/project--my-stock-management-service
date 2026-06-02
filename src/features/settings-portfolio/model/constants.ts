@@ -37,3 +37,13 @@ export const TARGET_ALLOCATION_SAVE_ERROR =
 
 export const TARGET_ALLOCATION_LOAD_ERROR =
   '저장된 목표 비중을 불러오지 못했습니다. 기본값으로 표시합니다.';
+
+export const MANUAL_ASSET_LOAD_ERROR = '수동 자산 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
+
+export const MANUAL_ASSET_ADD_SUCCESS = '자산을 추가했습니다.';
+export const MANUAL_ASSET_UPDATE_SUCCESS = '자산을 수정했습니다.';
+export const MANUAL_ASSET_DELETE_SUCCESS = '자산을 삭제했습니다.';
+
+export const MANUAL_ASSET_ADD_ERROR = '자산 추가에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+export const MANUAL_ASSET_UPDATE_ERROR = '자산 수정에 실패했습니다. 잠시 후 다시 시도해 주세요.';
+export const MANUAL_ASSET_DELETE_ERROR = '자산 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.';
