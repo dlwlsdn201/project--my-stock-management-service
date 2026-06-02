@@ -7,15 +7,15 @@
 ## 1. 현재 상태
 
 - 현재 브랜치: `main`
-- 현재 작업: Post-MVP Unit 15 (수동 자산 persistence 전환) 2차 재리뷰 PASS — 커밋 대기
-- 마지막 완료 작업: Unit 15 보완 완료 후 2차 재리뷰 PASS (2026-06-03)
-- 커밋 여부: Unit 14까지 원격 반영 완료 / Unit 15는 미커밋 (재리뷰 후 커밋)
-- 리뷰 상태: Unit 15 2차 재리뷰 PASS
+- 현재 작업: Post-MVP Unit 16 (포트폴리오 종목별 계산 SSOT 이관) 착수 준비
+- 마지막 완료 작업: Unit 15 보완 완료 후 2차 재리뷰 PASS + `9afb076` 커밋/원격 push 완료 (2026-06-03)
+- 커밋 여부: Unit 15까지 원격 반영 완료
+- 리뷰 상태: Unit 16 작업 대기
 
 ## 2. 미완료 작업
 
 - ~~로그아웃 UI 구현~~ → **[Unit 14 완료]**
-- ~~수동 자산 persistence 전환~~ → **[Unit 15 완료, 미커밋]**
+- ~~수동 자산 persistence 전환~~ → **[Unit 15 완료]**
 - 종목 테이블 per-stock 계산 SSOT 이관(`MOCK_HOLDINGS` + 목표 비중 결합) — **[Unit 16 예정]**
 - `mockRecommendations.test.ts` 비중 합계 검증 정밀도 보강
 - `msw init` 명령으로 `public/mockServiceWorker.js` 생성 (브라우저 MSW 실제 사용 전)
@@ -91,9 +91,9 @@
 
 ## 5. 다음 액션
 
-1. Unit 15 커밋/푸시
-2. Unit 16 — 포트폴리오 종목별 계산 SSOT 이관 (`MOCK_HOLDINGS` + 목표 비중 결합) 착수
-3. Unit 16 완료 후 코드 리뷰 및 `docs/REVIEW_LOG.md` 갱신
+1. `docs/CURRENT_TASK.md`와 `docs/superpowers/plans/2026-06-03-unit16-portfolio-stock-weights.md` 기준으로 Claude Code에 Unit 16 구현 지시
+2. Unit 16 완료 후 코드 리뷰 및 `docs/REVIEW_LOG.md` 갱신
+3. 통과 시 커밋/푸시 후 Unit 17 MSW 브라우저 워커 준비 또는 Unit 18 다크/모바일 QA로 진행
 
 ## 6. 재개 시 읽을 문서
 

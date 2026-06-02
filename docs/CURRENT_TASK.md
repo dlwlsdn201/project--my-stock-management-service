@@ -2,9 +2,9 @@
 
 ## 0. 작업 요약
 
-Post-MVP Unit 15 — 수동 자산 persistence 전환
+Post-MVP Unit 16 — 포트폴리오 종목별 계산 SSOT 이관
 
-이번 작업은 설정 화면의 수동 자산 입력/편집/삭제 기능을 컴포넌트 local state에서 entity 계층의 persistence port + TanStack Query hook 구조로 전환한다. 실제 Supabase 저장은 제외하고, Unit 9의 목표 비중 저장 구조와 동일하게 in-memory store를 기본 adapter로 사용한다.
+이번 작업은 포트폴리오 관리 화면의 종목별 현재 비중/목표 비중/차이/액션 산출 근거를 `entities/rebalancing` mock 추천 데이터에서 분리하고, `entities/portfolio`의 보유 종목(`MOCK_HOLDINGS`)과 종목별 목표 비중 매핑을 결합하는 계산 함수로 이관한다.
 
 ## 1. 반드시 읽을 문서
 
@@ -14,6 +14,7 @@ Post-MVP Unit 15 — 수동 자산 persistence 전환
 - `docs/WORK_LOG.md`
 - `docs/REVIEW_LOG.md`
 - `docs/SESSION_STATE.md`
+- `docs/superpowers/plans/2026-06-03-unit16-portfolio-stock-weights.md`
 - `.rules/project-rules_architecture.mdc`
 - `.rules/project-rules_working.mdc`
 - `.rules/project-rules_testing-policy.mdc`
@@ -21,148 +22,130 @@ Post-MVP Unit 15 — 수동 자산 persistence 전환
 
 ## 2. 선행 상태
 
-- Unit 5에서 `ManualAssetsSection`이 수동 자산 CRUD UI를 구현했다.
-- 현재 수동 자산 목록은 `ManualAssetsSection` 내부 `useState`에만 저장되어 페이지 이탈/재마운트 시 소실된다.
-- Unit 9에서 목표 비중은 `targetAllocationStore` + api fetcher + TanStack Query hook 구조로 persistence port가 마련되었다.
-- Unit 14에서 로그아웃 UI와 세션 종료 흐름이 완료되었다.
+- Unit 8에서 `PortfolioManagementPanel`이 종목별 현재 비중/목표 비중/차이/AI 액션 테이블을 구현했다.
+- 현재 기본 데이터는 `entities/rebalancing`의 `MOCK_STOCK_ACTION_RECOMMENDATIONS`를 사용한다.
+- Unit 8 리뷰 로그에서 이 구조는 임시로 허용되었고, 후속으로 `MOCK_HOLDINGS` + 목표 비중 기반 per-stock 계산 SSOT 이관이 필요하다고 기록되었다.
+- Unit 15에서 수동 자산 persistence 전환이 완료되어 portfolio entity 계층의 데이터 소유권이 더 명확해졌다.
 
 ## 3. 작업 범위
 
 ### 포함
 
-- `ManualAsset` 타입을 portfolio entity 계층으로 승격
-- 수동 자산 in-memory store 구현
-- 수동 자산 조회/생성/수정/삭제 api fetcher 구현
-- 수동 자산 TanStack Query hook 구현
-- `ManualAssetsSection`을 local list state 대신 query/mutation 기반으로 전환
-- 저장/수정/삭제 성공 및 실패 UX 메시지 구현
-- 관련 단위/통합 테스트 추가
+- portfolio entity에 종목별 목표 비중 매핑 mock 추가
+- portfolio entity에 종목별 현재 비중/목표 비중/차이/액션 계산 함수 추가
+- 포트폴리오 관리 화면 기본 데이터 소스를 `MOCK_HOLDINGS` 기반 계산 결과로 전환
+- `PortfolioManagementPanel` 타입을 portfolio entity 계산 결과 타입 기준으로 정리
+- 계산 함수 테스트 추가
+- 포트폴리오 관리 화면 테스트를 새 데이터 경로에 맞게 갱신
 - 작업 완료 후 `docs/WORK_LOG.md`, `docs/SESSION_STATE.md` 갱신
 
 ### 제외
 
-- 실제 Supabase table 생성 및 `@supabase/supabase-js` adapter 구현
-- 브라우저 localStorage/sessionStorage persistence
-- 수동 자산을 대시보드/리밸런싱/포트폴리오 계산에 반영
-- AI 추천 로직 변경
+- 실제 시세 API 연동
+- 수동 자산 persistence 데이터를 포트폴리오 테이블에 합산
+- AI 모델 호출 또는 실제 추천 생성
+- 리밸런싱 제안 화면의 추천 근거 테이블 변경
+- Supabase adapter 구현
 - 커밋 생성
 
 ## 4. 설계 지침
 
-- Unit 9의 `targetAllocationStore`, `targetAllocationApi`, `useTargetAllocation` 패턴을 따른다.
-- fetcher는 `entities/portfolio/api`에 두고 React hook을 사용하지 않는다.
-- hook은 `entities/portfolio/hook`에 두고 TanStack Query만 담당한다.
-- feature UI는 hook만 사용하고 store/fetcher를 직접 import하지 않는다.
-- mutation hook의 `onSuccess`는 invalidate만 담당한다. 성공/실패 메시지는 feature UI에서 처리한다.
-- 테스트에서는 `configureManualAssetStore`, `resetManualAssetStore` 같은 adapter seam으로 store를 격리한다.
-- route 문자열, magic string, magic number는 기존 상수 또는 신규 상수로 관리한다.
+- `entities/portfolio`는 `entities/rebalancing`을 import하지 않는다. 같은 레이어 cross-import 금지 규칙을 지킨다.
+- 종목별 액션 타입은 portfolio entity 내부에서 `'buy' | 'sell' | 'hold'` union으로 정의한다.
+- 액션 판단 기준은 현재 비중과 목표 비중 차이를 기준으로 한다.
+  - `currentWeightPercent - targetWeightPercent > tolerance`: `sell`
+  - `targetWeightPercent - currentWeightPercent > tolerance`: `buy`
+  - 그 외: `hold`
+- tolerance는 기존 `ALLOCATION_TOLERANCE_PERCENT`를 재사용하거나 종목 단위 별도 상수로 명확히 정의한다.
+- feature UI는 계산 함수나 mock을 직접 deep import하지 않고 `@entities/portfolio` public API를 경유한다.
+- `PortfolioManagementPanel`은 여전히 props로 테스트용 rows/status 주입이 가능해야 한다.
 
 ## 5. 예상 변경 파일
 
 ### 신규 후보
 
-- `src/entities/portfolio/api/manualAssetStore.ts`
-- `src/entities/portfolio/api/manualAssetStore.test.ts`
-- `src/entities/portfolio/api/manualAssetApi.ts`
-- `src/entities/portfolio/hook/useManualAssets.ts`
-- `src/entities/portfolio/hook/useManualAssets.test.tsx`
+- `src/entities/portfolio/model/calculateHoldingWeightRows.ts`
+- `src/entities/portfolio/model/calculateHoldingWeightRows.test.ts`
 
 ### 수정 후보
 
 - `src/entities/portfolio/model/types.ts`
+- `src/entities/portfolio/model/constants.ts`
+- `src/entities/portfolio/model/mockPortfolio.ts`
 - `src/entities/portfolio/index.ts`
-- `src/features/settings-portfolio/model/types.ts`
-- `src/features/settings-portfolio/ui/ManualAssetsSection.tsx`
-- `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx`
+- `src/features/portfolio-management/ui/PortfolioManagementPanel.tsx`
+- `src/features/portfolio-management/ui/PortfolioManagementPanel.test.tsx`
 - `docs/WORK_LOG.md`
 - `docs/SESSION_STATE.md`
 
 ## 6. 필수 구현 상세
 
-### 6.1 타입 SSOT
-
-- `ManualAsset`은 `entities/portfolio/model/types.ts`로 승격한다.
-- `features/settings-portfolio/model/types.ts`는 하위 호환이 필요하면 type re-export만 유지한다.
-- 수동 자산 입력 payload는 entity api/model에서 별도 타입으로 정의한다.
+### 6.1 타입
 
 예상 타입:
 
 ```ts
-export interface ManualAsset {
-  id: string;
+export type HoldingWeightAction = 'buy' | 'sell' | 'hold';
+
+export interface HoldingTargetWeight {
   ticker: string;
-  name: string;
-  quantity: number;
-  avgPrice: number;
+  targetWeightPercent: number;
 }
 
-export interface ManualAssetPayload {
+export interface HoldingWeightRow {
   ticker: string;
   name: string;
-  quantity: number;
-  avgPrice: number;
+  currentWeightPercent: number;
+  targetWeightPercent: number;
+  gapPercent: number;
+  action: HoldingWeightAction;
 }
 ```
 
-### 6.2 Persistence store
+### 6.2 계산 함수
 
-- 기본 store는 in-memory로 구현한다.
-- `read`는 배열 복사본을 반환한다.
-- `create`는 새 id를 발급하고 생성된 asset을 반환한다.
-- `update`는 id가 존재할 때만 수정한다.
-- `delete`는 id가 존재하지 않아도 UI가 깨지지 않도록 멱등 처리하거나, 실패 정책을 명확히 테스트한다.
-- 테스트 격리를 위해 configure/reset 함수를 제공한다.
+- 입력:
+  - `holdings: HoldingAsset[]`
+  - `targetWeights: HoldingTargetWeight[]`
+- 출력:
+  - `HoldingWeightRow[]`
+- 현재 비중은 `holding.quantity * holding.currentPrice / totalValue * 100`으로 계산한다.
+- `gapPercent`는 `currentWeightPercent - targetWeightPercent`로 계산한다. 기존 포트폴리오 테이블의 `+` 표시는 목표보다 초과 보유를 의미한다.
+- totalValue가 0이면 빈 배열을 반환한다.
+- targetWeight가 없는 ticker는 `0` 또는 명시된 기본 정책으로 처리하고 테스트에 기록한다.
 
-### 6.3 API fetcher
+### 6.3 Mock 데이터
 
-- `readManualAssets`
-- `createManualAsset`
-- `updateManualAsset`
-- `deleteManualAsset`
+- `MOCK_HOLDING_TARGET_WEIGHTS`를 `entities/portfolio/model/mockPortfolio.ts` 또는 적절한 portfolio model 파일에 추가한다.
+- 기존 `MOCK_HOLDINGS`의 ticker와 맞는 목표 비중을 제공한다.
+- 기본 포트폴리오 화면 rows는 `calculateHoldingWeightRows(MOCK_HOLDINGS, MOCK_HOLDING_TARGET_WEIGHTS)`로 산출한다.
 
-Fetcher는 활성 store에 위임한다.
+### 6.4 UI 전환
 
-### 6.4 Query hook
+- `PortfolioManagementPanel`은 더 이상 `MOCK_STOCK_ACTION_RECOMMENDATIONS`를 기본값으로 사용하지 않는다.
+- 액션 라벨/색상은 기존 UI와 동일하게 유지할 수 있으나, 데이터 출처는 portfolio entity 계산 결과여야 한다.
+- Empty/Error 상태와 리밸런싱 CTA 동작은 유지한다.
 
-- query key는 `['portfolio', 'manual-assets'] as const`로 정의한다.
-- 조회는 `useSuspenseQuery`를 사용한다.
-- 생성/수정/삭제 mutation은 성공 시 해당 query key를 invalidate한다.
-- mutation UX 메시지는 hook 내부가 아니라 feature UI에서 처리한다.
-
-### 6.5 ManualAssetsSection UI
-
-- 자산 목록은 `useSuspenseManualAssets` 결과를 사용한다.
-- 추가/수정/삭제는 mutation hook을 사용한다.
-- 폼 입력 local state와 `editingId`, validation state는 유지 가능하다.
-- 성공 시 폼 초기화, 편집 모드 해제, 성공 메시지 표시.
-- 실패 시 폼 값을 유지하고 에러 메시지 표시.
-- 빈 목록 문구는 기존 문구를 유지한다.
-
-### 6.6 테스트
+### 6.5 테스트
 
 필수 테스트:
 
-- store: read가 seed 복사본을 반환한다.
-- store: create 후 read 목록에 반영된다.
-- store: update 후 해당 asset이 변경된다.
-- store: delete 후 해당 asset이 제거된다.
-- hook: 조회 훅이 저장된 수동 자산을 반환한다.
-- hook: create/update/delete 성공 시 query invalidate로 목록이 갱신된다.
-- UI: 수동 자산 추가 성공 시 목록에 표시된다.
-- UI: 수정 성공 시 목록 값이 바뀐다.
-- UI: 삭제 성공 시 목록에서 제거된다.
-- UI: 생성/수정/삭제 실패 시 에러 메시지를 표시하고 입력 상태를 부적절하게 초기화하지 않는다.
-- UI: 필수값/숫자 validation은 기존 동작을 유지한다.
+- 계산 함수가 holdings 평가액 기준 현재 비중을 산출한다.
+- 계산 함수가 목표 비중과 차이(`current - target`)를 산출한다.
+- 초과 보유는 `sell`, 부족 보유는 `buy`, 허용 오차 이내는 `hold`를 반환한다.
+- 빈 holdings 또는 totalValue 0 입력 시 빈 배열을 반환한다.
+- 포트폴리오 관리 화면이 portfolio entity 계산 결과 기반 rows를 렌더링한다.
+- 기존 Empty/Error/CTA 테스트는 유지한다.
+- `MOCK_STOCK_ACTION_RECOMMENDATIONS` 의존이 `PortfolioManagementPanel`에서 제거된다.
 
 ## 7. 구현 규칙
 
 - FSD 의존성 방향 준수
+- 같은 레이어 entity 간 cross-import 금지
 - deep import 금지, public API 경유
 - `any` 금지
-- entity api fetcher에서 hook 사용 금지
-- feature UI에서 store/fetcher 직접 import 금지
+- 계산 정책/허용 오차는 상수로 관리
 - 불필요한 신규 패키지 설치 금지
-- 기존 shared UI 우선 사용
 
 ## 8. 테스트 및 검증
 
@@ -178,8 +161,8 @@ git diff --check
 
 ## 9. 완료 기준
 
-- 수동 자산 목록이 entity persistence port를 통해 관리된다.
-- `ManualAssetsSection`이 local list state 대신 query/mutation 기반으로 동작한다.
-- 수동 자산 CRUD 성공/실패가 테스트로 방어된다.
-- FSD/API 3단계 규칙을 위반하지 않는다.
+- `PortfolioManagementPanel` 기본 데이터가 `MOCK_HOLDINGS` 기반 계산 결과로 전환된다.
+- 종목별 current/target/gap/action 산출이 portfolio entity 계산 함수로 SSOT화된다.
+- 계산 함수와 UI 회귀 테스트가 추가/갱신된다.
+- Unit 8에서 남긴 per-stock 계산 SSOT 후속 리스크가 해소된다.
 - `WORK_LOG.md`, `SESSION_STATE.md`가 최신화된다.
