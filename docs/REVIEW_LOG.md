@@ -11,6 +11,90 @@
 
 ---
 
+## 2026-06-02 / Unit 12 — mock session 상태와 route guard 구현 (1차 리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] 세션은 의도대로 메모리 전용 Jotai 상태이며 새로고침 시 초기화된다. 현재 Unit 제외 범위와 맞지만, 운영/데모 환경에서 새로고침 후 내부 route 접근이 `/login`으로 돌아가는 동작은 `SESSION_STATE.md`의 후속 리스크로 계속 유지해야 한다.
+- [W2] `.claude/launch.json`이 untracked 상태로 남아 있다. 커스텀 에디터 설정 파일이므로 커밋 대상에서 제외하거나 `.gitignore` 정책을 별도로 결정해야 한다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 19 files / 111 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 185 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- session 상태 SSOT 추가 확인:
+  - `src/entities/session/model/sessionAtom.ts`
+  - `src/entities/session/model/types.ts`
+  - `src/entities/session/index.ts`
+- route guard 적용 확인:
+  - `src/apps/router/ProtectedRoute.tsx`
+  - `src/apps/router/PublicOnlyRoute.tsx`
+  - `src/apps/router/routes.config.tsx`
+- 로그인 성공 시 session 저장 확인:
+  - `src/features/auth-login/ui/LoginForm.tsx`
+- 테스트 보강 확인:
+  - `src/entities/session/model/sessionAtom.test.ts`
+  - `src/apps/router/router.test.tsx`
+
+### 후속 권장 사항
+
+- Unit 12 커밋/푸시 진행 가능.
+- 다음 후속 작업은 `SESSION_STATE.md`의 잔여 리스크 중 Supabase 실제 어댑터 연결 또는 API key 저장/보안 정책 확정 중 하나를 선택한다.
+
+---
+
+## 2026-06-02 / Unit 11 — 최종 검증, 문서 정리, 릴리즈 후보 정리 (1차 리뷰)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Important
+
+- 없음
+
+### Suggestion
+
+- 없음
+
+### 검증 결과
+
+- `pnpm test`: PASS, 18 files / 99 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 178 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- 코드 변경 없이 최종 통합 검증/문서 정리 중심으로 Unit 11 범위를 수행한 점 확인
+- `WORK_LOG.md`의 Unit 11 섹션에 시나리오 점검, 잔여 리스크 분류, 릴리즈 후보 체크리스트가 반영된 점 확인
+- `SESSION_STATE.md` 갱신으로 현재 상태 및 다음 액션이 최신화된 점 확인
+
+### 후속 권장 사항
+
+- Unit 11은 커밋/푸시 진행 가능.
+
+---
+
 ## 2026-06-01 / Unit 10 — 접근성/반응형/상태 UI 품질 보강 (2차 재리뷰)
 
 ### 최종 판단

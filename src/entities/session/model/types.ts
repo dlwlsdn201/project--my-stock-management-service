@@ -21,6 +21,11 @@ export interface LoginFailureResult {
 
 export type LoginResult = LoginSuccessResult | LoginFailureResult;
 
+export interface Session {
+  userStatus: UserStatus;
+  aiTrialRemainingCount: number;
+}
+
 export interface LoginEmailPayload {
   email: string;
   password: string;

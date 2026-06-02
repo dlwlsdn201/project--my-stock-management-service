@@ -1,5 +1,141 @@
 ---
 
+## Unit 12 — mock session 상태와 route guard 구현
+
+- 작업 일자: 2026-06-02
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- `src/entities/session/model/sessionAtom.ts` (Jotai 전역 session atom + isAuthenticated 파생 + clearSession 액션)
+- `src/entities/session/model/sessionAtom.test.ts` (기본값/저장/clear 3개)
+- `src/apps/router/ProtectedRoute.tsx` (비로그인 → /login redirect 가드)
+- `src/apps/router/PublicOnlyRoute.tsx` (로그인 사용자 → userStatus 기반 내부 redirect 가드)
+
+수정:
+- `src/entities/session/model/types.ts` (`Session` 인터페이스 추가)
+- `src/entities/session/index.ts` (`sessionAtom` 관련 export 추가)
+- `src/features/auth-login/ui/LoginForm.tsx` (로그인 성공 시 `setSession`으로 전역 session 저장)
+- `src/apps/router/routes.config.tsx` (protected/public-only 가드 적용)
+- `src/apps/router/router.test.tsx` (Jotai Provider 주입, 15개로 전면 갱신)
+
+### 구현 내용
+
+- **`Session` 타입**: `{ userStatus, aiTrialRemainingCount }` — `LoginSuccessResult`와 1:1 대응, token 없음(메모리 전용)
+- **`sessionAtom`**: `atom<Session | null>(null)` — 기본값 비로그인. `isAuthenticatedAtom`(파생 read), `clearSessionAtom`(write-only 액션)
+- **`ProtectedRoute`**: `sessionAtom`이 null이면 `<Navigate to="/login" replace />`, 있으면 children 렌더
+- **`PublicOnlyRoute`**: 세션 있으면 `userStatus === 'new'` → `/onboarding/brokerage`, 그 외 → `/dashboard` redirect
+- **`LoginForm`**: `useSetAtom(sessionAtom)`으로 로그인 성공 결과를 전역에 저장 후 navigate
+- **가드 적용 경로**: `/dashboard`, `/rebalance`, `/portfolio`, `/settings`, `/onboarding/brokerage` → ProtectedRoute 래핑; `/login` → PublicOnlyRoute 래핑
+- **테스트 전략**: `router.test.tsx`에서 `createStore()`로 초기 세션 상태를 주입하고 `<Provider store={store}>`로 격리. LoginForm 기존 7개 테스트는 MemoryRouter 내에서 `Provider` 미사용(sessionAtom을 직접 assertions 대상으로 삼지 않으므로 통과)
+
+### 테스트 및 검증 결과
+
+| 명령 | 결과 | 세부 |
+| --- | --- | --- |
+| `pnpm test` | ✅ PASS | 19 files / 111 tests (router +9, sessionAtom +3) |
+| `pnpm lint` | ✅ PASS | 오류·경고 없음 |
+| `pnpm typecheck` | ✅ PASS | `tsc -b --noEmit` |
+| `pnpm build` | ✅ PASS | 185 modules, JS gzip 142.46 kB |
+| `git diff --check` | ✅ PASS | whitespace 오류 없음 |
+
+신규 테스트(router.test.tsx, 15개):
+- `redirects / to /login` / `renders LoginPage at /login (비로그인)`
+- 비로그인 5개 경로 각각 /login redirect (it.each)
+- 로그인 상태 /dashboard: main landmark / 콘텐츠 / 내비게이션 / active 표시
+- 기존 사용자 /login → /dashboard redirect
+- 신규 사용자 /login → /onboarding/brokerage redirect
+- 기존 사용자 로그인 → /dashboard 이동 + 세션 저장
+- 신규 사용자 로그인 → /onboarding/brokerage 이동 + 세션 저장
+
+### 설계 결정
+
+- Jotai `createStore()`로 테스트별 atom 격리 — `Provider store={store}` 패턴으로 테스트 간 상태 누출 방지
+- `LoginForm`이 `sessionAtom`을 직접 write — feature가 entity atom을 직접 참조하는 구조는 FSD에서 허용(하위 레이어 참조)
+- `clearSessionAtom`은 로그아웃 액션의 seam 역할 — 로그아웃 UI 구현 시 이 액션만 호출하면 됨
+- token persistence(localStorage/sessionStorage) 없음 — 새로고침 시 세션 초기화(Post-MVP 제외 범위)
+
+### 남은 리스크
+
+- 세션 메모리 전용 — 새로고침 시 비로그인 상태로 돌아감(token persistence 이관)
+- 로그아웃 UI 미구현(clearSessionAtom seam 준비됨)
+- `loginWithKakao`는 항상 `existing` 반환 — 신규 카카오 사용자 분기 없음(MVP 의도적)
+
+---
+
+## Unit 11 — 최종 검증, 문서 정리, 릴리즈 후보 정리
+
+- 작업 일자: 2026-06-02
+- 작업 브랜치: main
+- 성격: 기능 추가 없음. Unit 0~10 산출물 통합 회귀 검증 + 문서 정합성 정리 + 릴리즈 후보 체크리스트 작성.
+
+### 변경 파일
+
+- `docs/WORK_LOG.md` (진행 현황 표 Unit 6~11 상태 갱신, 본 Unit 11 결과 추가)
+- `docs/SESSION_STATE.md` (Unit 10 재리뷰 PASS 반영, 현재 상태/검증 결과/다음 액션 갱신)
+- 코드 변경 없음 (검증만 수행 → 회귀 없음)
+
+### 통합 회귀 검증 결과 (2026-06-02 실측)
+
+| 명령 | 결과 | 세부 |
+| --- | --- | --- |
+| `pnpm test` | ✅ PASS | 18 files / 99 tests, 0 failures (4.87s) |
+| `pnpm lint` | ✅ PASS | `eslint .` 오류/경고 없음 |
+| `pnpm typecheck` | ✅ PASS | `tsc -b --noEmit` |
+| `pnpm build` | ✅ PASS | `tsc -b && vite build`, 178 modules, JS 452.66 kB (gzip 138.53 kB), CSS 18.86 kB (gzip 4.55 kB) |
+| `git diff --check` | ✅ PASS | whitespace 오류 없음 |
+
+### 시나리오별 수동 점검 (자동 테스트 매핑)
+
+전 시나리오가 통과하는 자동 테스트로 커버됨을 확인:
+
+| 시나리오 | 점검 결과 | 근거 테스트 |
+| --- | --- | --- |
+| 로그인 성공/실패 | ✅ | `LoginForm.test.tsx` — 신규/기존 사용자 성공 라우팅, 잘못된 자격증명 실패+페이지 유지, 카카오 성공, 입력 검증 3종 (7) |
+| 온보딩 연결 성공/실패 | ✅ | `BrokerageOnboardingPanel.test.tsx` — 연결 성공 완료 메시지·대시보드 이동, 실패 오류·재시도, 검색 필터, 나중에 하기 (6) |
+| 대시보드 KPI/요약 | ✅ | `DashboardOverviewPanel.test.tsx` — 총 자산·전일 대비 KPI(상승/하락), 자산군 비중, 상위 보유 종목, Empty/Error (6) |
+| 리밸런싱 무료 3회/팝업 | ✅ | `RebalancingProposalPanel.test.tsx` — 잔여 횟수 표시, 잔여 0 차단+연동 유도 팝업, 팝업 포커스/ESC/aria, 연동 시 차단 없음 (9) |
+| 포트폴리오 테이블/CTA | ✅ | `PortfolioManagementPanel.test.tsx` — 컬럼/행, 비중 차이 +/-, AI 액션 라벨, Empty/Error, 리밸런싱 CTA 경로 (6) |
+| 설정 목표 비중 저장/불러오기·API key | ✅ | `SettingsPortfolioPanel.test.tsx` — 목표 비중 저장 성공/실패(persistence port), 프리셋, 자산 CRUD, API key 마스킹/오류/삭제·aria 연결 (12) |
+
+### 잔여 리스크 분류 (해결됨 / 미해결 / 이관)
+
+- **해결됨**: Unit 7 W1(SPA 라우팅 CTA), Unit 8 W1(액션 톤 SSOT 승격), Unit 9 C1/C2/W1(invalidate-only·Suspense 전환·env 의존 단정 제거), Unit 10 W1(반응형 1280/1024/768 실측).
+- **미해결(릴리즈 전 결정 필요)**:
+  - 실제 `@supabase/supabase-js` 어댑터 미연결 — 현재 in-memory mock fallback. 목표 비중은 새로고침 시 초기화(세션 간 비영속).
+  - API key/수동 자산은 컴포넌트 local state — persistence 미전환. API key는 평문 저장 금지 원칙 유지.
+  - ~~route guard 미구현~~ → **[Unit 12 해소]** ProtectedRoute/PublicOnlyRoute 구현 완료.
+  - mock 계정 credentials 소스 노출(MVP 의도적), 증권사 연결 실패 트리거 `'toss'` 하드코딩.
+- **이관(후속 Unit)**:
+  - 수동 자산/AI 설정 persistence 전환, 종목 테이블 per-stock 계산 SSOT(`MOCK_HOLDINGS`+목표 비중 결합) 이관.
+  - 다크 테마 픽셀 QA(실측은 라이트 테마 기준), 중첩 다이얼로그 포커스 트랩.
+  - `msw init`로 `public/mockServiceWorker.js` 생성(브라우저 MSW 실사용 전).
+
+### 릴리즈 후보 체크리스트
+
+코드/검증:
+- [x] `pnpm test` / `lint` / `typecheck` / `build` / `git diff --check` 전체 PASS
+- [x] 전 Unit(0~10) 리뷰 종결(미해결 Critical 없음)
+- [x] 핵심 사용자 시나리오 6종 자동 테스트 커버
+- [x] 반응형 1280/1024/768 실측(데이터 밀집 4개 화면)
+- [x] 접근성: 다이얼로그 a11y·폼 aria 연결·색상 단독 표현 금지 준수
+
+배포 전 결정 필요(미완료):
+- [ ] 운영 Supabase 인스턴스/자격증명 발급 + `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` 주입 + supabase 어댑터(`createSupabaseTargetAllocationStore`) 연결 + 부트스트랩 `configureTargetAllocationStore` 배선
+- [x] ~~route guard 구현 여부 결정~~ → **[Unit 12 완료]** ProtectedRoute/PublicOnlyRoute 구현
+- [ ] API key 저장/보안 정책(저장 위치·암호화·폐기) 운영 기준 확정
+- [ ] `public/mockServiceWorker.js` 생성(브라우저 MSW 사용 시) 또는 실제 API 연동
+- [ ] mock 계정/하드코딩 실패 트리거 제거(실데이터 연동 시)
+- [ ] 다크 테마 픽셀 QA, 모바일(<768) 실측 증빙
+
+### 검증 결론
+
+- 본 Unit 범위(검증·문서 정리)에서 코드 변경 없이 5개 필수 검증 전부 PASS.
+- 미해결 항목은 모두 "MVP 데모 가능 / 운영 배포 전 결정 필요"로 분류되며, 신규 기능·대규모 리팩터링 없이 릴리즈 후보 상태 도달.
+
+---
+
 ## Unit 10 — 접근성/반응형/상태 UI 품질 보강
 
 - 작업 일자: 2026-06-01
@@ -533,12 +669,13 @@
 | Unit 3 — 인증 UI와 mock 로그인 플로우 구현 | DONE | Claude Code | 완료 | 2026-05-28 main 병합 완료 |
 | Unit 4 — 증권사 연동 온보딩과 mock 연결 상태 구현 | DONE | Claude Code | 완료 | 2026-05-31 main 병합 완료 |
 | Unit 5 — 수동 자산 입력과 목표 비중 설정 구현 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-31 GPT 2차 리뷰 통과, main 병합 |
-| Unit 6 — 포트폴리오 대시보드 구현 | DONE | Claude Code | NOT REQUESTED | 2026-05-31 구현 완료, GPT 리뷰 대기 |
-| Unit 7 — AI 리밸런싱 제안 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 5, Unit 6 이후 |
-| Unit 8 — 주식 포트폴리오 관리 구현 | PLANNED | Claude Code | NOT REQUESTED | Unit 1, Unit 5, Unit 7 이후 |
-| Unit 9 — Supabase 연동 후보 검증과 persistence 전환 | PLANNED | Claude Code | NOT REQUESTED | Unit 1~8 이후 |
-| Unit 10 — 접근성, 반응형, 에러/빈 상태 품질 보강 | PLANNED | Claude Code | NOT REQUESTED | Unit 2~8 이후 |
-| Unit 11 — 최종 검증, 문서 정리, 릴리즈 후보 정리 | PLANNED | Claude Code | NOT REQUESTED | Unit 0~10 이후 |
+| Unit 6 — 포트폴리오 대시보드 구현 | DONE | Claude Code | PASS WITH WARNINGS | 2026-05-31 1차 리뷰 통과(W1/W2 반영) |
+| Unit 7 — AI 리밸런싱 제안 구현 | DONE | Claude Code | PASS WITH WARNINGS | 2026-06-01 1차 리뷰 통과(W1 해소, W2 Unit 10 이연) |
+| Unit 8 — 주식 포트폴리오 관리 구현 | DONE | Claude Code | PASS | 2026-06-01 2차 재리뷰 통과 |
+| Unit 9 — Supabase 연동 후보 검증과 persistence 전환 | DONE | Claude Code | PASS | 2026-06-01 2차 재리뷰 통과 |
+| Unit 10 — 접근성, 반응형, 에러/빈 상태 품질 보강 | DONE | Claude Code | PASS | 2026-06-01 2차 재리뷰 통과 |
+| Unit 11 — 최종 검증, 문서 정리, 릴리즈 후보 정리 | DONE | Claude Code | NOT REQUESTED | 2026-06-02 통합 회귀 검증·문서 정리 완료 |
+| Unit 12 — mock session 상태와 route guard 구현 | DONE | Claude Code | NOT REQUESTED | 2026-06-02 TDD로 구현, 19 files / 111 tests PASS |
 
 ## 2. 단위 작업 결과
 

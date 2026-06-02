@@ -1,10 +1,11 @@
+import { useSetAtom } from 'jotai';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { loginWithEmail, loginWithKakao } from '@entities/session';
+import { loginWithEmail, loginWithKakao, sessionAtom } from '@entities/session';
 import { Button, ROUTES } from '@shared';
-import type { UserStatus } from '@entities/session';
+import type { LoginSuccessResult } from '@entities/session';
 
 const emailFieldSchema = z.string().email('올바른 이메일 형식이 아닙니다.');
 
@@ -15,6 +16,7 @@ interface LoginFormValues {
 
 export const LoginForm = () => {
   const navigate = useNavigate();
+  const setSession = useSetAtom(sessionAtom);
   const [isKakaoLoading, setIsKakaoLoading] = useState(false);
 
   const {
@@ -24,9 +26,13 @@ export const LoginForm = () => {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>();
 
-  const handleNavigateAfterLogin = (userStatus: UserStatus) => {
+  const handleLoginSuccess = (result: LoginSuccessResult) => {
+    setSession({
+      userStatus: result.userStatus,
+      aiTrialRemainingCount: result.aiTrialRemainingCount,
+    });
     const target =
-      userStatus === 'new' ? ROUTES.ONBOARDING_BROKERAGE : ROUTES.DASHBOARD;
+      result.userStatus === 'new' ? ROUTES.ONBOARDING_BROKERAGE : ROUTES.DASHBOARD;
     navigate(target);
   };
 
@@ -37,7 +43,7 @@ export const LoginForm = () => {
         setError('root', { message: result.errorMessage });
         return;
       }
-      handleNavigateAfterLogin(result.userStatus);
+      handleLoginSuccess(result);
     } catch {
       setError('root', { message: '로그인 중 오류가 발생했습니다.' });
     }
@@ -51,7 +57,7 @@ export const LoginForm = () => {
         setError('root', { message: result.errorMessage });
         return;
       }
-      handleNavigateAfterLogin(result.userStatus);
+      handleLoginSuccess(result);
     } finally {
       setIsKakaoLoading(false);
     }

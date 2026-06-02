@@ -7,6 +7,8 @@ import { RebalancePage } from '@pages/rebalance';
 import { SettingsPage } from '@pages/settings';
 import { ROUTES } from '@shared';
 import { AppShellLayout } from './AppShellLayout';
+import { ProtectedRoute } from './ProtectedRoute';
+import { PublicOnlyRoute } from './PublicOnlyRoute';
 
 export const APP_ROUTES: RouteObject[] = [
   {
@@ -15,31 +17,55 @@ export const APP_ROUTES: RouteObject[] = [
   },
   {
     path: ROUTES.LOGIN,
-    element: <LoginPage />,
+    element: (
+      <PublicOnlyRoute>
+        <LoginPage />
+      </PublicOnlyRoute>
+    ),
   },
   {
     path: ROUTES.DASHBOARD,
-    element: <AppShellLayout routePath={ROUTES.DASHBOARD} />,
+    element: (
+      <ProtectedRoute>
+        <AppShellLayout routePath={ROUTES.DASHBOARD} />
+      </ProtectedRoute>
+    ),
     children: [{ index: true, element: <DashboardPage /> }],
   },
   {
     path: ROUTES.ONBOARDING_BROKERAGE,
-    element: <AppShellLayout routePath={ROUTES.ONBOARDING_BROKERAGE} />,
+    element: (
+      <ProtectedRoute>
+        <AppShellLayout routePath={ROUTES.ONBOARDING_BROKERAGE} />
+      </ProtectedRoute>
+    ),
     children: [{ index: true, element: <OnboardingBrokeragePage /> }],
   },
   {
     path: ROUTES.REBALANCE,
-    element: <AppShellLayout routePath={ROUTES.REBALANCE} />,
+    element: (
+      <ProtectedRoute>
+        <AppShellLayout routePath={ROUTES.REBALANCE} />
+      </ProtectedRoute>
+    ),
     children: [{ index: true, element: <RebalancePage /> }],
   },
   {
     path: ROUTES.PORTFOLIO,
-    element: <AppShellLayout routePath={ROUTES.PORTFOLIO} />,
+    element: (
+      <ProtectedRoute>
+        <AppShellLayout routePath={ROUTES.PORTFOLIO} />
+      </ProtectedRoute>
+    ),
     children: [{ index: true, element: <PortfolioPage /> }],
   },
   {
     path: ROUTES.SETTINGS,
-    element: <AppShellLayout routePath={ROUTES.SETTINGS} />,
+    element: (
+      <ProtectedRoute>
+        <AppShellLayout routePath={ROUTES.SETTINGS} />
+      </ProtectedRoute>
+    ),
     children: [{ index: true, element: <SettingsPage /> }],
   },
 ];

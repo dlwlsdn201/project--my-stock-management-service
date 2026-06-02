@@ -2,9 +2,9 @@
 
 ## 0. 작업 요약
 
-Unit 10 — 접근성, 반응형, 에러/빈 상태 품질 보강
+Post-MVP Unit 12 — mock session 상태와 route guard 구현
 
-이번 Unit은 Unit 2~9까지 구현된 주요 화면의 접근성(a11y), 데스크톱 중심 반응형 안정성, 에러/빈 상태 일관성을 점검하고 보강한다.
+이번 작업은 MVP 릴리즈 후보 이후 첫 후속 작업이다. 인증 없이 내부 화면에 직접 접근 가능한 현재 구조를 보완하고, Unit 3의 mock 로그인 결과를 앱 전역 session 상태와 라우트 보호 정책에 연결한다.
 
 ## 1. 반드시 읽을 문서
 
@@ -21,78 +21,91 @@ Unit 10 — 접근성, 반응형, 에러/빈 상태 품질 보강
 
 ## 2. 선행 상태
 
-- Unit 9까지 핵심 기능 구현이 완료되어 있다.
-- `ApiQueryBoundary`, `ErrorState`, `EmptyState` 등 공통 상태 UI가 도입되어 있다.
+- Unit 11까지 MVP 릴리즈 후보 검증이 완료되어 있다.
+- 로그인은 mock 인증 함수 기반으로 동작하지만, 세션 상태가 앱 전역에 저장되지 않는다.
+- `/dashboard`, `/rebalance`, `/portfolio`, `/settings`, `/onboarding/brokerage`는 현재 인증 없이 직접 접근 가능하다.
 
 ## 3. 작업 범위
 
 ### 포함
 
-- 핵심 화면(`login`, `dashboard`, `onboarding`, `rebalance`, `portfolio`, `settings`) 접근성 점검/보완
-- 테이블/폼/CTA의 aria 속성 및 키보드 탐색성 보강
-- 다이얼로그(특히 API key 유도 팝업) 접근성 보강(포커스/ESC)
-- 데스크톱 기준 레이아웃 깨짐, 텍스트 오버플로우, 카드 높이 불균형 보정
-- 에러/빈/로딩 상태 UI 표준화
-- Unit 10 테스트 보강
+- `entities/session`에 mock session 상태 모델 추가
+- 로그인 성공 시 session 상태 저장
+- 로그아웃 또는 세션 초기화 액션 추가(최소 테스트 가능한 형태)
+- protected route guard 구현
+- 신규 사용자/기존 사용자 라우팅 정책 유지
+- 인증되지 않은 사용자의 내부 화면 접근 시 `/login` redirect
+- 로그인 사용자가 `/login` 접근 시 적절한 내부 화면으로 redirect
+- route guard 테스트 추가
 - 작업 완료 후 `docs/WORK_LOG.md`, `docs/SESSION_STATE.md` 갱신
 
 ### 제외
 
-- 신규 비즈니스 기능 추가
-- 모바일 앱 전용 UX 리디자인
+- 실제 Supabase Auth 연동
+- refresh token/session persistence
+- 운영 OAuth
+- 권한/RLS 서버 정책
 - 커밋 생성
 
 ## 4. 설계 결정
 
-- 공통 패턴 우선: `ApiQueryBoundary`, `FieldMessage`, `ErrorState`, `EmptyState`를 기준으로 통일한다.
-- 접근성 보강은 “동작 보존 + 표현 강화” 원칙으로 진행한다.
-- 테스트는 스타일 스냅샷보다 사용자 상호작용(역할/이름/키보드 동작) 검증에 집중한다.
+- MVP 후속 작업이므로 실제 인증이 아니라 mock session 상태를 앱 라우팅에 연결한다.
+- 전역 클라이언트 상태는 기존 프로젝트 기준에 맞춰 Jotai를 우선 사용한다.
+- route guard는 `apps/router` 또는 `widgets/app-shell`보다 라우팅 계층에 가깝게 둔다.
+- 인증 상태 타입/상수는 `entities/session` SSOT로 유지한다.
 
 ## 5. 예상 변경 파일
 
+### 신규 후보
+
+- `src/entities/session/model/sessionAtom.ts`
+- `src/entities/session/model/sessionState.ts` 또는 동등 파일
+- `src/apps/router/ProtectedRoute.tsx`
+- `src/apps/router/PublicOnlyRoute.tsx`
+
 ### 수정 후보
 
-- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx` (dialog a11y)
-- `src/features/portfolio-management/ui/PortfolioManagementPanel.tsx` (table/cta a11y)
-- `src/features/settings-portfolio/ui/*` (폼 피드백/로딩 상태)
-- `src/shared/ui/common/*` (필요 시 공통 a11y 유틸)
-- 관련 테스트 파일
+- `src/features/auth-login/ui/LoginForm.tsx`
+- `src/apps/router/routes.config.tsx`
+- `src/apps/router/router.test.tsx`
+- `src/entities/session/index.ts`
 - `docs/WORK_LOG.md`
 - `docs/SESSION_STATE.md`
 
 ## 6. 구현 규칙
 
-- FSD 의존성/공개 API 규칙 준수
+- FSD 의존성 방향 준수
+- deep import 금지, public API 경유
 - `any` 금지
-- 색상 단독 상태 표현 금지(텍스트 동반)
-- 키보드-only 사용자 기준으로 주요 플로우 조작 가능해야 함
+- React 컴포넌트는 화살표 함수
+- 인증 실패/redirect는 사용자에게 과도한 계정 존재 정보를 노출하지 않는다.
 
 ## 7. 필수 구현 상세
 
-### 7.1 접근성
+### 7.1 session 상태
 
-- 다이얼로그: `role="dialog"`, `aria-modal`, 포커스 이동/복귀, ESC 닫기
-- 테이블: caption/columnheader 정합성 유지
-- 폼: label, error `role="alert"`, 설명 연결(`aria-describedby`) 점검
+- 로그인 여부
+- 사용자 상태(`new`/`existing`)
+- AI 무료 제안 잔여 횟수
+- session clear 액션
 
-### 7.2 반응형/레이아웃
+### 7.2 route guard
 
-- 주요 화면 1280px/1024px/768px에서 레이아웃 깨짐 점검
-- 텍스트 오버플로우/버튼 줄바꿈/카드 높이 이슈 보정
+- 비로그인 사용자가 내부 route 접근 시 `/login`으로 redirect
+- 로그인 사용자가 `/login` 접근 시:
+  - 신규 사용자: `/onboarding/brokerage`
+  - 기존 사용자: `/dashboard`
+- `/onboarding/brokerage` 접근 정책은 신규 사용자 우선 허용, 기존 사용자도 재연동 목적으로 접근 가능하게 둘지 문서에 결정 사항을 남긴다.
 
-### 7.3 상태 UI 일관성
+### 7.3 테스트
 
-- 로딩/빈/에러 상태 문구와 동작 기준 통일
-- 재시도 액션 유무 기준 정리
+- 비로그인 상태에서 `/dashboard` 접근 시 `/login` 화면
+- 비로그인 상태에서 `/rebalance`, `/portfolio`, `/settings` 접근 시 `/login` 화면
+- 기존 사용자 로그인 후 `/dashboard` 이동 및 session 저장
+- 신규 사용자 로그인 후 `/onboarding/brokerage` 이동 및 session 저장
+- 로그인 상태에서 `/login` 접근 시 내부 route redirect
 
 ## 8. 테스트 및 검증
-
-아래 테스트를 최소 포함한다.
-
-- 다이얼로그 키보드 동작(열기/닫기/ESC)
-- 핵심 CTA 접근 가능한 role/name 검증
-- 에러/빈 상태 role/문구 검증
-- 필요 시 라우팅 회귀 테스트
 
 작업 완료 전 아래 명령 실행:
 
@@ -106,8 +119,8 @@ git diff --check
 
 ## 9. 완료 기준
 
-- 핵심 화면에 Critical 접근성 이슈가 없음
-- 주요 해상도에서 레이아웃 깨짐이 없음
-- 에러/빈 상태 처리 기준이 일관됨
-- 테스트/검증 통과
+- 인증되지 않은 내부 route 접근이 차단된다.
+- 로그인 성공 결과가 앱 session 상태에 반영된다.
+- 기존 Unit 3 로그인 흐름이 깨지지 않는다.
+- route guard 테스트가 핵심 정책을 방어한다.
 - `WORK_LOG.md`, `SESSION_STATE.md` 최신화
