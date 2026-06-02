@@ -2,9 +2,9 @@
 
 ## 0. 작업 요약
 
-Post-MVP Unit 12 — mock session 상태와 route guard 구현
+Post-MVP Unit 13 — AI 설정 상태와 무료 제안 정책 배선
 
-이번 작업은 MVP 릴리즈 후보 이후 첫 후속 작업이다. 인증 없이 내부 화면에 직접 접근 가능한 현재 구조를 보완하고, Unit 3의 mock 로그인 결과를 앱 전역 session 상태와 라우트 보호 정책에 연결한다.
+이번 작업은 설정 화면의 AI 모델/API key 상태를 앱 전역 상태로 승격하고, 리밸런싱 화면의 무료 제안 횟수/API key 연동 분기를 실제 session/settings 상태와 연결한다.
 
 ## 1. 반드시 읽을 문서
 
@@ -21,54 +21,59 @@ Post-MVP Unit 12 — mock session 상태와 route guard 구현
 
 ## 2. 선행 상태
 
-- Unit 11까지 MVP 릴리즈 후보 검증이 완료되어 있다.
-- 로그인은 mock 인증 함수 기반으로 동작하지만, 세션 상태가 앱 전역에 저장되지 않는다.
-- `/dashboard`, `/rebalance`, `/portfolio`, `/settings`, `/onboarding/brokerage`는 현재 인증 없이 직접 접근 가능하다.
+- Unit 12에서 mock session 상태와 route guard가 구현되었다.
+- Unit 5의 AI 모델/API key 설정 UI는 feature-local state로 동작한다.
+- Unit 7의 리밸런싱 무료 제안/API key 분기는 props 주입형으로만 동작한다.
+- API key 저장 위치/마스킹/삭제 정책 SSOT가 아직 확정되지 않았다.
 
 ## 3. 작업 범위
 
 ### 포함
 
-- `entities/session`에 mock session 상태 모델 추가
-- 로그인 성공 시 session 상태 저장
-- 로그아웃 또는 세션 초기화 액션 추가(최소 테스트 가능한 형태)
-- protected route guard 구현
-- 신규 사용자/기존 사용자 라우팅 정책 유지
-- 인증되지 않은 사용자의 내부 화면 접근 시 `/login` redirect
-- 로그인 사용자가 `/login` 접근 시 적절한 내부 화면으로 redirect
-- route guard 테스트 추가
+- AI 설정 타입/상태를 SSOT로 정리
+- AI 모델 선택 상태를 앱 전역 상태로 저장
+- API key 연결 상태를 앱 전역 상태로 저장
+- API key 원문은 화면 재노출 금지, 저장 정책 문서화
+- 설정 화면의 저장/수정/삭제 동작을 전역 AI 설정 상태에 연결
+- 리밸런싱 화면이 `sessionAtom.aiTrialRemainingCount`와 AI 설정 연결 상태를 참조하도록 배선
+- 무료 제안 요청 시 잔여 횟수 차감 정책 구현
+- API key 연동 상태에서는 무료 횟수 차감 없이 제안 허용
+- 관련 테스트 추가/수정
 - 작업 완료 후 `docs/WORK_LOG.md`, `docs/SESSION_STATE.md` 갱신
 
 ### 제외
 
-- 실제 Supabase Auth 연동
-- refresh token/session persistence
-- 운영 OAuth
-- 권한/RLS 서버 정책
+- 실제 외부 AI API 호출
+- 실제 API key 네트워크 유효성 검증
+- API key 서버 저장/Supabase 저장
+- API key 암호화 구현
+- 결제/구독 연동
 - 커밋 생성
 
 ## 4. 설계 결정
 
-- MVP 후속 작업이므로 실제 인증이 아니라 mock session 상태를 앱 라우팅에 연결한다.
-- 전역 클라이언트 상태는 기존 프로젝트 기준에 맞춰 Jotai를 우선 사용한다.
-- route guard는 `apps/router` 또는 `widgets/app-shell`보다 라우팅 계층에 가깝게 둔다.
-- 인증 상태 타입/상수는 `entities/session` SSOT로 유지한다.
+- MVP 후속 단계에서는 API key를 서버나 브라우저 storage에 영속 저장하지 않는다.
+- API key 원문은 입력 후 마스킹 표시에 필요한 최소 상태만 유지하고, 화면에 다시 평문 노출하지 않는다.
+- 실제 운영 저장/암호화 정책은 별도 Supabase/Edge Function 연동 단계로 이관한다.
+- 상태 관리는 기존 프로젝트 기준에 맞춰 Jotai를 우선 사용한다.
+- AI 설정은 여러 feature에서 참조하므로 `entities/settings` 또는 `entities/session` 중 책임 경계를 검토하고, 결정 사유를 `WORK_LOG.md`에 기록한다.
 
 ## 5. 예상 변경 파일
 
 ### 신규 후보
 
-- `src/entities/session/model/sessionAtom.ts`
-- `src/entities/session/model/sessionState.ts` 또는 동등 파일
-- `src/apps/router/ProtectedRoute.tsx`
-- `src/apps/router/PublicOnlyRoute.tsx`
+- `src/entities/settings/model/types.ts`
+- `src/entities/settings/model/aiSettingsAtom.ts`
+- `src/entities/settings/model/constants.ts`
+- `src/entities/settings/index.ts`
 
 ### 수정 후보
 
-- `src/features/auth-login/ui/LoginForm.tsx`
-- `src/apps/router/routes.config.tsx`
-- `src/apps/router/router.test.tsx`
-- `src/entities/session/index.ts`
+- `src/features/settings-portfolio/ui/AiSettingsSection.tsx`
+- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx`
+- `src/entities/session/model/sessionAtom.ts`
+- `src/features/index.ts` 또는 `src/entities/index.ts` (필요 시)
+- 관련 테스트 파일
 - `docs/WORK_LOG.md`
 - `docs/SESSION_STATE.md`
 
@@ -77,33 +82,40 @@ Post-MVP Unit 12 — mock session 상태와 route guard 구현
 - FSD 의존성 방향 준수
 - deep import 금지, public API 경유
 - `any` 금지
-- React 컴포넌트는 화살표 함수
-- 인증 실패/redirect는 사용자에게 과도한 계정 존재 정보를 노출하지 않는다.
+- 민감 정보는 평문 영속 저장 금지
+- 상태 표현은 색상 단독 금지
+- 무료 제안 횟수 정책은 상수/타입으로 SSOT화
 
 ## 7. 필수 구현 상세
 
-### 7.1 session 상태
+### 7.1 AI 설정 상태
 
-- 로그인 여부
-- 사용자 상태(`new`/`existing`)
-- AI 무료 제안 잔여 횟수
-- session clear 액션
+- 선택 모델: `gpt` / `gemini` / `claude`
+- API key 상태: 미설정 / 연동됨 / 오류
+- 마스킹된 key 표시값
+- 원문 key 저장 정책은 문서화하고, 현재 구현 범위에서는 영속 저장하지 않는다.
 
-### 7.2 route guard
+### 7.2 설정 화면 연결
 
-- 비로그인 사용자가 내부 route 접근 시 `/login`으로 redirect
-- 로그인 사용자가 `/login` 접근 시:
-  - 신규 사용자: `/onboarding/brokerage`
-  - 기존 사용자: `/dashboard`
-- `/onboarding/brokerage` 접근 정책은 신규 사용자 우선 허용, 기존 사용자도 재연동 목적으로 접근 가능하게 둘지 문서에 결정 사항을 남긴다.
+- 모델 변경 시 전역 상태 반영
+- API key 저장 성공 시 연동 상태와 마스킹 값 반영
+- 수정/삭제 시 상태 초기화
+- 짧은 key 입력 시 오류 상태 유지
 
-### 7.3 테스트
+### 7.3 리밸런싱 정책 연결
 
-- 비로그인 상태에서 `/dashboard` 접근 시 `/login` 화면
-- 비로그인 상태에서 `/rebalance`, `/portfolio`, `/settings` 접근 시 `/login` 화면
-- 기존 사용자 로그인 후 `/dashboard` 이동 및 session 저장
-- 신규 사용자 로그인 후 `/onboarding/brokerage` 이동 및 session 저장
-- 로그인 상태에서 `/login` 접근 시 내부 route redirect
+- `sessionAtom.aiTrialRemainingCount`를 실제 잔여 횟수로 표시
+- API key 미연동 + 잔여 횟수 0이면 기존 팝업/차단 유지
+- API key 미연동 + 잔여 횟수 > 0이면 추천 요청 시 잔여 횟수 1 차감
+- API key 연동 상태이면 잔여 횟수 차감 없이 추천 허용
+
+### 7.4 테스트
+
+- 설정 화면에서 API key 저장 시 리밸런싱 화면이 연동 상태로 판단할 수 있는 상태가 저장된다.
+- API key 삭제 시 리밸런싱 화면은 무료 횟수 정책으로 돌아간다.
+- 무료 잔여 횟수 > 0에서 추천 요청 시 횟수가 차감된다.
+- 무료 잔여 횟수 0에서 추천 요청 시 팝업이 표시되고 횟수는 음수가 되지 않는다.
+- API key 연동 상태에서는 추천 요청 시 무료 횟수가 차감되지 않는다.
 
 ## 8. 테스트 및 검증
 
@@ -119,8 +131,7 @@ git diff --check
 
 ## 9. 완료 기준
 
-- 인증되지 않은 내부 route 접근이 차단된다.
-- 로그인 성공 결과가 앱 session 상태에 반영된다.
-- 기존 Unit 3 로그인 흐름이 깨지지 않는다.
-- route guard 테스트가 핵심 정책을 방어한다.
-- `WORK_LOG.md`, `SESSION_STATE.md` 최신화
+- 설정 화면과 리밸런싱 화면이 같은 AI 설정 상태를 참조한다.
+- 무료 제안 잔여 횟수 차감 정책이 테스트로 방어된다.
+- API key 평문 영속 저장이 없다.
+- `WORK_LOG.md`, `SESSION_STATE.md`가 최신화된다.

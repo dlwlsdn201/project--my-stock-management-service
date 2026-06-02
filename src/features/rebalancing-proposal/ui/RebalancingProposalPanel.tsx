@@ -1,3 +1,4 @@
+import { useAtomValue, useSetAtom } from 'jotai';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ALLOCATION_GROUP_LABELS } from '@entities/portfolio';
@@ -14,7 +15,8 @@ import type {
   RebalancingScenario,
   StockActionRecommendation,
 } from '@entities/rebalancing';
-import { DEFAULT_AI_TRIAL_COUNT } from '@entities/session';
+import { DEFAULT_AI_TRIAL_COUNT, decrementAiTrialAtom, sessionAtom } from '@entities/session';
+import { isApiKeyConnectedAtom } from '@entities/settings';
 import { Button, MetricValue, Modal, ROUTES, Surface } from '@shared';
 import {
   API_KEY_CONNECTED_NOTE,
@@ -29,8 +31,6 @@ import {
 } from '../model/constants';
 
 interface RebalancingProposalPanelProps {
-  isApiKeyConnected?: boolean;
-  aiTrialRemainingCount?: number;
   recommendations?: RebalancingRecommendationItem[];
   stockActions?: StockActionRecommendation[];
   scenarios?: RebalancingScenario[];
@@ -63,12 +63,16 @@ const CompositionCard = ({
 );
 
 export const RebalancingProposalPanel = ({
-  isApiKeyConnected = false,
-  aiTrialRemainingCount = DEFAULT_AI_TRIAL_COUNT,
   recommendations = MOCK_REBALANCING_RECOMMENDATIONS,
   stockActions = MOCK_STOCK_ACTION_RECOMMENDATIONS,
   scenarios = MOCK_REBALANCING_SCENARIOS,
 }: RebalancingProposalPanelProps) => {
+  const session = useAtomValue(sessionAtom);
+  const isApiKeyConnected = useAtomValue(isApiKeyConnectedAtom);
+  const decrementTrial = useSetAtom(decrementAiTrialAtom);
+
+  const aiTrialRemainingCount = session?.aiTrialRemainingCount ?? DEFAULT_AI_TRIAL_COUNT;
+
   const [isApiKeyPromptOpen, setIsApiKeyPromptOpen] = useState(false);
 
   const isTrialExhausted = !isApiKeyConnected && aiTrialRemainingCount <= 0;
@@ -76,6 +80,10 @@ export const RebalancingProposalPanel = ({
   const handleRequestProposal = () => {
     if (isTrialExhausted) {
       setIsApiKeyPromptOpen(true);
+      return;
+    }
+    if (!isApiKeyConnected) {
+      decrementTrial();
     }
   };
 

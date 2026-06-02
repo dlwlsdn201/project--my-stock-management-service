@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Provider, createStore } from 'jotai';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -8,18 +9,22 @@ import {
   MOCK_TARGET_ALLOCATION,
   resetTargetAllocationStore,
 } from '@entities/portfolio';
+import { aiSettingsAtom } from '@entities/settings';
 import { SettingsPortfolioPanel } from './SettingsPortfolioPanel';
 
 const renderPanel = () => {
   const user = userEvent.setup();
+  const store = createStore();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const Wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </Provider>
   );
   render(<SettingsPortfolioPanel />, { wrapper: Wrapper });
-  return { user };
+  return { user, store };
 };
 
 afterEach(() => resetTargetAllocationStore());
@@ -146,5 +151,31 @@ describe('SettingsPortfolioPanel — AI 모델/API key', () => {
 
     expect(screen.getByText('미설정')).toBeInTheDocument();
     expect(screen.getByLabelText('API key')).toBeInTheDocument();
+  });
+});
+
+describe('SettingsPortfolioPanel — AI 설정 전역 상태 배선', () => {
+  it('유효한 API key 저장 시 aiSettingsAtom.isApiKeyConnected가 true가 된다', async () => {
+    const { user, store } = renderPanel();
+    await user.type(screen.getByLabelText('API key'), 'secret-key-1234');
+    await user.click(screen.getByRole('button', { name: '저장' }));
+
+    expect(store.get(aiSettingsAtom).isApiKeyConnected).toBe(true);
+  });
+
+  it('API key 삭제 시 aiSettingsAtom.isApiKeyConnected가 false로 돌아간다', async () => {
+    const { user, store } = renderPanel();
+    await user.type(screen.getByLabelText('API key'), 'secret-key-1234');
+    await user.click(screen.getByRole('button', { name: '저장' }));
+    await user.click(screen.getByRole('button', { name: '삭제' }));
+
+    expect(store.get(aiSettingsAtom).isApiKeyConnected).toBe(false);
+  });
+
+  it('AI 모델 변경 시 aiSettingsAtom.modelId가 갱신된다', async () => {
+    const { user, store } = renderPanel();
+    await user.click(screen.getByRole('radio', { name: 'Claude' }));
+
+    expect(store.get(aiSettingsAtom).modelId).toBe('claude');
   });
 });

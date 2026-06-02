@@ -1,51 +1,61 @@
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useState } from 'react';
+import {
+  aiSettingsAtom,
+  clearApiKeyAtom,
+  maskedApiKeyAtom,
+  saveApiKeyAtom,
+  setAiModelAtom,
+} from '@entities/settings';
+import type { ApiKeyStatus } from '@entities/settings';
 import { Button, FieldMessage, Surface } from '@shared';
 import {
   AI_MODEL_OPTIONS,
   API_KEY_ERROR_ID,
   API_KEY_MIN_LENGTH,
   API_KEY_STATUS_LABELS,
-  API_KEY_VISIBLE_SUFFIX_COUNT,
-  DEFAULT_AI_MODEL_ID,
 } from '../model/constants';
-import type { AiModelId, ApiKeyStatus } from '../model/types';
-
-const maskApiKey = (key: string): string => {
-  const suffix = key.slice(-API_KEY_VISIBLE_SUFFIX_COUNT);
-  const maskedLength = Math.max(key.length - API_KEY_VISIBLE_SUFFIX_COUNT, API_KEY_VISIBLE_SUFFIX_COUNT);
-  return `${'•'.repeat(maskedLength)}${suffix}`;
-};
 
 const inputClassName =
   'w-full rounded-[var(--radius)] border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]';
 
 export const AiSettingsSection = () => {
-  const [modelId, setModelId] = useState<AiModelId>(DEFAULT_AI_MODEL_ID);
+  const [aiSettings] = useAtom(aiSettingsAtom);
+  const maskedApiKey = useAtomValue(maskedApiKeyAtom);   // 전역 마스킹 값
+  const setAiModel = useSetAtom(setAiModelAtom);
+  const saveApiKey = useSetAtom(saveApiKeyAtom);
+  const clearApiKey = useSetAtom(clearApiKeyAtom);
+
+  // 로컬 UI 상태 — 현재 입력 중인 key 원문과 로컬 오류 상태만 유지
   const [keyInput, setKeyInput] = useState('');
-  const [savedKey, setSavedKey] = useState<string | null>(null);
-  const [status, setStatus] = useState<ApiKeyStatus>('unset');
+  const [hasError, setHasError] = useState(false);
+
+  const status: ApiKeyStatus = aiSettings.isApiKeyConnected
+    ? 'connected'
+    : hasError
+      ? 'error'
+      : 'unset';
 
   const handleSave = () => {
     const trimmed = keyInput.trim();
     if (trimmed.length < API_KEY_MIN_LENGTH) {
-      setStatus('error');
-      setSavedKey(null);
+      setHasError(true);
       return;
     }
-    setSavedKey(trimmed);
-    setStatus('connected');
+    setHasError(false);
     setKeyInput('');
+    saveApiKey(trimmed); // 전역 atom에 마스킹+연결 상태 저장 (원문 미저장)
   };
 
   const handleEdit = () => {
-    setStatus('unset');
-    setSavedKey(null);
+    setHasError(false);
+    clearApiKey();
   };
 
   const handleDelete = () => {
-    setSavedKey(null);
-    setStatus('unset');
+    setHasError(false);
     setKeyInput('');
+    clearApiKey(); // 전역 atom에 미연결 + maskedKey null 저장
   };
 
   return (
@@ -66,8 +76,8 @@ export const AiSettingsSection = () => {
                 type="radio"
                 name="ai-model"
                 value={option.id}
-                checked={modelId === option.id}
-                onChange={() => setModelId(option.id)}
+                checked={aiSettings.modelId === option.id}
+                onChange={() => setAiModel(option.id)}
               />
               {option.label}
             </label>
@@ -91,10 +101,11 @@ export const AiSettingsSection = () => {
           </span>
         </div>
 
-        {savedKey ? (
+        {/* maskedApiKey가 전역에 있으면 저장된 상태 — 재마운트 후에도 복원됨 */}
+        {maskedApiKey !== null ? (
           <div className="flex items-center justify-between gap-3 rounded-[var(--radius)] border border-[hsl(var(--border))] px-3 py-2">
             <span className="text-sm" aria-label="저장된 API key">
-              {maskApiKey(savedKey)}
+              {maskedApiKey}
             </span>
             <div className="flex shrink-0 gap-1">
               <Button type="button" variant="secondary" onClick={handleEdit}>

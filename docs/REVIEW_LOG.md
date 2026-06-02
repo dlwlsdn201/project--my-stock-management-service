@@ -11,6 +11,55 @@
 
 ---
 
+## 2026-06-02 / Unit 13 — AI 설정 상태와 무료 제안 정책 배선 (2차 재리뷰)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `src/entities/settings/model/aiSettingsAtom.ts`의 전역 상태가 `modelId`와 `isApiKeyConnected`만 보유한다. 반면 `AiSettingsSection`은 마스킹 표시용 `savedKey`를 컴포넌트 로컬 state에만 둔다. 설정 화면 재마운트 후 전역 상태는 `connected`인데 저장된 key 마스킹 표시는 사라지고 입력 폼이 다시 노출될 수 있다. 원문 key를 저장하지 않는 정책은 유지하되, `maskedApiKey` 같은 표시 전용 값을 전역 상태에 포함하는 보완을 권장한다.
+  - **[해소 2026-06-02]** `AiSettings`에 `maskedApiKey: string | null` 필드 추가. `saveApiKeyAtom`에서 key 원문을 마스킹한 값을 저장, `clearApiKeyAtom`에서 null로 초기화. `maskedApiKeyAtom` 파생 atom 추가. `AiSettingsSection`의 로컬 `savedKey` 제거 → `maskedApiKeyAtom` 읽기로 전환(재마운트 후 복원됨). `aiSettingsAtom.test.ts`에 마스킹 저장/삭제/재마운트 복원 테스트 3개 추가.
+- [W2] `src/entities/settings/index.ts` slice public API는 존재하지만 `src/entities/index.ts`에는 settings slice가 export되지 않았다. 현재 코드는 `@entities/settings` 경유라 동작하지만, 기존 `entities/index.ts`가 다른 slice를 모두 재노출하는 패턴이므로 일관성 차원에서 `export * from './settings';` 추가를 권장한다.
+  - **[해소 2026-06-02]** `src/entities/index.ts`에 `export * from './settings';` 추가.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 20 files / 129 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 189 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- `entities/settings` 신설 및 AI 설정 타입/상수/atom SSOT화 확인:
+  - `src/entities/settings/model/types.ts`
+  - `src/entities/settings/model/constants.ts`
+  - `src/entities/settings/model/aiSettingsAtom.ts`
+  - `src/entities/settings/index.ts`
+- 무료 제안 횟수 차감 atom 추가 확인:
+  - `src/entities/session/model/sessionAtom.ts`
+- 설정 화면과 리밸런싱 화면의 상태 배선 확인:
+  - `src/features/settings-portfolio/ui/AiSettingsSection.tsx`
+  - `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx`
+- 테스트 보강 확인:
+  - `src/entities/settings/model/aiSettingsAtom.test.ts`
+  - `src/entities/session/model/sessionAtom.test.ts`
+  - `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx`
+  - `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx`
+
+### 후속 권장 사항
+
+- Unit 13은 커밋/푸시 진행 가능.
+
+---
+
 ## 2026-06-02 / Unit 12 — mock session 상태와 route guard 구현 (1차 리뷰)
 
 ### 최종 판단

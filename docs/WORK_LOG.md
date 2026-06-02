@@ -1,5 +1,79 @@
 ---
 
+## Unit 13 — AI 설정 상태와 무료 제안 정책 배선
+
+- 작업 일자: 2026-06-02
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- `src/entities/settings/model/types.ts` (`AiModelId`, `ApiKeyStatus`, `AiSettings` 타입 SSOT)
+- `src/entities/settings/model/constants.ts` (AI 모델 옵션/기본값/API key 정책 상수 SSOT)
+- `src/entities/settings/model/aiSettingsAtom.ts` (`aiSettingsAtom` + `isApiKeyConnectedAtom` + `saveApiKeyAtom` + `clearApiKeyAtom` + `setAiModelAtom`)
+- `src/entities/settings/model/aiSettingsAtom.test.ts` (4개)
+- `src/entities/settings/index.ts`
+
+수정:
+- `src/entities/session/model/sessionAtom.ts` (`decrementAiTrialAtom` 추가)
+- `src/entities/session/model/sessionAtom.test.ts` (`decrementAiTrialAtom` 테스트 3개 추가)
+- `src/features/settings-portfolio/model/types.ts` (`AiModelId`/`ApiKeyStatus`를 entities/settings 재노출로 전환)
+- `src/features/settings-portfolio/model/constants.ts` (AI 관련 상수 entities/settings 재노출로 전환, SSOT 정리)
+- `src/features/settings-portfolio/ui/AiSettingsSection.tsx` (`aiSettingsAtom` write 연결: 저장→`saveApiKeyAtom`, 삭제→`clearApiKeyAtom`, 모델 변경→`setAiModelAtom`)
+- `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` (Jotai Provider 추가, atom wiring 테스트 3개 추가)
+- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx` (props 제거, `sessionAtom`·`isApiKeyConnectedAtom`·`decrementAiTrialAtom` 직접 읽기)
+- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx` (Provider+store 방식 전면 재작성, 횟수 차감 테스트 5개 추가)
+
+### 구현 내용
+
+- **`entities/settings` 슬라이스 신설**
+  - `AiModelId`, `ApiKeyStatus`, `AiSettings` 타입 — features에서 승격, SSOT 확립
+  - `aiSettingsAtom`: `{ modelId: 'gpt', isApiKeyConnected: false }` 기본값
+  - `saveApiKeyAtom`: key 원문은 저장하지 않고 `isApiKeyConnected: true`만 기록(보안 정책 준수)
+  - `clearApiKeyAtom`: `isApiKeyConnected: false`로 초기화
+  - `setAiModelAtom`: modelId 변경 액션
+- **`decrementAiTrialAtom`** (session)
+  - 횟수 > 0일 때만 1 차감, 0 미만 불가, 세션 없으면 no-op
+- **`RebalancingProposalPanel`** — props `isApiKeyConnected`/`aiTrialRemainingCount` 제거
+  - `useAtomValue(sessionAtom)`으로 `aiTrialRemainingCount` 읽기 (세션 없으면 `DEFAULT_AI_TRIAL_COUNT` fallback)
+  - `useAtomValue(isApiKeyConnectedAtom)`으로 API key 연결 상태 읽기
+  - 추천 요청 시: 횟수 소진 → 팝업, API key 있으면 차감 없이 통과, 그 외 → `decrementAiTrialAtom`
+- **`AiSettingsSection`** — local state 유지 + atom write 추가
+  - 저장 → `saveApiKeyAtom` 호출 (전역에 연결 상태 기록), 삭제 → `clearApiKeyAtom`
+  - 모델 변경 → `setAiModelAtom`
+  - UI 표시 상태는 `aiSettings.isApiKeyConnected` 기준으로 결정 (local error 상태만 별도 관리)
+
+### 테스트 및 검증 결과
+
+| 명령 | 결과 | 세부 |
+| --- | --- | --- |
+| `pnpm test` | ✅ PASS | 20 files / 126 tests (+15: aiSettingsAtom 4, decrementTrial 3, rebalancing 5, settings wiring 3) |
+| `pnpm lint` | ✅ PASS | 오류·경고 없음 |
+| `pnpm typecheck` | ✅ PASS | `tsc -b --noEmit` |
+| `pnpm build` | ✅ PASS | 189 modules, JS gzip 142.70 kB |
+| `git diff --check` | ✅ PASS | whitespace 오류 없음 |
+
+### 설계 결정
+
+- API key 원문은 `saveApiKeyAtom`에서 받지만 저장하지 않음 — `isApiKeyConnected: true`만 기록해 보안 정책 준수
+- `AiModelId`/`ApiKeyStatus`/관련 상수는 `entities/settings`로 승격 — `features/settings-portfolio`는 하위 호환 재노출
+- `RebalancingProposalPanel`의 props 인터페이스에서 `isApiKeyConnected`/`aiTrialRemainingCount` 제거 — atom이 단일 진실 소스
+- 세션 없는 비인증 상태 fallback: `DEFAULT_AI_TRIAL_COUNT`로 표시 (route guard로 실제로는 미도달)
+
+### 1차 리뷰 보완 (2026-06-02, PASS WITH WARNINGS → 보완 완료)
+
+- [W1 해소] `AiSettings`에 `maskedApiKey: string | null` 추가. `saveApiKeyAtom`에서 마스킹 값 저장, `clearApiKeyAtom`에서 null 초기화. `maskedApiKeyAtom` 파생 atom 추가. `AiSettingsSection` 로컬 `savedKey` 제거 → `maskedApiKeyAtom` 읽기 전환(재마운트 후 복원 보장). 테스트 3개 추가.
+- [W2 해소] `src/entities/index.ts`에 `export * from './settings'` 추가.
+- 재검증: 20 files / 129 tests / lint / typecheck / build(189 modules) / diff-check 전체 PASS.
+
+### 남은 리스크
+
+- API key 원문 및 마스킹 값 persistence 없음(메모리 전용) — 새로고침 시 미연결 상태로 초기화
+- AI 모델 선택 persistence 없음 — 새로고침 시 GPT로 초기화
+- 실제 AI API 호출 없음, 실제 key 유효성 검증 없음 (MVP 제외 범위)
+
+---
+
 ## Unit 12 — mock session 상태와 route guard 구현
 
 - 작업 일자: 2026-06-02
@@ -674,8 +748,9 @@
 | Unit 8 — 주식 포트폴리오 관리 구현 | DONE | Claude Code | PASS | 2026-06-01 2차 재리뷰 통과 |
 | Unit 9 — Supabase 연동 후보 검증과 persistence 전환 | DONE | Claude Code | PASS | 2026-06-01 2차 재리뷰 통과 |
 | Unit 10 — 접근성, 반응형, 에러/빈 상태 품질 보강 | DONE | Claude Code | PASS | 2026-06-01 2차 재리뷰 통과 |
-| Unit 11 — 최종 검증, 문서 정리, 릴리즈 후보 정리 | DONE | Claude Code | NOT REQUESTED | 2026-06-02 통합 회귀 검증·문서 정리 완료 |
-| Unit 12 — mock session 상태와 route guard 구현 | DONE | Claude Code | NOT REQUESTED | 2026-06-02 TDD로 구현, 19 files / 111 tests PASS |
+| Unit 11 — 최종 검증, 문서 정리, 릴리즈 후보 정리 | DONE | Claude Code | PASS | 2026-06-02 GPT 1차 리뷰 통과 |
+| Unit 12 — mock session 상태와 route guard 구현 | DONE | Claude Code | PASS WITH WARNINGS | 2026-06-02 GPT 1차 리뷰 통과 |
+| Unit 13 — AI 설정 상태와 무료 제안 정책 배선 | DONE | Claude Code | PASS | 2026-06-02 GPT 2차 재리뷰 통과, 20 files / 129 tests PASS |
 
 ## 2. 단위 작업 결과
 
