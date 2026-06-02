@@ -20,6 +20,7 @@ export const AppShellLayout = ({ routePath }: AppShellLayoutProps) => {
           description={navItem?.description}
           theme={theme}
           onToggleTheme={toggleTheme}
+          showLogout
         />
       }
       sidebar={<AppSidebar />}

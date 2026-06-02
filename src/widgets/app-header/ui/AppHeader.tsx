@@ -1,3 +1,4 @@
+import { LogoutButton } from '@features/auth-logout';
 import type { Theme } from '@shared';
 
 interface AppHeaderProps {
@@ -5,9 +6,10 @@ interface AppHeaderProps {
   description?: string;
   theme: Theme;
   onToggleTheme: () => void;
+  showLogout?: boolean;
 }
 
-export const AppHeader = ({ title, description, theme, onToggleTheme }: AppHeaderProps) => {
+export const AppHeader = ({ title, description, theme, onToggleTheme, showLogout = false }: AppHeaderProps) => {
   const isDark = theme === 'dark';
 
   return (
@@ -18,14 +20,17 @@ export const AppHeader = ({ title, description, theme, onToggleTheme }: AppHeade
           <p className="text-xs text-[hsl(var(--muted-foreground))]">{description}</p>
         )}
       </div>
-      <button
-        type="button"
-        aria-pressed={isDark}
-        onClick={onToggleTheme}
-        className="rounded-[var(--radius)] px-3 py-1.5 text-sm font-medium hover:bg-[hsl(var(--accent))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
-      >
-        {isDark ? 'Dark' : 'Light'}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-pressed={isDark}
+          onClick={onToggleTheme}
+          className="rounded-[var(--radius)] px-3 py-1.5 text-sm font-medium hover:bg-[hsl(var(--accent))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+        >
+          {isDark ? 'Dark' : 'Light'}
+        </button>
+        {showLogout && <LogoutButton />}
+      </div>
     </header>
   );
 };

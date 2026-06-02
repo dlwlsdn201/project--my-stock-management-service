@@ -1,5 +1,6 @@
 // features layer public API
 export * from './auth-login';
+export * from './auth-logout';
 export * from './brokerage-onboarding';
 export * from './dashboard-overview';
 export * from './portfolio-management';

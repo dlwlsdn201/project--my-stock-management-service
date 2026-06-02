@@ -1,5 +1,52 @@
 ---
 
+## Unit 14 — 로그아웃 UI와 세션 종료 흐름
+
+- 작업 일자: 2026-06-03
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- `src/features/auth-logout/ui/LogoutButton.tsx` (로그아웃 버튼 컴포넌트)
+- `src/features/auth-logout/ui/LogoutButton.test.tsx` (3개)
+- `src/features/auth-logout/index.ts` (public API)
+
+수정:
+- `src/widgets/app-header/ui/AppHeader.tsx` (`showLogout` prop 추가, 우측 액션 영역에 `LogoutButton` 조건부 렌더)
+- `src/widgets/app-header/ui/AppHeader.test.tsx` (Provider+Router 래핑 전환, 로그아웃 표시/미표시 테스트 2개 추가)
+- `src/apps/router/AppShellLayout.tsx` (`showLogout` prop 전달)
+- `src/features/index.ts` (`auth-logout` 추가)
+
+### 구현 내용
+
+- **`features/auth-logout/LogoutButton`**
+  - `useSetAtom(clearSessionAtom)` 호출 후 `navigate(ROUTES.LOGIN)`
+  - `@entities/session`의 `clearSessionAtom`, `@shared`의 `ROUTES`·`Button`만 참조 (FSD 규칙 준수)
+  - 중복 클릭 side-effect 없음 (clearSession은 멱등성 보장)
+- **`AppHeader`** — `showLogout?: boolean` prop 추가 (기본 false)
+  - 테마 토글과 함께 우측 flex gap-2 영역에 배치
+  - 로그인 화면에서는 `showLogout` 미전달 → 로그아웃 버튼 미노출
+- **`AppShellLayout`** — 앱 내부 레이아웃에만 `showLogout` 전달
+
+### 테스트 및 검증 결과
+
+| 명령 | 결과 | 세부 |
+| --- | --- | --- |
+| `pnpm test` | ✅ PASS | 21 files / 134 tests (+8: LogoutButton 3, AppHeader 2 추가+기존 5 유지) |
+| `pnpm lint` | ✅ PASS | 오류·경고 없음 |
+| `pnpm typecheck` | ✅ PASS | `tsc -b --noEmit` |
+| `pnpm build` | ✅ PASS | 191 modules, JS gzip 142.75 kB |
+| `git diff --check` | ✅ PASS | whitespace 오류 없음 |
+
+### 설계 결정
+
+- 로그아웃은 사용자 액션 슬라이스(`features/auth-logout`)로 분리 — 재사용성·FSD 준수
+- `AppHeader`에 직접 atom 구독하지 않고 `showLogout` prop으로 제어 — 헤더의 순수 조합자 역할 유지
+- `/login` 화면은 `AppShellLayout` 바깥에서 렌더 → `showLogout` 미전달로 자연스럽게 미노출
+
+---
+
 ## Unit 13 — AI 설정 상태와 무료 제안 정책 배선
 
 - 작업 일자: 2026-06-02

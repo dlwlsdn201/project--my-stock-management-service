@@ -11,6 +11,50 @@
 
 ---
 
+## 2026-06-03 / Unit 14 — 로그아웃 UI와 세션 종료 흐름 (1차 리뷰)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- 없음
+
+### Suggestion
+
+- [S1] `AppHeader`가 `LogoutButton`을 직접 import하면서 `AppHeader` 단위 테스트에도 Router/Jotai Provider 래핑이 필요해졌다. 현재 규모에서는 허용 가능하지만, 헤더 액션이 더 늘어나면 `actions` slot prop으로 분리해 header 자체를 더 순수한 조합 컴포넌트로 유지하는 방식을 검토할 수 있다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 21 files / 134 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 191 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- 로그아웃 feature slice 신설 확인:
+  - `src/features/auth-logout/ui/LogoutButton.tsx`
+  - `src/features/auth-logout/ui/LogoutButton.test.tsx`
+  - `src/features/auth-logout/index.ts`
+- `LogoutButton`이 `clearSessionAtom` 호출 후 `ROUTES.LOGIN`으로 이동하는 흐름 확인
+- 앱 내부 헤더에만 로그아웃 UI가 노출되도록 `AppShellLayout`에서 `showLogout` 전달 확인
+- 로그인 화면 미노출 조건은 `AppHeader` 기본값 `showLogout = false`와 테스트로 방어됨 확인
+- `docs/WORK_LOG.md`, `docs/SESSION_STATE.md`에 Unit 14 결과가 반영된 점 확인
+
+### 후속 권장 사항
+
+- Unit 14는 커밋/푸시 진행 가능.
+- 다음 Claude 구현 가능 작업은 `docs/NEXT_TASK_DRAFT.md` 기준 Unit 15 수동 자산 persistence 전환.
+
+---
+
 ## 2026-06-02 / Unit 13 — AI 설정 상태와 무료 제안 정책 배선 (2차 재리뷰)
 
 ### 최종 판단
