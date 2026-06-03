@@ -1,5 +1,57 @@
 ---
 
+## Unit 20 — 세션과 AI 설정 메타데이터 persistence 보강
+
+- 작업 일자: 2026-06-03
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- `src/shared/lib/browserStorage.ts` (local/session storage 안전 JSON read/write/remove helper)
+
+수정:
+- `src/shared/lib/index.ts` (`export * from './browserStorage'` 추가 — `@shared/lib` 및 `@shared` public API 노출)
+- `src/entities/session/model/constants.ts` (`SESSION_STORAGE_KEY = 'assetflow.session'` 추가)
+- `src/entities/session/model/sessionAtom.ts` (sessionStorage 복원/저장/삭제, `decrementAiTrialAtom`·`clearSessionAtom` storage 연동)
+- `src/entities/session/model/sessionAtom.test.ts` (복원/저장/삭제/차감/손상 데이터·shape 불일치 fallback 테스트)
+- `src/entities/settings/model/constants.ts` (`AI_SETTINGS_STORAGE_KEY = 'assetflow.ai-settings'` 추가)
+- `src/entities/settings/model/aiSettingsAtom.ts` (localStorage 복원/저장, API key 원문 미저장 보장)
+- `src/entities/settings/model/aiSettingsAtom.test.ts` (복원/모델 변경/마스킹 저장/삭제/손상 데이터 fallback/원문 미저장 테스트)
+- `src/shared/test/setupTests.ts` (`afterEach`에서 local/session storage 초기화 — 테스트 간 persistence 누수 차단)
+
+### 구현 내용
+
+- **shared storage helper**: `readBrowserStorageJson`/`writeBrowserStorageJson`/`removeBrowserStorageItem`. `typeof window === 'undefined'` 가드, storage 접근 차단(프라이빗 모드 등) try/catch fallback, JSON parse 실패·validator 불일치 시 fallback 반환, write/remove 실패가 앱을 중단시키지 않음.
+- **session persistence (sessionStorage)**: `assetflow.session` 키에 `userStatus`·`aiTrialRemainingCount`만 저장. 인증 토큰·민감정보 미저장. `isSession` validator로 shape 검증. 새로고침 후 mock 세션과 무료 AI 잔여 횟수 복원.
+- **AI settings persistence (localStorage)**: `assetflow.ai-settings` 키에 `modelId`·`isApiKeyConnected`·`maskedApiKey`만 저장. `isAiSettings`/`isAiModelId` validator로 검증. 모델 선택·API key 연결 표시 메타데이터 복원.
+- **store별 lazy 복원 패턴**: 계획 원안은 atom 기본값을 모듈 로드 시점에 `readBrowserStorageJson`로 평가하지만, vitest는 모듈을 1회만 import하므로 테스트 본문에서 나중에 설정한 storage 값이 복원되지 않는다(restore 테스트 실패). 이를 sentinel(`Symbol`) base atom + derived read atom 패턴으로 대체해 store별 첫 접근 시 1회 storage를 복원하도록 했다. public atom API(`sessionAtom`, `aiSettingsAtom`, 액션 atom)는 동일하게 유지된다.
+- **API key 원문 미저장 보장**: `saveApiKeyAtom`은 원문을 받아 `maskKey`로 마스킹 값으로 변환한 뒤에만 저장. 원문은 localStorage/sessionStorage/Jotai/테스트/문서 어디에도 기록하지 않음(테스트 `not.toContain('secret-key')`로 가드).
+- **테스트 격리**: persistence 도입으로 통합 테스트(`router`, `RebalancingProposalPanel`, `SettingsPortfolioPanel`)에서 storage 상태가 테스트 간 누수되어 실패가 발생. 전역 `setupTests.ts`의 `afterEach`에서 두 storage를 초기화하여 해소.
+
+### 설계 판단
+
+- **deviation from plan (storage 초기화 시점)**: 모듈 로드 평가 → store별 sentinel lazy 복원으로 변경. 이유는 위 "store별 lazy 복원 패턴" 참고. 프로덕션 동작(페이지 로드 시 기존 storage 복원)과 테스트 동작 모두 정확.
+- **FSD 방향 준수**: `entities → shared` 단방향 유지. helper는 `@shared/lib` public API 경유 import, deep import 없음.
+
+### 검증 결과
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (193 tests, 26 files, 0 failures) |
+| `pnpm test` (targeted: sessionAtom + aiSettingsAtom) | ✅ PASS (25 tests, 2 files) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (431 modules, gzip JS 144.61 kB) |
+| `git diff --check` | ✅ PASS |
+
+### 남은 리스크 / 범위 밖
+
+- 실제 서버측 API key 저장/암호화 및 외부 AI provider 호출은 여전히 범위 밖(사용자 결정 필요).
+- 실제 인증 토큰 저장·Supabase persistence·OAuth 연동은 미구현(현재 mock 메타데이터만 persistence).
+
+---
+
 ## Unit 19 — 리밸런싱 허용 오차 정책 SSOT 및 mock 추천 테스트 정밀도 보강
 
 - 작업 일자: 2026-06-03

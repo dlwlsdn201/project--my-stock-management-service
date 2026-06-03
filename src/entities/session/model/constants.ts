@@ -3,3 +3,6 @@ export const LOGIN_ERROR_MESSAGES = {
 } as const;
 
 export const DEFAULT_AI_TRIAL_COUNT = 3;
+
+/** mock 세션 메타데이터 persistence용 sessionStorage key */
+export const SESSION_STORAGE_KEY = 'assetflow.session';

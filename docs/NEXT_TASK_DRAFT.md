@@ -35,12 +35,23 @@
 - 핵심 결과: 주요 라우트의 다크 모드와 768px 미만 레이아웃 문제를 보완하고 QA 기록을 남긴다.
 - 구현 계획: `docs/superpowers/plans/2026-06-03-unit18-dark-mobile-qa.md`
 
-### 1순위: Post-MVP Unit 19 — 리밸런싱 허용 오차 정책 SSOT 및 mock 추천 테스트 정밀도 보강
+### 완료: Post-MVP Unit 19 — 리밸런싱 허용 오차 정책 SSOT 및 mock 추천 테스트 정밀도 보강
 
-- 사유: Unit 1 리뷰에서 남은 `mockRecommendations.test.ts`의 허용 오차 하드코딩과 느슨한 비중 합계 검증을 정리한다.
+- 상태: `cebea72` 커밋 및 원격 push 완료.
 - 핵심 결과: `ALLOCATION_TOLERANCE_PERCENT`를 shared 정책으로 이관하고, portfolio 계산과 rebalancing mock 테스트가 같은 정책을 참조한다.
-- 지시 문서: `docs/CURRENT_TASK.md`
 - 구현 계획: `docs/superpowers/plans/2026-06-03-unit19-allocation-policy-ssot.md`
+
+### 1순위: Post-MVP Unit 20 — 세션과 AI 설정 메타데이터 persistence 보강
+
+- 사유: 현재 mock 세션과 AI 설정이 메모리 전용이라 새로고침 시 로그인 상태, 무료 AI 제안 잔여 횟수, 모델 선택, API key 연동 표시 상태가 초기화된다.
+- 핵심 결과: API key 원문을 저장하지 않는 조건에서 세션과 AI 설정 메타데이터를 브라우저 storage로 복원한다.
+- 지시 문서: `docs/CURRENT_TASK.md`
+- 구현 계획: `docs/superpowers/plans/2026-06-03-unit20-session-ai-settings-persistence.md`
+
+### 후순위 후보: Post-MVP Unit 21 — 최종 브라우저 QA와 릴리즈 후보 점검
+
+- 사유: Unit 18의 실제 브라우저 viewport 실측은 후속 QA 권장으로 남아 있고, Unit 20 이후 Claude가 직접 구현 가능한 코드 보강은 대부분 마무리된다.
+- 핵심 결과: 주요 라우트 브라우저 smoke, 모바일/데스크톱 viewport 확인, 문서 정합성, 릴리즈 후보 리스크를 점검한다.
 
 ## 2. 사용자 직접 작업 또는 외부 결정 필요 큐
 
@@ -55,15 +66,19 @@
 
 ## 3. 다음 작업 후보 상세
 
-현재 다음 작업은 `Post-MVP Unit 19 — 리밸런싱 허용 오차 정책 SSOT 및 mock 추천 테스트 정밀도 보강`이다.
+현재 다음 작업은 `Post-MVP Unit 20 — 세션과 AI 설정 메타데이터 persistence 보강`이다.
 
 예상 구조:
 
 ```text
-src/shared/config/allocationPolicy.ts
+src/shared/lib/browserStorage.ts
 src/shared/index.ts
-src/entities/portfolio/model/constants.ts
-src/entities/rebalancing/model/mockRecommendations.test.ts
+src/entities/session/model/constants.ts
+src/entities/session/model/sessionAtom.ts
+src/entities/session/model/sessionAtom.test.ts
+src/entities/settings/model/constants.ts
+src/entities/settings/model/aiSettingsAtom.ts
+src/entities/settings/model/aiSettingsAtom.test.ts
 
 docs/WORK_LOG.md
 docs/SESSION_STATE.md

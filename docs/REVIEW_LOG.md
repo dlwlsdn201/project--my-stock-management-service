@@ -11,6 +11,53 @@
 
 ---
 
+## 2026-06-03 / Unit 20 — 세션과 AI 설정 메타데이터 persistence 보강 (1차 리뷰)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- 없음
+
+### 검증 결과
+
+- `pnpm test src/entities/session/model/sessionAtom.test.ts src/entities/settings/model/aiSettingsAtom.test.ts`: PASS, 2 files / 25 tests
+- `pnpm test`: PASS, 26 files / 193 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, 431 modules transformed
+- `git diff --check`: PASS
+
+### 리뷰 확인
+
+- `src/shared/lib/browserStorage.ts`는 `window` 미존재, storage 접근 차단, JSON parse 실패, validator 불일치, write/remove 실패를 fallback 또는 no-op으로 처리한다.
+- `src/entities/session/model/sessionAtom.ts`는 `sessionStorage`의 `assetflow.session`에서 `userStatus`, `aiTrialRemainingCount`만 복원/저장한다.
+- `clearSessionAtom`, `decrementAiTrialAtom`이 `sessionAtom` write 경로를 사용해 atom 상태와 `sessionStorage`를 함께 갱신한다.
+- `src/entities/settings/model/aiSettingsAtom.ts`는 `localStorage`의 `assetflow.ai-settings`에 `modelId`, `isApiKeyConnected`, `maskedApiKey`만 저장한다.
+- `saveApiKeyAtom`은 API key 원문을 `maskKey`로 변환한 뒤 마스킹 값만 저장한다. 테스트에서도 persisted storage에 원문 문자열이 남지 않는지 검증한다.
+- storage 복원은 모듈 로드 시점 평가 대신 store별 sentinel lazy 복원으로 구현됐다. 기존 public atom API는 유지되고, 테스트 환경에서 storage 세팅 후 store 생성 시 복원되는 동작을 방어한다.
+- `src/shared/test/setupTests.ts`의 `afterEach` storage 초기화로 persistence 도입 후 테스트 간 상태 누수를 차단한다.
+- `@shared/lib` import는 `src/shared/lib/index.ts` public API를 경유하며, `src/shared/index.ts`의 `export * from './lib'`로 `@shared`에서도 재노출된다. FSD 방향은 `entities -> shared` 단방향이다.
+- `WORK_LOG.md`, `SESSION_STATE.md`의 Unit 20 결과 문서가 구현 범위와 검증 결과를 반영한다.
+
+### Suggestion
+
+- `browserStorage` helper는 session/settings atom 테스트로 간접 검증된다. 향후 helper 사용처가 늘어나면 `src/shared/lib/browserStorage.test.ts`를 추가해 storage 접근 차단과 write/remove 실패 no-op을 직접 검증할 수 있다.
+
+### 후속 권장 사항
+
+- Unit 20은 커밋/푸시 진행 가능.
+- `.claude/` untracked 디렉터리는 작업 산출물 범위 밖이므로 커밋에서 제외한다.
+- 다음 작업은 Unit 21 최종 브라우저 QA와 릴리즈 후보 점검으로 진행한다.
+
+---
+
 ## 2026-06-03 / Unit 19 — 리밸런싱 허용 오차 정책 SSOT 및 mock 추천 테스트 정밀도 보강 (1차 리뷰)
 
 ### 최종 판단
