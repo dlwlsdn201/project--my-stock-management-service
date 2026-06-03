@@ -11,6 +11,44 @@
 
 ---
 
+## 2026-06-03 / Unit 17 — MSW 브라우저 워커 준비 (2차 재검증)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- 없음
+
+### 검증 결과
+
+- `pnpm test`: PASS, 24 files / 167 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, 429 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- [W1 해소] `src/main.tsx`에서 `startMockWorker()` promise에 `catch((err: unknown) => console.warn(...))`가 추가되어 MSW 시작 실패 시 unhandled rejection으로 남지 않는다.
+- [W2 해소] `package.json` trailing newline이 복구됐다.
+- `public/mockServiceWorker.js` 존재 확인.
+- `startMockWorker()`는 `import.meta.env.DEV && import.meta.env.VITE_ENABLE_MSW === 'true'` 조건에서만 dynamic import로 browser worker를 로드한다.
+- Production build 산출물에 `msw/browser`, `setupWorker`, `worker.start` 문자열이 포함되지 않아 production 자동 실행 리스크는 확인되지 않았다.
+- `src/main.tsx`는 `@shared` public API에서 `startMockWorker`를 import하므로 FSD deep import 위반은 확인되지 않았다.
+
+### 후속 권장 사항
+
+- Unit 17은 커밋/푸시 진행 가능.
+- Unit 18 착수 전 별도 브라우저 DevTools 또는 E2E 환경에서 service worker registration 직접 판독을 추가 실측하면 더 좋다.
+
+---
+
 ## 2026-06-03 / Unit 16 — 포트폴리오 종목별 계산 SSOT 이관 (1차 리뷰)
 
 ### 최종 판단
@@ -917,6 +955,44 @@
 
 - route title/description은 `NAV_ITEMS` 또는 별도 `ROUTE_META`로 navigation config에 통합한다.
 - React 컴포넌트 선언은 프로젝트 규칙에 맞게 `export const ComponentName = (...) =>` 패턴으로 정리한다.
+
+---
+
+## 2026-06-03 / Unit 17 — MSW 브라우저 워커 준비 (1차 리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `src/main.tsx:9`의 `void startMockWorker().finally(...)` 구조는 MSW 시작 실패 시 앱 렌더링은 진행하지만, `startMockWorker()`가 reject되면 `finally()`가 반환하는 promise도 reject되어 unhandled rejection이 남을 수 있다. 개발 환경 opt-in 기능이라 차단하지는 않지만, 다음 보완 시 `catch`를 추가해 실패 로그를 명시적으로 흡수하는 편이 안전하다.
+- [W2] `package.json`이 `msw init --save` 이후 trailing newline 없이 끝난다. 기능 문제는 아니며 `git diff --check`도 통과하지만, 저장소 포맷 일관성 차원에서 커밋 전 정리하는 것이 좋다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 24 files / 167 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, 429 modules transformed
+- `git diff --check`: PASS
+- `VITE_ENABLE_MSW=true pnpm exec vite --host 127.0.0.1`: PASS, dev server started at `http://127.0.0.1:5173/`
+- Browser smoke: PASS, login page DOM rendered in dev server. 단, Browser 런타임의 page global 접근 제한으로 service worker registration 목록 직접 판독은 완료하지 못했다.
+
+### 보완 요청
+
+- 차단 보완 없음.
+- 선택 보완: `main.tsx`의 worker bootstrap promise에 `catch`를 추가해 MSW 시작 실패 시 unhandled rejection을 방지한다.
+- 선택 보완: `package.json` trailing newline을 복구한다.
+
+### 후속 권장 사항
+
+- Unit 17은 커밋 가능.
+- Unit 18 다크 테마/모바일 QA 착수 전, `VITE_ENABLE_MSW=true` 환경에서 DevTools Application 탭 또는 E2E 도구로 `mockServiceWorker.js` 등록 상태를 한 번 더 실측하면 좋다.
 
 ---
 

@@ -1,5 +1,45 @@
 ---
 
+## Unit 17 — MSW 브라우저 워커 준비
+
+- 작업 일자: 2026-06-03
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- `public/mockServiceWorker.js` (MSW CLI `pnpm exec msw init public --save` 산출물, 수동 편집 금지)
+- `src/shared/api/mocks/startWorker.ts` (dev-only opt-in browser worker bootstrap helper)
+
+수정:
+- `src/main.tsx` (startMockWorker 호출로 앱 부트스트랩 연결)
+- `src/shared/index.ts` (startMockWorker를 shared public API에 export)
+- `eslint.config.js` (`public/` 디렉터리 ESLint ignore 추가 — CLI 생성 파일 lint 제외)
+- `package.json` (MSW CLI가 `msw.workerDirectory: "public"` 자동 추가)
+
+### 구현 내용
+
+- **Service Worker**: `pnpm exec msw init public --save`로 `public/mockServiceWorker.js` 생성. MSW 2 공식 CLI 산출물.
+- **Bootstrap Helper**: `startMockWorker()` — `import.meta.env.DEV && import.meta.env.VITE_ENABLE_MSW === 'true'`일 때만 worker를 start. 조건 불충족 시 즉시 return(no-op)으로 production 안전 보장.
+- **App Bootstrap**: `main.tsx`에서 `void startMockWorker().catch(...).finally(() => { createRoot(...).render(...) })` 패턴 적용. MSW 실패 시 경고 로그를 남기고 앱 렌더링이 막히지 않도록 처리.
+- **FSD 준수**: `startMockWorker`를 `@shared` public API(`src/shared/index.ts`)에 노출. `main.tsx`는 deep import 없이 `@shared`에서 import.
+- **Production 안전**: `import.meta.env.DEV`가 false이면 `worker.start()` 호출 자체가 실행되지 않음. production build에서 MSW worker는 번들에 포함되지 않음(dynamic import `await import('./browser')` 미실행).
+- **Env flag**: `VITE_ENABLE_MSW=true pnpm dev`로 브라우저 MSW를 opt-in 활성화 가능.
+
+### 검증 결과
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (167 tests, 24 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (429 modules transformed, gzip JS 144.06 kB) |
+| `git diff --check` | ✅ PASS |
+
+브라우저 smoke 테스트: `VITE_ENABLE_MSW=true pnpm exec vite --host 127.0.0.1`로 dev server 기동 및 로그인 페이지 DOM 렌더링 확인. Browser 런타임의 page global 접근 제한으로 service worker registration 목록 직접 판독은 완료하지 못했으므로, DevTools > Application > Service Workers에서 `mockServiceWorker.js` 등록 여부를 추가 실측할 수 있다.
+
+---
+
 ## Unit 16 — 포트폴리오 종목별 계산 SSOT 이관
 
 - 작업 일자: 2026-06-03

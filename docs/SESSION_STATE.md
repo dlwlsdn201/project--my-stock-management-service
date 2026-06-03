@@ -7,10 +7,10 @@
 ## 1. 현재 상태
 
 - 현재 브랜치: `main`
-- 현재 작업: Post-MVP Unit 16 1차 리뷰 PASS — 커밋 대기
-- 마지막 완료 작업: Unit 16 포트폴리오 종목별 계산 SSOT 이관 1차 리뷰 PASS (2026-06-03)
-- 커밋 여부: Unit 16 미커밋 (사용자 리뷰 후 커밋 예정)
-- 리뷰 상태: Unit 16 1차 리뷰 PASS
+- 현재 작업: Post-MVP Unit 17 2차 재검증 PASS (커밋/푸시 전)
+- 마지막 완료 작업: Unit 17 MSW 브라우저 워커 준비 (2026-06-03)
+- 커밋 여부: Unit 17 미커밋 (사용자 리뷰 후 커밋 예정)
+- 리뷰 상태: Unit 17 2차 재검증 PASS
 
 ## 2. 미완료 작업
 
@@ -18,7 +18,7 @@
 - ~~수동 자산 persistence 전환~~ → **[Unit 15 완료]**
 - ~~종목 테이블 per-stock 계산 SSOT 이관(`MOCK_HOLDINGS` + 목표 비중 결합)~~ → **[Unit 16 완료]**
 - `mockRecommendations.test.ts` 비중 합계 검증 정밀도 보강
-- `msw init` 명령으로 `public/mockServiceWorker.js` 생성 (브라우저 MSW 실제 사용 전)
+- ~~`msw init` 명령으로 `public/mockServiceWorker.js` 생성~~ → **[Unit 17 완료]**
 - 세션/AI설정 persistence (새로고침 시 초기화 — 메모리 전용, 의도적)
 - 다크 테마 픽셀 QA, 모바일(<768) 실측 증빙
 - 실제 `@supabase/supabase-js` 어댑터(`createSupabaseTargetAllocationStore`, `createSupabaseManualAssetStore`) 연결 — 현재 in-memory mock fallback
@@ -26,7 +26,19 @@
 - ~~Unit 7 후속: 무료 잔여 횟수/API key 연동 상태 배선~~ → **[Unit 13 완료]**
 - ~~API key 저장 위치/마스킹/삭제 정책 SSOT화~~ → **[Unit 13 완료]**
 
-## 3. 신규/수정 파일 목록 (Unit 16)
+## 3. 신규/수정 파일 목록 (Unit 17)
+
+신규:
+- `public/mockServiceWorker.js` (MSW CLI 생성, 수동 편집 금지)
+- `src/shared/api/mocks/startWorker.ts`
+
+수정:
+- `src/main.tsx` (startMockWorker 호출)
+- `src/shared/index.ts` (startMockWorker re-export)
+- `eslint.config.js` (`public/` ignore 추가)
+- `package.json` (`msw.workerDirectory` 자동 추가)
+
+## 3-1. 신규/수정 파일 목록 (Unit 16)
 
 신규:
 - `src/entities/portfolio/model/calculateHoldingWeightRows.ts`
@@ -72,6 +84,17 @@
 
 ## 4. 검증 결과 요약
 
+### Unit 17 최종 검증 (2026-06-03)
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (167 tests, 24 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (429 modules transformed, gzip JS 144.06 kB) |
+| `git diff --check` | ✅ PASS |
+| `VITE_ENABLE_MSW=true pnpm exec vite --host 127.0.0.1` | ✅ PASS (dev server 기동 및 로그인 페이지 DOM 렌더링 확인, SW 등록 목록 직접 판독 미완료) |
+
 ### Unit 16 최종 검증 (2026-06-03)
 
 | 명령 | 결과 |
@@ -114,9 +137,8 @@
 
 ## 5. 다음 액션
 
-1. Unit 16 커밋/푸시
-2. Unit 17 MSW 브라우저 워커 준비 또는 Unit 18 다크/모바일 QA 중 다음 작업 선택
-3. 다음 Unit 완료 후 코드 리뷰 및 `docs/REVIEW_LOG.md` 갱신
+1. Unit 17 커밋/푸시
+2. Unit 18 다크 테마/모바일 QA 보강으로 진행
 
 ## 6. 재개 시 읽을 문서
 
