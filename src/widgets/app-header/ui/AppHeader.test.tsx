@@ -86,4 +86,9 @@ describe('AppHeader', () => {
     renderAppHeader({ showLogout: false });
     expect(screen.queryByRole('button', { name: '로그아웃' })).not.toBeInTheDocument();
   });
+
+  it('header has flex-wrap class for mobile wrapping', () => {
+    renderAppHeader();
+    expect(screen.getByRole('banner')).toHaveClass('flex-wrap');
+  });
 });

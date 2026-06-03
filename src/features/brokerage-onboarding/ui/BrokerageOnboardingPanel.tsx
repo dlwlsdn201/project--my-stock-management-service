@@ -54,7 +54,7 @@ export const BrokerageOnboardingPanel = () => {
 
   return (
     <section aria-label="증권사 연동 온보딩" className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-      <ol aria-label="연동 진행 단계" className="flex items-center gap-2">
+      <ol aria-label="연동 진행 단계" className="flex flex-col gap-2 sm:flex-row sm:items-center">
         {BROKERAGE_ONBOARDING_STEPS.map((stepLabel, index) => {
           const isDone = index < currentStepIndex;
           const isCurrent = index === currentStepIndex;
@@ -128,7 +128,7 @@ export const BrokerageOnboardingPanel = () => {
           {errorMessage && (
             <div
               role="alert"
-              className="flex items-center justify-between gap-4 rounded-[var(--radius)] bg-red-50 px-4 py-3 text-sm text-red-600"
+              className="flex flex-col gap-3 rounded-[var(--radius)] bg-[hsl(var(--destructive)/0.12)] px-4 py-3 text-sm text-[hsl(var(--destructive))] sm:flex-row sm:items-center sm:justify-between"
             >
               <span>{errorMessage}</span>
               {selectedProvider && (

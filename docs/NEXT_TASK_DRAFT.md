@@ -23,18 +23,18 @@
 - 핵심 결과: `MOCK_HOLDINGS`와 목표 비중 데이터를 결합하는 계산 함수를 entity model로 이관한다.
 - 구현 계획: `docs/superpowers/plans/2026-06-03-unit16-portfolio-stock-weights.md`
 
-### 1순위: Post-MVP Unit 17 — MSW 브라우저 워커 준비
+### 완료: Post-MVP Unit 17 — MSW 브라우저 워커 준비
 
-- 사유: 테스트 MSW와 브라우저 mock 사용 준비 상태를 맞춘다.
+- 상태: `139c90f` 커밋 및 원격 push 완료.
 - 핵심 결과: `public/mockServiceWorker.js` 생성 및 개발 환경 사용 문서화.
-- 주의: 명령 실행이 필요하므로 환경에 따라 별도 승인 또는 수동 실행이 필요할 수 있다.
-- 지시 문서: `docs/CURRENT_TASK.md`
 - 구현 계획: `docs/superpowers/plans/2026-06-03-unit17-msw-browser-worker.md`
 
-### 2순위: Post-MVP Unit 18 — 다크 테마/모바일 QA 보강
+### 1순위: Post-MVP Unit 18 — 다크 테마/모바일 QA 보강
 
 - 사유: 주요 화면은 구현되었지만 다크 테마와 모바일 실측 증빙이 부족하다.
 - 핵심 결과: 주요 라우트의 다크 모드와 768px 미만 레이아웃 문제를 보완하고 QA 기록을 남긴다.
+- 지시 문서: `docs/CURRENT_TASK.md`
+- 구현 계획: `docs/superpowers/plans/2026-06-03-unit18-dark-mobile-qa.md`
 
 ## 2. 사용자 직접 작업 또는 외부 결정 필요 큐
 
@@ -49,14 +49,19 @@
 
 ## 3. 다음 작업 후보 상세
 
-현재 다음 작업은 `Post-MVP Unit 17 — MSW 브라우저 워커 준비`이다.
+현재 다음 작업은 `Post-MVP Unit 18 — 다크 테마/모바일 QA 보강`이다.
 
 예상 구조:
 
 ```text
-public/mockServiceWorker.js
-src/shared/api/mocks/startWorker.ts
-src/main.tsx
+src/apps/styles/index.css
+src/widgets/app-shell/ui/AppShell.tsx
+src/widgets/app-header/ui/AppHeader.tsx
+src/widgets/app-sidebar/ui/AppSidebar.tsx
+src/shared/ui/FieldMessage.tsx
+src/shared/ui/ErrorState.tsx
+src/pages/login/ui/LoginPage.tsx
+src/features/*/ui/*.tsx
 
 docs/WORK_LOG.md
 docs/SESSION_STATE.md

@@ -1,5 +1,88 @@
 ---
 
+## Unit 18 — 다크 테마/모바일 QA 보강
+
+- 작업 일자: 2026-06-03
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- `src/shared/ui/FieldMessage.test.tsx` (6개 — tone token class, role=alert, id 전달 검증)
+- `src/widgets/app-shell/ui/AppShell.test.tsx` (4개 — main id, p-4, sm:p-6, skip link 검증)
+
+수정:
+- `src/apps/styles/index.css` (`--success` 토큰 라이트/다크 추가)
+- `src/shared/ui/FieldMessage.tsx` (error→`--destructive`, success→`--success` 토큰 전환)
+- `src/shared/ui/ErrorState.tsx` (`text-red-600` → `text-[hsl(var(--destructive))]`)
+- `src/widgets/app-shell/ui/AppShell.tsx` (`p-6` → `p-4 sm:p-6`)
+- `src/widgets/app-header/ui/AppHeader.tsx` (`h-14` → `min-h-14 flex-wrap`, title `truncate`, action 영역 `shrink-0`)
+- `src/widgets/app-sidebar/ui/AppSidebar.tsx` (`max-lg:overflow-x-auto` 추가, nav link `shrink-0`)
+- `src/widgets/app-header/ui/AppHeader.test.tsx` (`flex-wrap` class guard 추가)
+- `src/widgets/app-sidebar/ui/AppSidebar.test.tsx` (`max-lg:overflow-x-auto` class guard 추가)
+- `src/pages/login/ui/LoginPage.tsx` (모바일 패딩 축소: `p-8 md:p-12`, `p-6 md:p-8`)
+- `src/features/auth-login/ui/LoginForm.tsx` (`text-red-500`/`bg-red-50`/`text-red-600` → destructive 토큰)
+- `src/features/brokerage-onboarding/ui/BrokerageOnboardingPanel.tsx` (스테퍼 `flex-col sm:flex-row`, 에러 div `bg-[hsl(var(--destructive)/0.12)]`)
+- `src/features/dashboard-overview/model/constants.ts` (`text-red-600`/`text-blue-600` → destructive/primary 토큰)
+- `src/features/portfolio-management/model/constants.ts` (`text-red-600`/`text-blue-600` → destructive/primary 토큰)
+- `src/entities/rebalancing/model/constants.ts` (`text-blue-600`/`text-red-600` → primary/destructive 토큰)
+- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx` (`text-red-600` → destructive 토큰)
+- `src/features/settings-portfolio/ui/AiSettingsSection.tsx` (`text-red-600` → destructive, input/버튼 그룹 `flex-col sm:flex-row`)
+- `src/features/settings-portfolio/ui/ManualAssetsSection.tsx` (자산 목록 `flex-col sm:flex-row sm:items-center sm:justify-between`)
+- `src/features/settings-portfolio/ui/TargetAllocationSection.tsx` (저장 버튼 행 `flex-wrap`)
+
+### 구현 내용
+
+**다크 테마 색상 토큰 정리:**
+- `FieldMessage` error/success를 `--destructive`/`--success` CSS 변수로 전환. 하드코딩 `text-red-600`/`text-green-600` 완전 제거.
+- `ErrorState` title 색상 → `--destructive`.
+- 한국 시장 관례(상승=빨강, 하락=파랑) 색상 의도를 주석으로 명시하고 의미 토큰(`--destructive`/`--primary`)으로 매핑.
+- `REBALANCING_ACTION_TONE_CLASSES` (entities/rebalancing): buy → `--primary`, sell → `--destructive`.
+- `GAP_TONE_CLASSES` (portfolio-management): over → `--destructive`, under → `--primary`.
+- `VALUE_CHANGE_DIRECTION_CLASSES` (dashboard-overview): up → `--destructive`, down → `--primary`.
+
+**모바일 레이아웃 보강:**
+- `AppShell` main: `p-6` → `p-4 sm:p-6` (작은 화면 과도한 여백 축소).
+- `AppHeader`: 고정 `h-14` → `min-h-14 flex-wrap`, title/description `truncate` 적용, 액션 영역 `shrink-0`.
+- `AppSidebar`: `max-lg:overflow-x-auto` 추가, nav link `shrink-0` 추가로 모바일 가로 스크롤 시 레이블 보존.
+- `LoginPage`: 좌측 패널 `gap-8 p-12` → `gap-6 p-8 md:p-12`, 우측 패널 `p-8` → `p-6 md:p-8`.
+- `BrokerageOnboardingPanel`: 스테퍼 `flex-col sm:flex-row`, 에러 행 `flex-col sm:flex-row`.
+- `AiSettingsSection`: API key 입력 그룹 `flex-col sm:flex-row`.
+- `ManualAssetsSection`: 자산 목록 아이템 `flex-col sm:flex-row`.
+- `TargetAllocationSection`: 저장 행 `flex-wrap`.
+
+**의도적 결정:**
+- 금융 방향 색상(상승/하락)은 한국 시장 관례 유지. `--destructive`(적색)=상승, `--primary`(청색)=하락. 텍스트 라벨과 병행 사용(색상 단독 표현 금지).
+- 브라우저 smoke 테스트: CI 환경상 직접 실측 미수행. RTL class guard 테스트로 레이아웃 회귀를 방어.
+
+### 검증 결과
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (179 tests, 26 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (429 modules, gzip JS 144.18 kB) |
+| `git diff --check` | ✅ PASS |
+
+### 1차 리뷰 보완 (C1 해소)
+
+**C1 해소:** `BrokerageOnboardingPanel.test.tsx`에 feature-level 모바일 class guard 테스트 2개 추가.
+- 스테퍼 `<ol>` 요소가 `flex-col`과 `sm:flex-row` 클래스를 포함하는지 검증.
+- 연결 실패 에러 `role="alert"` 영역이 `flex-col`과 `sm:flex-row` 클래스를 포함하는지 검증.
+
+**W1 해소:** `SESSION_STATE.md`의 미완료 작업 문구 모순 정리 — 브라우저 실측 미완료 상태를 명확히 기록.
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (181 tests, 26 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (429 modules, gzip JS 144.18 kB) |
+| `git diff --check` | ✅ PASS |
+
+---
+
 ## Unit 17 — MSW 브라우저 워커 준비
 
 - 작업 일자: 2026-06-03

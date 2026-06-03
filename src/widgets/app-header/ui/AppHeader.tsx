@@ -13,14 +13,14 @@ export const AppHeader = ({ title, description, theme, onToggleTheme, showLogout
   const isDark = theme === 'dark';
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-[hsl(var(--border))] bg-[hsl(var(--background))] px-6">
-      <div className="flex flex-col justify-center">
-        <h1 className="text-base font-semibold leading-tight">{title}</h1>
+    <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[hsl(var(--border))] bg-[hsl(var(--background))] px-4 py-3 sm:px-6">
+      <div className="flex min-w-0 flex-col justify-center">
+        <h1 className="truncate text-base font-semibold leading-tight">{title}</h1>
         {description && (
-          <p className="text-xs text-[hsl(var(--muted-foreground))]">{description}</p>
+          <p className="truncate text-xs text-[hsl(var(--muted-foreground))]">{description}</p>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
         <button
           type="button"
           aria-pressed={isDark}

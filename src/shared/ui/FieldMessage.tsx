@@ -10,9 +10,9 @@ interface FieldMessageProps {
 }
 
 const TONE_CLASS: Record<FieldMessageTone, string> = {
-  error: 'text-red-600',
+  error: 'text-[hsl(var(--destructive))]',
   info: 'text-[hsl(var(--muted-foreground))]',
-  success: 'text-green-600',
+  success: 'text-[hsl(var(--success))]',
 };
 
 // error 톤은 role="alert"로 즉시 안내하고, 그 외 정보 메시지는 일반 텍스트로 표시한다.

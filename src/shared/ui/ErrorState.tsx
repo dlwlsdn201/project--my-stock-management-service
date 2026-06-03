@@ -17,7 +17,7 @@ export const ErrorState = ({
     role="alert"
     className={`flex flex-col items-center justify-center gap-3 py-12 text-center ${className}`}
   >
-    <p className="text-lg font-medium text-red-600">{title}</p>
+    <p className="text-lg font-medium text-[hsl(var(--destructive))]">{title}</p>
     <p className="text-sm text-[hsl(var(--muted-foreground))]">{description}</p>
     {action && <div className="mt-2">{action}</div>}
   </div>

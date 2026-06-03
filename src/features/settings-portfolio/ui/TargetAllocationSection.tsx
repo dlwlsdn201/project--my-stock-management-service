@@ -111,7 +111,7 @@ export const TargetAllocationSection = () => {
           : `합계가 ${total}%입니다. 100%가 되도록 조정해주세요.`}
       </FieldMessage>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button
           type="button"
           variant="primary"

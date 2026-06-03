@@ -8,8 +8,8 @@ export const REBALANCING_ACTION_LABELS: Record<RebalancingAction, string> = {
 
 // 액션 색상 톤 SSOT. 색상은 항상 텍스트 라벨(REBALANCING_ACTION_LABELS)과 함께 사용한다(색상 단독 표현 금지).
 export const REBALANCING_ACTION_TONE_CLASSES: Record<RebalancingAction, string> = {
-  buy: 'text-blue-600',
-  sell: 'text-red-600',
+  buy: 'text-[hsl(var(--primary))]',
+  sell: 'text-[hsl(var(--destructive))]',
   hold: 'text-[hsl(var(--muted-foreground))]',
 };
 

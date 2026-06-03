@@ -17,7 +17,7 @@ export const AppShell = ({ header, sidebar, children }: AppShellProps) => (
     {header}
     <div className="flex flex-1 overflow-hidden max-lg:flex-col">
       {sidebar}
-      <main id="main-content" className="flex-1 overflow-auto p-6">
+      <main id="main-content" className="flex-1 overflow-auto p-4 sm:p-6">
         {children}
       </main>
     </div>

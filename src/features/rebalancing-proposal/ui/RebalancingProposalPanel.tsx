@@ -161,7 +161,7 @@ export const RebalancingProposalPanel = ({
           <div className="flex flex-col gap-1">
             <span className="text-sm font-medium">{buildTrialRemainingLabel(aiTrialRemainingCount)}</span>
             {isTrialExhausted && (
-              <span className="text-sm text-red-600">{TRIAL_EXHAUSTED_NOTICE}</span>
+              <span className="text-sm text-[hsl(var(--destructive))]">{TRIAL_EXHAUSTED_NOTICE}</span>
             )}
           </div>
         )}

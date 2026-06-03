@@ -68,3 +68,20 @@ describe('BrokerageOnboardingPanel', () => {
     });
   });
 });
+
+describe('BrokerageOnboardingPanel — 모바일 레이아웃', () => {
+  it('스테퍼가 모바일 flex-col / 데스크톱 sm:flex-row 클래스를 갖는다', () => {
+    renderPanel();
+    const stepper = screen.getByRole('list', { name: '연동 진행 단계' });
+    expect(stepper).toHaveClass('flex-col');
+    expect(stepper).toHaveClass('sm:flex-row');
+  });
+
+  it('연결 실패 에러 영역이 모바일 flex-col / sm:flex-row 클래스를 갖는다', async () => {
+    const { user } = renderPanel();
+    await user.click(screen.getByRole('button', { name: '토스증권 연결하기' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveClass('flex-col');
+    expect(alert).toHaveClass('sm:flex-row');
+  });
+});

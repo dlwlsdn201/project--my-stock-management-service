@@ -200,7 +200,7 @@ export const ManualAssetsSection = () => {
           {assets.map((asset) => (
             <li
               key={asset.id}
-              className="flex items-center justify-between gap-3 rounded-[var(--radius)] border border-[hsl(var(--border))] px-3 py-2 text-sm"
+              className="flex flex-col gap-3 rounded-[var(--radius)] border border-[hsl(var(--border))] px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex flex-col">
                 <span className="font-medium">

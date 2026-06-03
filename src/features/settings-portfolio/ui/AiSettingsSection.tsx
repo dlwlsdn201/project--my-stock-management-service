@@ -94,7 +94,7 @@ export const AiSettingsSection = () => {
             상태:{' '}
             <span
               aria-live="polite"
-              className={status === 'error' ? 'text-red-600' : undefined}
+              className={status === 'error' ? 'text-[hsl(var(--destructive))]' : undefined}
             >
               {API_KEY_STATUS_LABELS[status]}
             </span>
@@ -117,7 +117,7 @@ export const AiSettingsSection = () => {
             </div>
           </div>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <input
               id="api-key"
               type="password"

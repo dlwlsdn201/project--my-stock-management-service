@@ -40,4 +40,11 @@ describe('AppSidebar', () => {
     );
     expect(screen.getByRole('link', { name: 'Dashboard' })).not.toHaveAttribute('aria-current');
   });
+
+  it('navigation has max-lg:overflow-x-auto class for mobile horizontal scroll', () => {
+    renderSidebar();
+    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toHaveClass(
+      'max-lg:overflow-x-auto',
+    );
+  });
 });

@@ -20,9 +20,9 @@ export const VALUE_CHANGE_DIRECTION_SYMBOLS: Record<ValueChangeDirection, string
   flat: '–',
 };
 
-// 상승/하락을 색상과 함께 보조 전달 (텍스트 라벨과 병행).
+// 상승/하락을 색상과 함께 보조 전달 (텍스트 라벨과 병행). 한국 시장 관례: 상승=빨강, 하락=파랑.
 export const VALUE_CHANGE_DIRECTION_CLASSES: Record<ValueChangeDirection, string> = {
-  up: 'text-red-600',
-  down: 'text-blue-600',
+  up: 'text-[hsl(var(--destructive))]',
+  down: 'text-[hsl(var(--primary))]',
   flat: 'text-[hsl(var(--muted-foreground))]',
 };

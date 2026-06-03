@@ -20,8 +20,8 @@ export const PANEL_HEADING = '보유 종목 관리';
 
 // 차이값은 부호(+/-) 텍스트와 색상을 함께 사용해 가시성을 높인다(색상 단독 금지).
 export const GAP_TONE_CLASSES = {
-  over: 'text-red-600',
-  under: 'text-blue-600',
+  over: 'text-[hsl(var(--destructive))]',
+  under: 'text-[hsl(var(--primary))]',
   even: 'text-[hsl(var(--muted-foreground))]',
 } as const;
 

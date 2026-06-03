@@ -3,7 +3,7 @@ import { LoginForm } from '@features/auth-login';
 export const LoginPage = () => (
   <div className="flex min-h-screen flex-col bg-[hsl(var(--background))] md:flex-row">
     {/* 좌측: 브랜딩 패널 (50%) */}
-    <div className="flex flex-col items-center justify-center gap-8 bg-[hsl(var(--primary))] p-12 text-[hsl(var(--primary-foreground))] md:w-1/2">
+    <div className="flex flex-col items-center justify-center gap-6 bg-[hsl(var(--primary))] p-8 text-[hsl(var(--primary-foreground))] md:w-1/2 md:p-12">
       <div className="flex flex-col items-center gap-3 text-center">
         <h1 className="text-4xl font-bold">AssetFlow AI</h1>
         <p className="text-lg opacity-90">AI 기반 포트폴리오 진단 서비스</p>
@@ -30,7 +30,7 @@ export const LoginPage = () => (
     </div>
 
     {/* 우측: 로그인 폼 패널 (50%) */}
-    <div className="flex flex-1 flex-col items-center justify-center p-8 md:w-1/2">
+    <div className="flex flex-1 flex-col items-center justify-center p-6 md:w-1/2 md:p-8">
       <div className="w-full max-w-sm">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-[hsl(var(--foreground))]">로그인</h2>

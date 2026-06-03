@@ -91,7 +91,7 @@ export const LoginForm = () => {
           })}
         />
         {errors.email && (
-          <span id="email-error" role="alert" className="mt-1 block text-xs text-red-500">
+          <span id="email-error" role="alert" className="mt-1 block text-xs text-[hsl(var(--destructive))]">
             {errors.email.message}
           </span>
         )}
@@ -117,14 +117,14 @@ export const LoginForm = () => {
           })}
         />
         {errors.password && (
-          <span id="password-error" role="alert" className="mt-1 block text-xs text-red-500">
+          <span id="password-error" role="alert" className="mt-1 block text-xs text-[hsl(var(--destructive))]">
             {errors.password.message}
           </span>
         )}
       </div>
 
       {errors.root && (
-        <p role="alert" className="mb-4 rounded-[var(--radius)] bg-red-50 px-3 py-2 text-sm text-red-600">
+        <p role="alert" className="mb-4 rounded-[var(--radius)] bg-[hsl(var(--destructive)/0.12)] px-3 py-2 text-sm text-[hsl(var(--destructive))]">
           {errors.root.message}
         </p>
       )}

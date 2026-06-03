@@ -11,6 +11,83 @@
 
 ---
 
+## 2026-06-03 / Unit 18 — 다크 테마/모바일 QA 보강 (2차 재검증)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- 없음
+
+### 검증 결과
+
+- `pnpm test`: PASS, 26 files / 181 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, 429 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- [C1 해소] `src/features/brokerage-onboarding/ui/BrokerageOnboardingPanel.test.tsx`에 feature-level 모바일 class guard 테스트 2개가 추가됐다.
+- 온보딩 스테퍼가 `flex-col`과 `sm:flex-row` 클래스를 갖는지 검증한다.
+- 연결 실패 `role="alert"` 영역이 `flex-col`과 `sm:flex-row` 클래스를 갖는지 검증한다.
+- [W1 해소] `docs/SESSION_STATE.md`의 Unit 18 상태가 C1 보완 완료/재검증 대기로 정리됐다. 재검증 결과에 맞춰 PASS 상태로 갱신한다.
+- [W2 유지] 브라우저 실측은 여전히 미완료이나, 이번 Unit 완료를 막는 차단 조건으로 보지 않는다. RTL class guard와 필수 검증 5종은 통과했다.
+
+### 후속 권장 사항
+
+- Unit 18은 커밋/푸시 진행 가능.
+- 실제 브라우저 viewport 실측은 후속 QA 또는 최종 검증 단계에서 `/login`, `/dashboard`, `/settings` 중심으로 수행한다.
+
+---
+
+## 2026-06-03 / Unit 18 — 다크 테마/모바일 QA 보강 (1차 리뷰)
+
+### 최종 판단
+
+- NOT PASS
+
+### Critical
+
+- [C1] feature-level 모바일 class guard 테스트가 누락됐다. `docs/CURRENT_TASK.md:91-95`는 최소 테스트 보강 항목으로 "설정/리밸런싱/온보딩 중 하나 이상에서 모바일 버튼 그룹 wrap 또는 class 회귀 테스트 추가"를 명시한다. 실제 구현은 `AiSettingsSection`의 API key 입력 그룹을 `flex flex-col gap-2 sm:flex-row`로 바꾸고, `BrokerageOnboardingPanel`의 스테퍼와 에러 영역을 모바일 대응 class로 바꿨지만, 추가된 테스트는 `FieldMessage`, `AppShell`, `AppHeader`, `AppSidebar`에만 있다. 변경된 feature 화면 중 하나 이상에 대해 class guard 테스트를 추가해야 Unit 18의 최소 테스트 기준을 충족한다.
+  - 근거: `docs/CURRENT_TASK.md:91-95`, `src/features/settings-portfolio/ui/AiSettingsSection.tsx:120`, `src/features/brokerage-onboarding/ui/BrokerageOnboardingPanel.tsx:57`, `src/features/brokerage-onboarding/ui/BrokerageOnboardingPanel.tsx:131`
+  - 보완: `SettingsPortfolioPanel.test.tsx` 또는 `BrokerageOnboardingPanel.test.tsx`에 모바일 대응 class 검증을 추가한다. 예: API key 입력 그룹이 `flex-col`과 `sm:flex-row`를 갖는지, 또는 온보딩 스테퍼가 `flex-col`과 `sm:flex-row`를 갖는지 검증한다.
+
+### Warning
+
+- [W1] `docs/SESSION_STATE.md:23`의 미완료 작업 문구가 모순된다. "다크 테마 픽셀 QA, 모바일(<768) 실측 증빙"을 완료 처리하면서 동시에 `Unit 18 진행 예정`을 붙이고 있다. 현재 브라우저 직접 실측은 미완료이고 RTL class guard로 대체한 상태이므로, "Unit 18 보완 대기" 또는 "브라우저 실측 미완료"로 정리하는 편이 정확하다.
+- [W2] 브라우저 실측은 아직 완료되지 않았다. GPT 재검증 중 `pnpm exec vite --host 127.0.0.1` dev server는 정상 기동했지만, in-app Browser가 `iab` 세션을 제공하지 않아 라우트별 실제 viewport 확인은 수행하지 못했다. 필수 검증 실패는 아니지만, Unit 18의 QA 성격상 후속으로 실제 브라우저 또는 E2E 도구에서 375px/768px 확인을 권장한다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 26 files / 179 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, 429 modules transformed
+- `git diff --check`: PASS
+- `pnpm exec vite --host 127.0.0.1`: PASS, dev server started at `http://127.0.0.1:5173/`
+- Browser smoke: NOT VERIFIED, in-app Browser unavailable (`iab` 세션 없음)
+
+### 보완 요청
+
+- feature-level 모바일 class guard 테스트를 1개 이상 추가한다.
+- `docs/SESSION_STATE.md`의 Unit 18 미완료 작업/리뷰 상태를 실제 상태와 맞춘다.
+- 보완 후 `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `git diff --check`를 재실행하고 `WORK_LOG.md`, `SESSION_STATE.md`를 갱신한다.
+
+### 후속 권장 사항
+
+- 보완 이후 다시 재검증 리뷰를 요청한다.
+- 가능하면 실제 브라우저에서 `/login`, `/dashboard`, `/settings`만이라도 375px과 1440px 폭으로 확인한다.
+
+---
+
 ## 2026-06-03 / Unit 17 — MSW 브라우저 워커 준비 (2차 재검증)
 
 ### 최종 판단
