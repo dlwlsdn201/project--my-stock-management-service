@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 import {
-  MOCK_STOCK_ACTION_RECOMMENDATIONS,
   REBALANCING_ACTION_LABELS,
   REBALANCING_ACTION_TONE_CLASSES,
   REBALANCING_DISCLOSURE,
 } from '@entities/rebalancing';
-import type { StockActionRecommendation } from '@entities/rebalancing';
+import { MOCK_HOLDING_WEIGHT_ROWS } from '@entities/portfolio';
+import type { HoldingWeightRow } from '@entities/portfolio';
 import { EmptyState, ErrorState, ROUTES, Surface } from '@shared';
 import {
   EMPTY_STATE,
@@ -24,7 +24,7 @@ type PortfolioStatus = 'ready' | 'empty' | 'error';
 
 interface PortfolioManagementPanelProps {
   status?: PortfolioStatus;
-  stocks?: StockActionRecommendation[];
+  rows?: HoldingWeightRow[];
 }
 
 const formatWeight = (value: number) => `${value}${WEIGHT_SUFFIX}`;
@@ -42,13 +42,13 @@ const cellClassName = 'py-2 pr-4';
 
 export const PortfolioManagementPanel = ({
   status = 'ready',
-  stocks = MOCK_STOCK_ACTION_RECOMMENDATIONS,
+  rows = MOCK_HOLDING_WEIGHT_ROWS,
 }: PortfolioManagementPanelProps) => {
   if (status === 'error') {
     return <ErrorState description={ERROR_STATE_DESCRIPTION} />;
   }
 
-  if (status === 'empty' || stocks.length === 0) {
+  if (status === 'empty' || rows.length === 0) {
     return <EmptyState title={EMPTY_STATE.title} description={EMPTY_STATE.description} />;
   }
 
@@ -88,28 +88,24 @@ export const PortfolioManagementPanel = ({
               </tr>
             </thead>
             <tbody>
-              {stocks.map((stock) => {
-                const gap = Number(
-                  (stock.currentWeightPercent - stock.targetWeightPercent).toFixed(
-                    GAP_DECIMAL_PLACES,
-                  ),
-                );
+              {rows.map((row) => {
+                const gap = Number(row.gapPercent.toFixed(GAP_DECIMAL_PLACES));
 
                 return (
-                  <tr key={stock.ticker} className="border-b border-[hsl(var(--border))]">
+                  <tr key={row.ticker} className="border-b border-[hsl(var(--border))]">
                     <td className={cellClassName}>
-                      {stock.name} ({stock.ticker})
+                      {row.name} ({row.ticker})
                     </td>
-                    <td className={cellClassName}>{formatWeight(stock.currentWeightPercent)}</td>
-                    <td className={cellClassName}>{formatWeight(stock.targetWeightPercent)}</td>
+                    <td className={cellClassName}>{formatWeight(row.currentWeightPercent)}</td>
+                    <td className={cellClassName}>{formatWeight(row.targetWeightPercent)}</td>
                     <td className={`${cellClassName} font-medium ${resolveGapTone(gap)}`}>
                       {formatGap(gap)}
                     </td>
                     <td className="py-2">
                       <span
-                        className={`font-semibold ${REBALANCING_ACTION_TONE_CLASSES[stock.action]}`}
+                        className={`font-semibold ${REBALANCING_ACTION_TONE_CLASSES[row.action]}`}
                       >
-                        {REBALANCING_ACTION_LABELS[stock.action]}
+                        {REBALANCING_ACTION_LABELS[row.action]}
                       </span>
                     </td>
                   </tr>

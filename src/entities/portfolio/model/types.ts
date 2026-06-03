@@ -64,3 +64,19 @@ export interface ManualAssetPayload {
   quantity: number;
   avgPrice: number;
 }
+
+export type HoldingWeightAction = 'buy' | 'sell' | 'hold';
+
+export interface HoldingTargetWeight {
+  ticker: string;
+  targetWeightPercent: number;
+}
+
+export interface HoldingWeightRow {
+  ticker: string;
+  name: string;
+  currentWeightPercent: number;
+  targetWeightPercent: number;
+  gapPercent: number;
+  action: HoldingWeightAction;
+}

@@ -11,6 +11,49 @@
 
 ---
 
+## 2026-06-03 / Unit 16 — 포트폴리오 종목별 계산 SSOT 이관 (1차 리뷰)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- 없음
+
+### Suggestion
+
+- [S1] `PortfolioManagementPanel`은 데이터 소스는 portfolio entity로 이관했지만, 액션 라벨/색상/고지 문구는 여전히 `@entities/rebalancing`에서 가져온다. 현재 Unit 범위에서는 mock 추천 데이터 의존 제거가 핵심이므로 허용 가능하다. 이후 포트폴리오 관리 화면의 표현 책임을 더 명확히 하려면 action label/tone 상수를 shared 또는 portfolio feature constants로 옮기는 후속 정리를 검토할 수 있다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 24 files / 167 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, `tsc -b && vite build`, 195 modules transformed
+- `git diff --check`: PASS
+
+### 보완 확인
+
+- `entities/portfolio`에 `HoldingWeightAction`, `HoldingTargetWeight`, `HoldingWeightRow` 타입 추가 확인
+- `calculateHoldingWeightRows`가 holdings 평가액 기반 현재 비중, `current - target` gap, buy/sell/hold action을 산출하는 점 확인
+- `MOCK_HOLDING_TARGET_WEIGHTS`, `MOCK_HOLDING_WEIGHT_ROWS`가 portfolio mock 데이터에 추가된 점 확인
+- `PortfolioManagementPanel` 기본 데이터가 `MOCK_HOLDING_WEIGHT_ROWS`로 전환된 점 확인
+- `PortfolioManagementPanel`에서 `MOCK_STOCK_ACTION_RECOMMENDATIONS`와 `StockActionRecommendation` 의존이 제거된 점 확인
+- 계산 함수 테스트와 포트폴리오 관리 화면 회귀 테스트가 추가/갱신된 점 확인
+- `docs/WORK_LOG.md`, `docs/SESSION_STATE.md`에 Unit 16 결과가 반영된 점 확인
+
+### 후속 권장 사항
+
+- Unit 16은 커밋/푸시 진행 가능.
+- 다음 Claude 구현 가능 작업은 Unit 17 MSW 브라우저 워커 준비 또는 Unit 18 다크/모바일 QA 보강.
+
+---
+
 ## 2026-06-03 / Unit 15 — 수동 자산 persistence 전환 (2차 재리뷰)
 
 ### 최종 판단

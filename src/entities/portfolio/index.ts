@@ -6,6 +6,9 @@ export type {
   CurrencyCode,
   ExpectedValuePoint,
   HoldingAsset,
+  HoldingTargetWeight,
+  HoldingWeightAction,
+  HoldingWeightRow,
   InvestmentProfile,
   ManualAsset,
   ManualAssetPayload,
@@ -27,11 +30,14 @@ export {
 } from './model/constants';
 
 export { applyInvestmentPreset } from './model/applyInvestmentPreset';
+export { calculateHoldingWeightRows } from './model/calculateHoldingWeightRows';
 export { calculateAllocationGap } from './model/calculateAllocationGap';
 export { calculateExpectedValue } from './model/calculateExpectedValue';
 export { calculatePortfolioSummary } from './model/calculatePortfolioSummary';
 
 export {
+  MOCK_HOLDING_TARGET_WEIGHTS,
+  MOCK_HOLDING_WEIGHT_ROWS,
   MOCK_HOLDINGS,
   MOCK_PORTFOLIO_SUMMARY,
   MOCK_TARGET_ALLOCATION,

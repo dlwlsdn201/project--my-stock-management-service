@@ -1,5 +1,49 @@
 ---
 
+## Unit 16 — 포트폴리오 종목별 계산 SSOT 이관
+
+- 작업 일자: 2026-06-03
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- `src/entities/portfolio/model/calculateHoldingWeightRows.ts` (순수 계산 함수: holdings + targetWeights → HoldingWeightRow[])
+- `src/entities/portfolio/model/calculateHoldingWeightRows.test.ts` (9개 — 비중 계산, gap, buy/sell/hold 판단, 엣지케이스, MOCK_HOLDINGS 통합 검증)
+
+수정:
+- `src/entities/portfolio/model/types.ts` (HoldingWeightAction, HoldingTargetWeight, HoldingWeightRow 추가)
+- `src/entities/portfolio/model/mockPortfolio.ts` (MOCK_HOLDING_TARGET_WEIGHTS, MOCK_HOLDING_WEIGHT_ROWS 추가)
+- `src/entities/portfolio/index.ts` (새 타입·함수·mock 전부 re-export)
+- `src/features/portfolio-management/ui/PortfolioManagementPanel.tsx` (stocks prop 제거, rows?: HoldingWeightRow[] 도입, 기본값 MOCK_HOLDING_WEIGHT_ROWS로 전환, MOCK_STOCK_ACTION_RECOMMENDATIONS 의존 제거)
+- `src/features/portfolio-management/ui/PortfolioManagementPanel.test.tsx` (HoldingWeightRow[] fixture 추가, rows prop 주입 테스트 추가, 8개로 확장)
+
+### 구현 내용
+
+- **타입 SSOT**: `HoldingWeightAction` / `HoldingTargetWeight` / `HoldingWeightRow` 세 타입을 `entities/portfolio/model/types.ts`에 정의하고 public API 경유 export.
+- **계산 함수**: `calculateHoldingWeightRows(holdings, targetWeights)` — `quantity * currentPrice / totalValue * 100`으로 현재 비중 산출, `ALLOCATION_TOLERANCE_PERCENT(0.5)` 기준 buy/sell/hold 판단.
+- **Mock 데이터**: `MOCK_HOLDING_TARGET_WEIGHTS` 추가(MOCK_HOLDINGS 5종목 기준), `MOCK_HOLDING_WEIGHT_ROWS = calculateHoldingWeightRows(MOCK_HOLDINGS, MOCK_HOLDING_TARGET_WEIGHTS)`.
+- **UI 전환**: `PortfolioManagementPanel`의 기본 데이터 소스를 `MOCK_HOLDING_WEIGHT_ROWS`로 교체. `MOCK_STOCK_ACTION_RECOMMENDATIONS` import 완전 제거.
+- **FSD 준수**: `entities/portfolio`는 `entities/rebalancing`을 import하지 않음. feature는 `@entities/portfolio` public API 경유.
+- **액션 레이블/색상**: `REBALANCING_ACTION_LABELS`, `REBALANCING_ACTION_TONE_CLASSES`를 feature에서 유지(feature → entity import는 FSD 허용).
+
+### 잔존 리스크
+
+- Unit 8 리뷰 후속 per-stock 계산 SSOT 이관 완료 — 리스크 해소.
+- `REBALANCING_ACTION_LABELS`, `REBALANCING_ACTION_TONE_CLASSES`, `REBALANCING_DISCLOSURE`는 여전히 `entities/rebalancing`에서 feature가 import. 이후 portfolio entity에 action label 상수를 이관하는 후속 정리 가능(현재는 scope 외).
+
+### 검증 결과
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (167 tests, 24 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (195 modules, gzip JS 143.39 kB) |
+| `git diff --check` | ✅ PASS |
+
+---
+
 ## Unit 15 — 수동 자산 persistence 전환
 
 - 작업 일자: 2026-06-03

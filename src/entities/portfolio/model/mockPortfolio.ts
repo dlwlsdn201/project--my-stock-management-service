@@ -1,4 +1,5 @@
-import type { HoldingAsset, PortfolioSummary, TargetAllocation } from './types';
+import { calculateHoldingWeightRows } from './calculateHoldingWeightRows';
+import type { HoldingAsset, HoldingTargetWeight, PortfolioSummary, TargetAllocation } from './types';
 
 export const MOCK_HOLDINGS: HoldingAsset[] = [
   {
@@ -52,6 +53,19 @@ export const MOCK_HOLDINGS: HoldingAsset[] = [
     sector: '현금성',
   },
 ];
+
+export const MOCK_HOLDING_TARGET_WEIGHTS: HoldingTargetWeight[] = [
+  { ticker: '005930', targetWeightPercent: 35 },
+  { ticker: '000660', targetWeightPercent: 12 },
+  { ticker: '069500', targetWeightPercent: 13 },
+  { ticker: '114820', targetWeightPercent: 30 },
+  { ticker: 'MMF001', targetWeightPercent: 10 },
+];
+
+export const MOCK_HOLDING_WEIGHT_ROWS = calculateHoldingWeightRows(
+  MOCK_HOLDINGS,
+  MOCK_HOLDING_TARGET_WEIGHTS,
+);
 
 export const MOCK_TARGET_ALLOCATION: TargetAllocation = {
   equity: 60,

@@ -7,16 +7,16 @@
 ## 1. 현재 상태
 
 - 현재 브랜치: `main`
-- 현재 작업: Post-MVP Unit 16 (포트폴리오 종목별 계산 SSOT 이관) 착수 준비
-- 마지막 완료 작업: Unit 15 보완 완료 후 2차 재리뷰 PASS + `9afb076` 커밋/원격 push 완료 (2026-06-03)
-- 커밋 여부: Unit 15까지 원격 반영 완료
-- 리뷰 상태: Unit 16 작업 대기
+- 현재 작업: Post-MVP Unit 16 1차 리뷰 PASS — 커밋 대기
+- 마지막 완료 작업: Unit 16 포트폴리오 종목별 계산 SSOT 이관 1차 리뷰 PASS (2026-06-03)
+- 커밋 여부: Unit 16 미커밋 (사용자 리뷰 후 커밋 예정)
+- 리뷰 상태: Unit 16 1차 리뷰 PASS
 
 ## 2. 미완료 작업
 
 - ~~로그아웃 UI 구현~~ → **[Unit 14 완료]**
 - ~~수동 자산 persistence 전환~~ → **[Unit 15 완료]**
-- 종목 테이블 per-stock 계산 SSOT 이관(`MOCK_HOLDINGS` + 목표 비중 결합) — **[Unit 16 예정]**
+- ~~종목 테이블 per-stock 계산 SSOT 이관(`MOCK_HOLDINGS` + 목표 비중 결합)~~ → **[Unit 16 완료]**
 - `mockRecommendations.test.ts` 비중 합계 검증 정밀도 보강
 - `msw init` 명령으로 `public/mockServiceWorker.js` 생성 (브라우저 MSW 실제 사용 전)
 - 세션/AI설정 persistence (새로고침 시 초기화 — 메모리 전용, 의도적)
@@ -26,7 +26,20 @@
 - ~~Unit 7 후속: 무료 잔여 횟수/API key 연동 상태 배선~~ → **[Unit 13 완료]**
 - ~~API key 저장 위치/마스킹/삭제 정책 SSOT화~~ → **[Unit 13 완료]**
 
-## 3. 신규/수정 파일 목록 (Unit 15)
+## 3. 신규/수정 파일 목록 (Unit 16)
+
+신규:
+- `src/entities/portfolio/model/calculateHoldingWeightRows.ts`
+- `src/entities/portfolio/model/calculateHoldingWeightRows.test.ts`
+
+수정:
+- `src/entities/portfolio/model/types.ts` (HoldingWeightAction, HoldingTargetWeight, HoldingWeightRow 추가)
+- `src/entities/portfolio/model/mockPortfolio.ts` (MOCK_HOLDING_TARGET_WEIGHTS, MOCK_HOLDING_WEIGHT_ROWS 추가)
+- `src/entities/portfolio/index.ts` (새 타입·함수·mock re-export)
+- `src/features/portfolio-management/ui/PortfolioManagementPanel.tsx` (rows prop 전환, MOCK_STOCK_ACTION_RECOMMENDATIONS 제거)
+- `src/features/portfolio-management/ui/PortfolioManagementPanel.test.tsx` (HoldingWeightRow fixture 추가, 8개로 확장)
+
+## 3-1. 신규/수정 파일 목록 (Unit 15)
 
 신규:
 - `src/entities/portfolio/api/manualAssetStore.ts`
@@ -58,6 +71,16 @@
 - `src/features/index.ts` (`auth-logout` 추가)
 
 ## 4. 검증 결과 요약
+
+### Unit 16 최종 검증 (2026-06-03)
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (167 tests, 24 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (195 modules, gzip JS 143.39 kB) |
+| `git diff --check` | ✅ PASS |
 
 ### Unit 15 최종 검증 (2026-06-03, 1차 리뷰 보완 후)
 
@@ -91,9 +114,9 @@
 
 ## 5. 다음 액션
 
-1. `docs/CURRENT_TASK.md`와 `docs/superpowers/plans/2026-06-03-unit16-portfolio-stock-weights.md` 기준으로 Claude Code에 Unit 16 구현 지시
-2. Unit 16 완료 후 코드 리뷰 및 `docs/REVIEW_LOG.md` 갱신
-3. 통과 시 커밋/푸시 후 Unit 17 MSW 브라우저 워커 준비 또는 Unit 18 다크/모바일 QA로 진행
+1. Unit 16 커밋/푸시
+2. Unit 17 MSW 브라우저 워커 준비 또는 Unit 18 다크/모바일 QA 중 다음 작업 선택
+3. 다음 Unit 완료 후 코드 리뷰 및 `docs/REVIEW_LOG.md` 갱신
 
 ## 6. 재개 시 읽을 문서
 
