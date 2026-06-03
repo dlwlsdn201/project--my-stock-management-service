@@ -11,6 +11,47 @@
 
 ---
 
+## 2026-06-03 / Unit 19 — 리밸런싱 허용 오차 정책 SSOT 및 mock 추천 테스트 정밀도 보강 (1차 리뷰)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- 없음
+
+### 검증 결과
+
+- `pnpm test src/entities/rebalancing/model/mockRecommendations.test.ts src/entities/portfolio/model/calculateAllocationGap.test.ts src/entities/portfolio/model/calculateHoldingWeightRows.test.ts`: PASS, 3 files / 18 tests
+- `pnpm test`: PASS, 26 files / 181 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, 430 modules transformed
+- `git diff --check`: PASS
+
+### 리뷰 확인
+
+- `src/shared/config/allocationPolicy.ts`에 `ALLOCATION_TOLERANCE_PERCENT`가 SSOT로 추가됐다.
+- `src/shared/index.ts` public API export가 추가되어 deep import 없이 shared 정책을 참조할 수 있다.
+- `src/entities/portfolio/model/constants.ts`는 기존 소비자 호환을 위해 `@shared`의 `ALLOCATION_TOLERANCE_PERCENT`를 re-export한다. `entities -> shared` 방향 의존이므로 FSD 위반은 확인되지 않았다.
+- `src/entities/rebalancing/model/mockRecommendations.test.ts`는 테스트 내부 `TOLERANCE_PERCENT = 0.5` 하드코딩을 제거하고 shared 정책을 참조한다.
+- 현재 비중 합계 검증이 `toBeCloseTo(100, 1)`로 강화됐다.
+- `rg` 기준 `src/entities`, `src/shared` 범위에서 정책값 `0.5`의 중복 정의나 `toBeCloseTo(100, 0)` 잔존은 확인되지 않았다.
+- `WORK_LOG.md`, `SESSION_STATE.md`의 Unit 19 결과 문서가 구현 범위와 대체로 일치한다. 재검증 중 확인된 build 모듈 수는 430 modules로 문서에 보정한다.
+
+### 후속 권장 사항
+
+- Unit 19는 커밋/푸시 진행 가능.
+- `.claude/` untracked 디렉터리는 작업 산출물 범위 밖이므로 커밋에서 제외한다.
+- 다음 작업으로 넘어가기 전 `docs/NEXT_TASK_DRAFT.md`는 Unit 19 이후 후보 작업 기준으로 갱신한다.
+
+---
+
 ## 2026-06-03 / Unit 18 — 다크 테마/모바일 QA 보강 (2차 재검증)
 
 ### 최종 판단

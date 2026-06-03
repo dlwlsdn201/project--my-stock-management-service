@@ -1,12 +1,13 @@
 import type { AllocationGroup, AssetType, InvestmentProfile, TargetAllocation } from './types';
 
+// 허용 오차 정책 SSOT는 shared에 있다. 기존 @entities/portfolio 소비자 호환을 위해 re-export 한다.
+export { ALLOCATION_TOLERANCE_PERCENT } from '@shared';
+
 export const BASE_CURRENCY_CODE = 'KRW' as const;
 
 export const TARGET_ALLOCATION_TOTAL_PERCENT = 100;
 
 export const PERCENT_DECIMAL_PLACES = 2;
-
-export const ALLOCATION_TOLERANCE_PERCENT = 0.5;
 
 export const SIMULATION_PERIOD_MONTHS = [3, 6, 12] as const;
 

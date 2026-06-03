@@ -7,17 +7,17 @@
 ## 1. 현재 상태
 
 - 현재 브랜치: `main`
-- 현재 작업: Post-MVP Unit 18 2차 재검증 PASS (커밋/푸시 전)
-- 마지막 완료 작업: Unit 18 다크 테마/모바일 QA 보강 2차 재검증 PASS (2026-06-03)
-- 커밋 여부: Unit 18 미커밋
-- 리뷰 상태: Unit 18 2차 재검증 PASS
+- 현재 작업: Post-MVP Unit 19 1차 리뷰 PASS (커밋/푸시 전)
+- 마지막 완료 작업: Unit 19 리밸런싱 허용 오차 정책 SSOT 및 mock 추천 테스트 정밀도 보강 (2026-06-03)
+- 커밋 여부: Unit 19 미커밋
+- 리뷰 상태: Unit 19 PASS
 
 ## 2. 미완료 작업
 
 - ~~로그아웃 UI 구현~~ → **[Unit 14 완료]**
 - ~~수동 자산 persistence 전환~~ → **[Unit 15 완료]**
 - ~~종목 테이블 per-stock 계산 SSOT 이관(`MOCK_HOLDINGS` + 목표 비중 결합)~~ → **[Unit 16 완료]**
-- `mockRecommendations.test.ts` 비중 합계 검증 정밀도 보강
+- ~~`mockRecommendations.test.ts` 비중 합계 검증 정밀도 보강~~ → **[Unit 19 완료]**
 - ~~`msw init` 명령으로 `public/mockServiceWorker.js` 생성~~ → **[Unit 17 완료]**
 - 세션/AI설정 persistence (새로고침 시 초기화 — 메모리 전용, 의도적)
 - ~~다크 테마/모바일 QA 보강~~ → **[Unit 18 PASS, 브라우저 실측은 후속 QA 권장]**
@@ -26,7 +26,17 @@
 - ~~Unit 7 후속: 무료 잔여 횟수/API key 연동 상태 배선~~ → **[Unit 13 완료]**
 - ~~API key 저장 위치/마스킹/삭제 정책 SSOT화~~ → **[Unit 13 완료]**
 
-## 3. 신규/수정 파일 목록 (Unit 18)
+## 3. 신규/수정 파일 목록 (Unit 19)
+
+신규:
+- `src/shared/config/allocationPolicy.ts` (`ALLOCATION_TOLERANCE_PERCENT` SSOT)
+
+수정:
+- `src/shared/index.ts` (allocationPolicy export 추가)
+- `src/entities/portfolio/model/constants.ts` (로컬 리터럴 제거 → `@shared` re-export)
+- `src/entities/rebalancing/model/mockRecommendations.test.ts` (하드코딩 0.5 제거 → `@shared`, `toBeCloseTo(100, 1)`)
+
+## 3-1. 신규/수정 파일 목록 (Unit 18)
 
 신규:
 - `src/shared/ui/FieldMessage.test.tsx` (6개 테스트)
@@ -56,7 +66,7 @@
 - `src/features/settings-portfolio/ui/ManualAssetsSection.tsx` (자산 목록 flex-col sm:flex-row)
 - `src/features/settings-portfolio/ui/TargetAllocationSection.tsx` (저장 행 flex-wrap)
 
-## 3-1. 신규/수정 파일 목록 (Unit 17)
+## 3-2. 신규/수정 파일 목록 (Unit 17)
 
 신규:
 - `public/mockServiceWorker.js` (MSW CLI 생성, 수동 편집 금지)
@@ -68,7 +78,7 @@
 - `eslint.config.js` (`public/` ignore 추가)
 - `package.json` (`msw.workerDirectory` 자동 추가)
 
-## 3-2. 신규/수정 파일 목록 (Unit 16)
+## 3-3. 신규/수정 파일 목록 (Unit 16)
 
 신규:
 - `src/entities/portfolio/model/calculateHoldingWeightRows.ts`
@@ -81,7 +91,7 @@
 - `src/features/portfolio-management/ui/PortfolioManagementPanel.tsx` (rows prop 전환, MOCK_STOCK_ACTION_RECOMMENDATIONS 제거)
 - `src/features/portfolio-management/ui/PortfolioManagementPanel.test.tsx` (HoldingWeightRow fixture 추가, 8개로 확장)
 
-## 3-3. 신규/수정 파일 목록 (Unit 15)
+## 3-4. 신규/수정 파일 목록 (Unit 15)
 
 신규:
 - `src/entities/portfolio/api/manualAssetStore.ts`
@@ -99,7 +109,7 @@
 - `src/features/settings-portfolio/ui/SettingsPortfolioPanel.tsx` (ManualAssetsSection ApiQueryBoundary 래핑)
 - `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` (수동 자산 테스트 7개로 확장)
 
-## 3-4. 신규/수정 파일 목록 (Unit 14)
+## 3-5. 신규/수정 파일 목록 (Unit 14)
 
 신규:
 - `src/features/auth-logout/ui/LogoutButton.tsx`
@@ -113,6 +123,16 @@
 - `src/features/index.ts` (`auth-logout` 추가)
 
 ## 4. 검증 결과 요약
+
+### Unit 19 최종 검증 (2026-06-03)
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (181 tests, 26 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (430 modules, gzip JS 144.20 kB) |
+| `git diff --check` | ✅ PASS |
 
 ### Unit 17 최종 검증 (2026-06-03)
 
@@ -178,8 +198,9 @@
 
 ## 5. 다음 액션
 
-1. Unit 18 커밋/푸시
-2. 다음 Claude 구현 가능 작업 선정
+1. Unit 19 커밋/푸시
+2. `docs/NEXT_TASK_DRAFT.md`를 Unit 19 이후 후보 작업 기준으로 갱신
+3. 다음 Claude Code 구현 가능 작업 선정 및 `docs/CURRENT_TASK.md` 갱신
 
 ## 6. 재개 시 읽을 문서
 

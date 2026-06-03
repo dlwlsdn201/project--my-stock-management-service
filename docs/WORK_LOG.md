@@ -1,5 +1,44 @@
 ---
 
+## Unit 19 — 리밸런싱 허용 오차 정책 SSOT 및 mock 추천 테스트 정밀도 보강
+
+- 작업 일자: 2026-06-03
+- 작업 브랜치: main
+
+### 변경 파일
+
+신규:
+- `src/shared/config/allocationPolicy.ts` (`ALLOCATION_TOLERANCE_PERCENT = 0.5` SSOT)
+
+수정:
+- `src/shared/index.ts` (`export * from './config/allocationPolicy'` 추가)
+- `src/entities/portfolio/model/constants.ts` (로컬 `ALLOCATION_TOLERANCE_PERCENT` 리터럴 제거 → `@shared` re-export)
+- `src/entities/rebalancing/model/mockRecommendations.test.ts` (하드코딩 `TOLERANCE_PERCENT = 0.5` 제거 → `@shared` import, `toBeCloseTo(100, 0)` → `toBeCloseTo(100, 1)`)
+
+### 구현 내용
+
+- **허용 오차 정책 SSOT**: `ALLOCATION_TOLERANCE_PERCENT`를 `src/shared/config/allocationPolicy.ts`로 이관. cross-entity 정책 상수를 shared가 소유.
+- **portfolio 호환성 유지**: `entities/portfolio/model/constants.ts`가 `@shared`에서 re-export. `@entities/portfolio` 소비자(`calculateAllocationGap`, `calculateHoldingWeightRows`, index public API)는 import 경로 변경 없이 동일하게 동작.
+- **rebalancing 테스트 정리**: Unit 1 리뷰 W1(하드코딩 `0.5`), W2(느슨한 `toBeCloseTo(100, 0)`) 해소. 테스트가 `@shared` 정책 상수를 직접 참조하므로 FSD entity cross-import 없이 SSOT 일치.
+- **정밀도 강화**: 현재 비중 합계 검증 `toBeCloseTo(100, 1)` (±0.05). mock 합계 39+18+10.5+27.5+5 = 100 정확 일치.
+
+### 설계 판단
+
+- **shared 직접 경로 vs @shared alias**: `constants.ts`의 re-export는 `@shared`(index 전체)를 통해 수행. shared/index.ts는 entities를 import하지 않아 순환 의존 없음(`grep` 확인). 테스트도 `@shared` alias 사용으로 통일.
+- **FSD 방향 준수**: `entities → shared` 단방향 유지. `src/shared`에서 `@entities` import 없음 확인 완료.
+
+### 검증 결과
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (181 tests, 26 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (430 modules, gzip JS 144.20 kB) |
+| `git diff --check` | ✅ PASS |
+
+---
+
 ## Unit 18 — 다크 테마/모바일 QA 보강
 
 - 작업 일자: 2026-06-03

@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { ALLOCATION_TOLERANCE_PERCENT } from '@shared';
 import { MOCK_STOCK_ACTION_RECOMMENDATIONS } from './mockRecommendations';
-
-const TOLERANCE_PERCENT = 0.5;
 
 const expectedAction = (current: number, target: number): 'buy' | 'sell' | 'hold' => {
   const gap = target - current;
-  if (Math.abs(gap) <= TOLERANCE_PERCENT) return 'hold';
+  if (Math.abs(gap) <= ALLOCATION_TOLERANCE_PERCENT) return 'hold';
   return gap > 0 ? 'buy' : 'sell';
 };
 
@@ -28,6 +27,6 @@ describe('MOCK_STOCK_ACTION_RECOMMENDATIONS', () => {
       (sum, r) => sum + r.currentWeightPercent,
       0,
     );
-    expect(total).toBeCloseTo(100, 0);
+    expect(total).toBeCloseTo(100, 1);
   });
 });

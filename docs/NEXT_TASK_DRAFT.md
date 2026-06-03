@@ -17,7 +17,7 @@
 - 핵심 결과: Unit 9의 target allocation store 패턴처럼 in-memory store/api/hook으로 전환한다.
 - 구현 계획: `docs/superpowers/plans/2026-06-03-unit15-manual-asset-persistence.md`
 
-### 1순위: Post-MVP Unit 16 — 포트폴리오 종목별 계산 SSOT 이관
+### 완료: Post-MVP Unit 16 — 포트폴리오 종목별 계산 SSOT 이관
 
 - 상태: `c087d3c` 커밋 및 원격 push 완료.
 - 핵심 결과: `MOCK_HOLDINGS`와 목표 비중 데이터를 결합하는 계산 함수를 entity model로 이관한다.
@@ -29,12 +29,18 @@
 - 핵심 결과: `public/mockServiceWorker.js` 생성 및 개발 환경 사용 문서화.
 - 구현 계획: `docs/superpowers/plans/2026-06-03-unit17-msw-browser-worker.md`
 
-### 1순위: Post-MVP Unit 18 — 다크 테마/모바일 QA 보강
+### 완료: Post-MVP Unit 18 — 다크 테마/모바일 QA 보강
 
-- 사유: 주요 화면은 구현되었지만 다크 테마와 모바일 실측 증빙이 부족하다.
+- 상태: `76b2ef0` 커밋 및 원격 push 완료.
 - 핵심 결과: 주요 라우트의 다크 모드와 768px 미만 레이아웃 문제를 보완하고 QA 기록을 남긴다.
-- 지시 문서: `docs/CURRENT_TASK.md`
 - 구현 계획: `docs/superpowers/plans/2026-06-03-unit18-dark-mobile-qa.md`
+
+### 1순위: Post-MVP Unit 19 — 리밸런싱 허용 오차 정책 SSOT 및 mock 추천 테스트 정밀도 보강
+
+- 사유: Unit 1 리뷰에서 남은 `mockRecommendations.test.ts`의 허용 오차 하드코딩과 느슨한 비중 합계 검증을 정리한다.
+- 핵심 결과: `ALLOCATION_TOLERANCE_PERCENT`를 shared 정책으로 이관하고, portfolio 계산과 rebalancing mock 테스트가 같은 정책을 참조한다.
+- 지시 문서: `docs/CURRENT_TASK.md`
+- 구현 계획: `docs/superpowers/plans/2026-06-03-unit19-allocation-policy-ssot.md`
 
 ## 2. 사용자 직접 작업 또는 외부 결정 필요 큐
 
@@ -49,19 +55,15 @@
 
 ## 3. 다음 작업 후보 상세
 
-현재 다음 작업은 `Post-MVP Unit 18 — 다크 테마/모바일 QA 보강`이다.
+현재 다음 작업은 `Post-MVP Unit 19 — 리밸런싱 허용 오차 정책 SSOT 및 mock 추천 테스트 정밀도 보강`이다.
 
 예상 구조:
 
 ```text
-src/apps/styles/index.css
-src/widgets/app-shell/ui/AppShell.tsx
-src/widgets/app-header/ui/AppHeader.tsx
-src/widgets/app-sidebar/ui/AppSidebar.tsx
-src/shared/ui/FieldMessage.tsx
-src/shared/ui/ErrorState.tsx
-src/pages/login/ui/LoginPage.tsx
-src/features/*/ui/*.tsx
+src/shared/config/allocationPolicy.ts
+src/shared/index.ts
+src/entities/portfolio/model/constants.ts
+src/entities/rebalancing/model/mockRecommendations.test.ts
 
 docs/WORK_LOG.md
 docs/SESSION_STATE.md
