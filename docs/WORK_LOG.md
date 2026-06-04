@@ -1,5 +1,91 @@
 ---
 
+## Unit 21 — 최종 브라우저 QA와 릴리즈 후보 점검
+
+- 작업 일자: 2026-06-03
+- 작업 브랜치: main
+
+### 검증 결과
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (193 tests, 26 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (431 modules, gzip JS 144.61 kB) |
+| `git diff --check` | ✅ PASS |
+
+### 브라우저 smoke QA
+
+브라우저 자동화: Claude Preview MCP (`mcp__Claude_Preview__*`) 사용. dev server `pnpm dev` (port 5173) 기동 후 모든 라우트 접근 및 스크린샷/DOM 스냅샷 확인.
+
+모든 라우트에서 런타임 콘솔 에러 없음.
+
+| Route | 375x812 | 768x1024 | 1440x900 | 결과 |
+| --- | --- | --- | --- | --- |
+| `/login` | PASS | NOT VERIFIED¹ | NOT VERIFIED¹ | 인증 리디렉트 가드 동작 확인, 폼 렌더링 정상 |
+| `/dashboard` | PASS | PASS | PASS | 탭 네비, 자산/종목 카드, AI 진단 섹션 렌더링 정상 |
+| `/onboarding/brokerage` | PASS | PASS | PASS | 3단계 스테퍼, 증권사 카드 렌더링 정상 |
+| `/rebalance` | PASS | PASS | PASS | 현재/추천 구성 비교, 추천 근거, 시뮬레이션 렌더링 정상 |
+| `/portfolio` | PASS | PASS | PASS | 종목 테이블 (현재 비중·목표 비중·차이·AI 액션) 렌더링 정상 |
+| `/settings` | PASS | PASS² | PASS | 수동 자산·목표 비중·AI 설정 섹션 렌더링 정상 |
+
+**주석:**
+1. `/login` 768x1024 · 1440x900: 세션이 유효한 상태에서 `/login` 접근 시 `/dashboard`로 리디렉트됨 — 보호 라우트 가드가 정상 동작한다는 증거로 기록. 로그아웃 후 `/login` 자체는 375x812에서 렌더링 확인.
+2. `/settings` 768x1024: 스크린샷 도구 일시 오류(`UnknownVizError`), 접근성 트리(DOM 스냅샷)로 세 섹션(수동 자산·목표 비중·AI 설정) 전체 렌더링 확인.
+
+### 다크 모드 점검
+
+| Route | 다크 모드 결과 | 비고 |
+| --- | --- | --- |
+| `/login` | NOT VERIFIED | 앱 내 테마 토글 버튼은 AppShell(인증 후 라우트)에만 존재. 로그인 페이지는 UI에서 다크 모드 전환 불가. prefers-color-scheme 반응 여부 미확인. |
+| `/dashboard` | PASS | 테마 버튼 클릭 후 다크 전환 확인. 배경 어둡게, 텍스트/수치 가독성 유지 |
+| `/settings` | PASS | 다크 전환 후 입력 필드 배경 어둡게, 텍스트 대비 명확 |
+
+### MSW opt-in smoke
+
+| 항목 | 결과 |
+| --- | --- |
+| `VITE_ENABLE_MSW=true pnpm exec vite --host 127.0.0.1` | ✅ PASS (port 5174, 215ms 기동) |
+| `public/mockServiceWorker.js` | ✅ 존재 (9120 bytes) |
+| SW 파일 HTTP 서빙 | ✅ PASS (`curl` 확인: HTTP 200, Content-Type: text/javascript, Content-Length: 9120) |
+| 브라우저에서 SW 등록 목록 직접 판독 | NOT VERIFIED (Claude Preview MCP 내 Service Worker 등록 목록 API 미제공) |
+
+### API key 보안 확인
+
+인증 후 sessionStorage/localStorage 내용 직접 확인:
+- `sessionStorage.assetflow.session`: `{"userStatus":"existing","aiTrialRemainingCount":1}` — 세션 메타데이터만 저장, 민감 정보 없음
+- `localStorage`: 완전히 비어 있음 (AI 설정 미저장 상태)
+- API key 원문 없음 ✅
+
+### 릴리즈 후보 체크리스트
+
+- [x] Login/mock auth flow verified — 375x812 로그인 폼 및 mock 로그인 성공 확인
+- [x] Protected routes verified — 미인증 시 `/login` 리디렉트, 인증 시 `/dashboard` 리디렉트 확인
+- [x] Brokerage onboarding verified — 3단계 스테퍼, 증권사 목록 표시 정상
+- [x] Dashboard overview verified — 자산 총액, 자산군 비중, 보유 종목, AI 진단 섹션 정상
+- [x] Rebalancing proposal verified — 현재/추천 구성, AI 추천 근거, 예상 시뮬레이션 정상
+- [x] Portfolio management verified — 5종목 비중 테이블, AI 액션 표시 정상
+- [x] Settings/manual assets/target allocation/AI settings verified — 세 섹션 전체 렌더링 정상
+- [x] Light/dark theme verified (authenticated routes) — /dashboard · /settings 다크 모드 PASS. /login 다크 모드: 앱 내 토글 미제공 (제한사항 기록)
+- [x] Mobile/desktop layout verified — 375x812 전 라우트 PASS, 1440x900 전 라우트 PASS (/login 제외 — 인증 리디렉트로 직접 접근 불가, 상세 QA 표 주석 1 참조)
+- [x] API key original not persisted — sessionStorage/localStorage 직접 확인, 원문 미포함 ✅
+- [x] External integration risks documented — 하단 별도 섹션 참조
+
+### 잔여 리스크 / 사용자 직접 결정 큐
+
+아래 항목은 외부 계정, 운영 보안 정책, 실제 provider 선택이 필요하므로 Claude Code 단독 구현 범위 밖이다.
+
+- **Supabase 프로젝트 생성 및 환경 변수 제공**: 현재 in-memory mock fallback. 운영 환경 전환 시 사용자가 Supabase 프로젝트 생성 후 `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` 제공 필요.
+- **실제 `@supabase/supabase-js` adapter 운영 연결**: `createSupabaseTargetAllocationStore` · `createSupabaseManualAssetStore` 구현체 존재, 환경 변수 제공 시 즉시 연결 가능.
+- **API key 서버 저장/암호화 정책 확정**: 현재 클라이언트 localStorage에 마스킹값만 저장. 서버 측 암호화 저장은 운영 정책 결정 후 구현 필요.
+- **실제 AI provider 호출 방식 확정(GPT/Gemini/Claude)**: UI에서 모델 선택 가능하나 실제 API 호출 미연결. provider별 SDK/키 정책 결정 후 구현 필요.
+- **OAuth 제공자 정책 확정**: 카카오 로그인 버튼 존재. 실제 OAuth 앱 등록 및 리다이렉트 URI 설정 필요.
+- **결제/구독 정책 및 연동**: 무료 AI 잔여 횟수 상태 관리는 구현됨. 구독 티어·결제 처리 정책 결정 후 연동 필요.
+- **/login 다크 모드**: 현재 앱 내 테마 토글은 AppShell에만 존재 (인증 후 라우트). 로그인 페이지 다크 모드 지원 여부는 사용자 요구사항 확정 후 구현 가능.
+
+---
+
 ## Unit 20 — 세션과 AI 설정 메타데이터 persistence 보강
 
 - 작업 일자: 2026-06-03

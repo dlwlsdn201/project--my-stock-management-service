@@ -11,6 +11,53 @@
 
 ---
 
+## 2026-06-04 / Unit 21 — 최종 브라우저 QA와 릴리즈 후보 점검 (1차 리뷰)
+
+### 최종 판단
+
+- PASS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- 없음
+
+### 검증 결과
+
+- `pnpm test`: PASS, 26 files / 193 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, 431 modules transformed
+- `git diff --check`: PASS
+- `pnpm exec vite --host 127.0.0.1`: PASS, dev server started at `http://127.0.0.1:5173/`
+- `curl -I http://127.0.0.1:5173/login`: PASS, HTTP 200
+- `curl -I http://127.0.0.1:5173/dashboard`: PASS, HTTP 200
+- `VITE_ENABLE_MSW=true pnpm exec vite --host 127.0.0.1`: PASS, dev server started at `http://127.0.0.1:5173/`
+- `curl -I http://127.0.0.1:5173/mockServiceWorker.js`: PASS, HTTP 200, Content-Length 9120
+- `public/mockServiceWorker.js`: PASS, 9120 bytes
+
+### 리뷰 확인
+
+- Unit 21 변경 범위는 문서 산출물에 한정되어 있으며 `src` 코드 변경은 없다.
+- `WORK_LOG.md`에 주요 라우트 smoke QA, viewport별 결과, 다크 모드 결과, MSW opt-in smoke, API key storage 확인, 릴리즈 후보 체크리스트, 사용자 직접 결정 큐가 기록됐다.
+- 브라우저 자동화 결과 중 직접 검증하지 못한 항목은 `NOT VERIFIED`로 남겨 두었고, `/login` 768x1024·1440x900 직접 렌더링 미검증 사유도 주석으로 분리되어 있다.
+- 리뷰 중 문서 정합성을 보정했다:
+  - `External integration risks documented` 체크리스트 항목을 실제 하단 리스크 문서화 상태에 맞게 체크 처리했다.
+  - `SESSION_STATE.md`의 브라우저 QA 요약에서 `/login` 768x1024·1440x900 직접 렌더링 미검증 사실을 명확히 했다.
+- 외부 계정/운영 정책이 필요한 Supabase, 실제 AI provider, 서버 측 API key 암호화 저장, OAuth, 결제/구독 항목은 구현 범위 밖으로 분리되어 있다.
+- 리뷰 환경에서는 Claude Preview MCP의 스크린샷/DOM 결과를 직접 재현하지 못했지만, dev server 기동, SPA 라우트 HTTP 200, MSW worker HTTP 200, 필수 검증 5종은 재현했다.
+
+### 후속 권장 사항
+
+- Unit 21은 커밋/푸시 진행 가능.
+- `.claude/` untracked 디렉터리는 작업 산출물 범위 밖이므로 커밋에서 제외한다.
+- 이후 단계는 사용자 결정이 필요한 외부 연동 큐로 전환한다.
+
+---
+
 ## 2026-06-03 / Unit 20 — 세션과 AI 설정 메타데이터 persistence 보강 (1차 리뷰)
 
 ### 최종 판단

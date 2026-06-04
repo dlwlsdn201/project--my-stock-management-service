@@ -7,10 +7,10 @@
 ## 1. 현재 상태
 
 - 현재 브랜치: `main`
-- 현재 작업: Post-MVP Unit 20 GPT 1차 리뷰 PASS (커밋 전)
-- 마지막 완료 작업: Unit 20 세션/AI 설정 메타데이터 persistence 구현 및 GPT 리뷰 PASS (2026-06-03)
-- 커밋 여부: Unit 20 미커밋 (GPT 리뷰 PASS — 커밋 가능), 직전 커밋 `cebea72`(Unit 19)
-- 리뷰 상태: Unit 20 PASS
+- 현재 작업: Post-MVP Unit 21 GPT 1차 리뷰 PASS (커밋 전)
+- 마지막 완료 작업: Unit 21 최종 브라우저 QA와 릴리즈 후보 점검 및 GPT 리뷰 PASS (2026-06-04)
+- 커밋 여부: Unit 21 미커밋 (GPT 리뷰 PASS — 커밋 가능)
+- 리뷰 상태: Unit 21 PASS
 
 ## 2. 미완료 작업
 
@@ -19,14 +19,25 @@
 - ~~종목 테이블 per-stock 계산 SSOT 이관(`MOCK_HOLDINGS` + 목표 비중 결합)~~ → **[Unit 16 완료]**
 - ~~`mockRecommendations.test.ts` 비중 합계 검증 정밀도 보강~~ → **[Unit 19 완료]**
 - ~~`msw init` 명령으로 `public/mockServiceWorker.js` 생성~~ → **[Unit 17 완료]**
-- ~~세션/AI설정 persistence (새로고침 시 초기화)~~ → **[Unit 20 PASS, 커밋 대기]**
+- ~~세션/AI설정 persistence (새로고침 시 초기화)~~ → **[Unit 20 완료]**
 - ~~다크 테마/모바일 QA 보강~~ → **[Unit 18 PASS, 브라우저 실측은 후속 QA 권장]**
-- 실제 `@supabase/supabase-js` 어댑터(`createSupabaseTargetAllocationStore`, `createSupabaseManualAssetStore`) 연결 — 현재 in-memory mock fallback
+- ~~최종 브라우저 QA와 릴리즈 후보 점검~~ → **[Unit 21 PASS, 커밋 대기]**
+- 실제 `@supabase/supabase-js` 어댑터(`createSupabaseTargetAllocationStore`, `createSupabaseManualAssetStore`) 연결 — 현재 in-memory mock fallback (사용자 결정 필요)
 - 실제 외부 AI provider 호출 및 API key 서버 저장/암호화 정책 확정 — 사용자 결정 필요
 - ~~Unit 7 후속: 무료 잔여 횟수/API key 연동 상태 배선~~ → **[Unit 13 완료]**
 - ~~API key 저장 위치/마스킹/삭제 정책 SSOT화~~ → **[Unit 13 완료]**
 
-## 3. 신규/수정 파일 목록 (Unit 20 — 구현 완료)
+## 3. 신규/수정 파일 목록 (Unit 21)
+
+수정:
+- `docs/WORK_LOG.md` (브라우저 QA 결과, 릴리즈 후보 체크리스트, 잔여 리스크 기록)
+- `docs/SESSION_STATE.md` (Unit 21 검증 결과와 다음 액션 갱신)
+- `docs/NEXT_TASK_DRAFT.md` (Unit 21 이후 사용자 직접 결정/외부 연동 큐 정리)
+
+신규:
+- `docs/superpowers/plans/2026-06-03-unit21-final-qa-release-candidate.md` (이미 생성됨)
+
+## 3-1. 신규/수정 파일 목록 (Unit 20)
 
 신규:
 - `src/shared/lib/browserStorage.ts` (local/session storage 안전 JSON read/write/remove helper)
@@ -46,7 +57,7 @@
 
 참고: 계획 원안의 `src/shared/index.ts` 직접 수정 대신 `src/shared/lib/index.ts`에 추가 — `src/shared/index.ts`는 이미 `export * from './lib'`로 재노출하므로 public API 동일. 또한 모듈 로드 평가 → store별 sentinel lazy 복원으로 변경(테스트 정확성). 상세는 WORK_LOG Unit 20 참고.
 
-## 3-1. 신규/수정 파일 목록 (Unit 19)
+## 3-2. 신규/수정 파일 목록 (Unit 19)
 
 신규:
 - `src/shared/config/allocationPolicy.ts` (`ALLOCATION_TOLERANCE_PERCENT` SSOT)
@@ -56,7 +67,7 @@
 - `src/entities/portfolio/model/constants.ts` (로컬 리터럴 제거 → `@shared` re-export)
 - `src/entities/rebalancing/model/mockRecommendations.test.ts` (하드코딩 0.5 제거 → `@shared`, `toBeCloseTo(100, 1)`)
 
-## 3-2. 신규/수정 파일 목록 (Unit 18)
+## 3-3. 신규/수정 파일 목록 (Unit 18)
 
 신규:
 - `src/shared/ui/FieldMessage.test.tsx` (6개 테스트)
@@ -86,7 +97,7 @@
 - `src/features/settings-portfolio/ui/ManualAssetsSection.tsx` (자산 목록 flex-col sm:flex-row)
 - `src/features/settings-portfolio/ui/TargetAllocationSection.tsx` (저장 행 flex-wrap)
 
-## 3-3. 신규/수정 파일 목록 (Unit 17)
+## 3-4. 신규/수정 파일 목록 (Unit 17)
 
 신규:
 - `public/mockServiceWorker.js` (MSW CLI 생성, 수동 편집 금지)
@@ -98,7 +109,7 @@
 - `eslint.config.js` (`public/` ignore 추가)
 - `package.json` (`msw.workerDirectory` 자동 추가)
 
-## 3-4. 신규/수정 파일 목록 (Unit 16)
+## 3-5. 신규/수정 파일 목록 (Unit 16)
 
 신규:
 - `src/entities/portfolio/model/calculateHoldingWeightRows.ts`
@@ -111,7 +122,7 @@
 - `src/features/portfolio-management/ui/PortfolioManagementPanel.tsx` (rows prop 전환, MOCK_STOCK_ACTION_RECOMMENDATIONS 제거)
 - `src/features/portfolio-management/ui/PortfolioManagementPanel.test.tsx` (HoldingWeightRow fixture 추가, 8개로 확장)
 
-## 3-5. 신규/수정 파일 목록 (Unit 15)
+## 3-6. 신규/수정 파일 목록 (Unit 15)
 
 신규:
 - `src/entities/portfolio/api/manualAssetStore.ts`
@@ -129,7 +140,7 @@
 - `src/features/settings-portfolio/ui/SettingsPortfolioPanel.tsx` (ManualAssetsSection ApiQueryBoundary 래핑)
 - `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` (수동 자산 테스트 7개로 확장)
 
-## 3-6. 신규/수정 파일 목록 (Unit 14)
+## 3-7. 신규/수정 파일 목록 (Unit 14)
 
 신규:
 - `src/features/auth-logout/ui/LogoutButton.tsx`
@@ -143,6 +154,29 @@
 - `src/features/index.ts` (`auth-logout` 추가)
 
 ## 4. 검증 결과 요약
+
+### Unit 21 최종 검증 (2026-06-03)
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (193 tests, 26 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (431 modules, gzip JS 144.61 kB) |
+| `git diff --check` | ✅ PASS |
+| 브라우저 smoke (6 routes × 3 viewports) | ✅ 전 라우트 렌더링 정상, 런타임 에러 없음 |
+| 다크 모드 (/dashboard, /settings) | ✅ PASS |
+| MSW opt-in smoke | ✅ PASS (서버 기동, SW 파일 HTTP 200 확인) |
+
+**브라우저 QA 요약:**
+- 6개 라우트 전부 런타임 콘솔 에러 없음
+- 375x812 기준 6개 라우트 렌더링 확인
+- 768x1024 · 1440x900 기준 인증 후 라우트 렌더링 확인 (`/login`은 세션 유효 상태에서 `/dashboard`로 리디렉트되어 직접 렌더링 미검증)
+- 인증 리디렉트 가드 정상 (`/login` → `/dashboard` 리디렉트 확인)
+- API key 원문 storage 미포함 확인
+- `/login` 다크 모드: AppShell 외부라 UI 토글 미제공 (제한사항)
+
+**다음 액션:** GPT 리뷰 요청 → 리뷰 통과 후 커밋/푸시 → 사용자 직접 결정/외부 연동 단계 전환
 
 ### Unit 20 최종 검증 (2026-06-03)
 
@@ -229,9 +263,10 @@
 
 ## 5. 다음 액션
 
-1. Unit 20 변경사항 기반 GPT 검증 리뷰 요청
-2. 리뷰 PASS 시 커밋/푸시
-3. 이후 Unit 21 또는 사용자 직접 작업 큐로 전환
+1. ~~Claude Code에게 Unit 21 작업 지시~~ → **완료**
+2. ~~`WORK_LOG.md`, `SESSION_STATE.md`, `NEXT_TASK_DRAFT.md` 변경사항 기반 GPT 검증 리뷰 요청~~ → **PASS**
+3. Unit 21 커밋/푸시
+4. 사용자 직접 결정/외부 연동 큐(Supabase, AI provider, OAuth, 결제)로 전환
 
 ## 6. 재개 시 읽을 문서
 

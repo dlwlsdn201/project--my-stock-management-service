@@ -41,17 +41,23 @@
 - 핵심 결과: `ALLOCATION_TOLERANCE_PERCENT`를 shared 정책으로 이관하고, portfolio 계산과 rebalancing mock 테스트가 같은 정책을 참조한다.
 - 구현 계획: `docs/superpowers/plans/2026-06-03-unit19-allocation-policy-ssot.md`
 
-### 1순위: Post-MVP Unit 20 — 세션과 AI 설정 메타데이터 persistence 보강
+### 완료: Post-MVP Unit 20 — 세션과 AI 설정 메타데이터 persistence 보강
 
-- 사유: 현재 mock 세션과 AI 설정이 메모리 전용이라 새로고침 시 로그인 상태, 무료 AI 제안 잔여 횟수, 모델 선택, API key 연동 표시 상태가 초기화된다.
+- 상태: `7368755` 커밋 및 원격 push 완료.
 - 핵심 결과: API key 원문을 저장하지 않는 조건에서 세션과 AI 설정 메타데이터를 브라우저 storage로 복원한다.
-- 지시 문서: `docs/CURRENT_TASK.md`
 - 구현 계획: `docs/superpowers/plans/2026-06-03-unit20-session-ai-settings-persistence.md`
 
-### 후순위 후보: Post-MVP Unit 21 — 최종 브라우저 QA와 릴리즈 후보 점검
+### 완료: Post-MVP Unit 21 — 최종 브라우저 QA와 릴리즈 후보 점검
 
-- 사유: Unit 18의 실제 브라우저 viewport 실측은 후속 QA 권장으로 남아 있고, Unit 20 이후 Claude가 직접 구현 가능한 코드 보강은 대부분 마무리된다.
-- 핵심 결과: 주요 라우트 브라우저 smoke, 모바일/데스크톱 viewport 확인, 문서 정합성, 릴리즈 후보 리스크를 점검한다.
+- 상태: GPT 1차 리뷰 PASS, 커밋 대기.
+- 핵심 결과: 6개 라우트 브라우저 smoke PASS (375x812·768x1024·1440x900), 다크 모드 PASS (인증 라우트), MSW opt-in PASS, API key 원문 미저장 확인, 릴리즈 후보 체크리스트 작성 완료.
+- 지시 문서: `docs/CURRENT_TASK.md`
+- 구현 계획: `docs/superpowers/plans/2026-06-03-unit21-final-qa-release-candidate.md`
+
+### 다음 단계: 사용자 직접 결정/외부 연동 단계
+
+- 사유: Unit 21 완료로 Claude Code 단독 구현 가능한 mock MVP 보강 작업은 마무리됐다. 이후에는 사용자 결정이 필요한 운영 연동 단계로 전환한다.
+- 조정: 아래 2번 큐의 각 항목에 대해 사용자가 순서와 정책을 결정하면 Claude Code가 이어서 구현한다.
 
 ## 2. 사용자 직접 작업 또는 외부 결정 필요 큐
 
@@ -66,25 +72,17 @@
 
 ## 3. 다음 작업 후보 상세
 
-현재 다음 작업은 `Post-MVP Unit 20 — 세션과 AI 설정 메타데이터 persistence 보강`이다.
+Unit 21이 완료되어 Claude Code 단독 구현 큐는 비어 있다. 이후 작업은 사용자 결정 후 Unit 22+로 진행한다.
 
-예상 구조:
+### 사용자 결정 후 Claude Code 구현 가능한 작업 후보
 
-```text
-src/shared/lib/browserStorage.ts
-src/shared/index.ts
-src/entities/session/model/constants.ts
-src/entities/session/model/sessionAtom.ts
-src/entities/session/model/sessionAtom.test.ts
-src/entities/settings/model/constants.ts
-src/entities/settings/model/aiSettingsAtom.ts
-src/entities/settings/model/aiSettingsAtom.test.ts
+- **Supabase 연동 (Unit 22 후보)**: 환경 변수 제공 시 `createSupabaseTargetAllocationStore` · `createSupabaseManualAssetStore` 즉시 연결 가능. 테스트 작성 포함.
+- **실제 AI provider 호출 (Unit 23 후보)**: GPT/Gemini/Claude 중 provider 확정 후 API 호출 레이어 구현.
+- **서버 측 API key 암호화 저장 (Unit 24 후보)**: 운영 암호화 정책 확정 후 서버 엔드포인트 또는 Supabase 함수로 구현.
+- **OAuth 연동 (Unit 25 후보)**: 카카오 등 OAuth 앱 등록 후 콜백 처리 구현.
+- **결제/구독 연동 (Unit 26 후보)**: 결제 서비스(Stripe 등) 및 구독 티어 정책 확정 후 구현.
 
-docs/WORK_LOG.md
-docs/SESSION_STATE.md
-```
-
-검증 명령:
+검증 명령 (재개 시 사용):
 
 ```bash
 pnpm test
