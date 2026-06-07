@@ -125,6 +125,12 @@ dist
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 
+# Supabase local metadata (link cache, temp files — 커밋 불필요)
+supabase/.temp/
+
+# Claude Code local settings (IDE 설정, 커밋 불필요)
+.claude/
+
 # pnpm
 .pnpm-store
 

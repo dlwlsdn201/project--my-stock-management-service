@@ -1,4 +1,6 @@
+import { getSupabaseClient, isSupabaseConfigured } from '@shared';
 import type { ManualAsset, ManualAssetPayload } from '../model/types';
+import { createSupabaseManualAssetStore } from './supabaseManualAssetStore';
 
 export interface ManualAssetStore {
   read: () => Promise<ManualAsset[]>;
@@ -30,7 +32,15 @@ export const createInMemoryManualAssetStore = (seed: ManualAsset[] = []): Manual
   };
 };
 
-let activeStore: ManualAssetStore = createInMemoryManualAssetStore();
+const resolveDefaultStore = (): ManualAssetStore => {
+  if (isSupabaseConfigured()) {
+    const client = getSupabaseClient();
+    if (client) return createSupabaseManualAssetStore(client);
+  }
+  return createInMemoryManualAssetStore();
+};
+
+let activeStore: ManualAssetStore = resolveDefaultStore();
 
 export const getManualAssetStore = (): ManualAssetStore => activeStore;
 
@@ -39,5 +49,5 @@ export const configureManualAssetStore = (store: ManualAssetStore): void => {
 };
 
 export const resetManualAssetStore = (): void => {
-  activeStore = createInMemoryManualAssetStore();
+  activeStore = resolveDefaultStore();
 };

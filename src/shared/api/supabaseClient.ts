@@ -1,5 +1,5 @@
-// Supabase 연동 설정 감지(SSOT). 실제 supabase-js 클라이언트 연동은 후속 범위이며,
-// 본 모듈은 환경변수 존재 여부만 판정해 entities 계층의 mock fallback 분기 근거를 제공한다.
+import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface SupabaseConfig {
   url: string;
@@ -18,3 +18,14 @@ export const getSupabaseConfig = (): SupabaseConfig | null => {
 };
 
 export const isSupabaseConfigured = (): boolean => getSupabaseConfig() !== null;
+
+let _client: SupabaseClient | null = null;
+
+export const getSupabaseClient = (): SupabaseClient | null => {
+  const config = getSupabaseConfig();
+  if (!config) return null;
+  if (!_client) {
+    _client = createClient(config.url, config.anonKey);
+  }
+  return _client;
+};

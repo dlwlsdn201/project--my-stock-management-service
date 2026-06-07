@@ -7,10 +7,10 @@
 ## 1. 현재 상태
 
 - 현재 브랜치: `main`
-- 현재 작업: Post-MVP Unit 21 GPT 1차 리뷰 PASS (커밋 전)
-- 마지막 완료 작업: Unit 21 최종 브라우저 QA와 릴리즈 후보 점검 및 GPT 리뷰 PASS (2026-06-04)
-- 커밋 여부: Unit 21 미커밋 (GPT 리뷰 PASS — 커밋 가능)
-- 리뷰 상태: Unit 21 PASS
+- 현재 작업: Post-MVP Unit 22 최종 리뷰 PASS WITH WARNINGS, 커밋/푸시 대기
+- 마지막 완료 작업: Unit 22 추가 정리 — MOCK_SUPABASE_USER_ID 단일 경로, set_updated_at search_path migration (2026-06-05)
+- 커밋 여부: Unit 22 미커밋 (커밋/푸시 가능)
+- 리뷰 상태: Unit 22 최종 리뷰 PASS WITH WARNINGS, 커밋 대기
 
 ## 2. 미완료 작업
 
@@ -21,13 +21,38 @@
 - ~~`msw init` 명령으로 `public/mockServiceWorker.js` 생성~~ → **[Unit 17 완료]**
 - ~~세션/AI설정 persistence (새로고침 시 초기화)~~ → **[Unit 20 완료]**
 - ~~다크 테마/모바일 QA 보강~~ → **[Unit 18 PASS, 브라우저 실측은 후속 QA 권장]**
-- ~~최종 브라우저 QA와 릴리즈 후보 점검~~ → **[Unit 21 PASS, 커밋 대기]**
-- 실제 `@supabase/supabase-js` 어댑터(`createSupabaseTargetAllocationStore`, `createSupabaseManualAssetStore`) 연결 — 현재 in-memory mock fallback (사용자 결정 필요)
+- ~~최종 브라우저 QA와 릴리즈 후보 점검~~ → **[Unit 21 PASS, 커밋/푸시 완료]**
+- ~~실제 `@supabase/supabase-js` 어댑터 연결 (목표 비중 + 수동 자산)~~ → **[Unit 22 PASS WITH WARNINGS, 커밋 대기]**
 - 실제 외부 AI provider 호출 및 API key 서버 저장/암호화 정책 확정 — 사용자 결정 필요
+- Supabase Auth/OAuth 연동 → MVP RLS → 운영 RLS 정책 전환 — 사용자 결정 필요 (Unit 25+)
 - ~~Unit 7 후속: 무료 잔여 횟수/API key 연동 상태 배선~~ → **[Unit 13 완료]**
 - ~~API key 저장 위치/마스킹/삭제 정책 SSOT화~~ → **[Unit 13 완료]**
 
-## 3. 신규/수정 파일 목록 (Unit 21)
+## 3. 신규/수정 파일 목록 (Unit 22)
+
+신규:
+- `supabase/migrations/20260604134639_create_portfolio_persistence_tables.sql`
+- `supabase/migrations/20260605103226_fix_mvp_rls_mock_user.sql`
+- `supabase/migrations/20260605131720_fix_set_updated_at_search_path.sql`
+- `src/entities/portfolio/api/supabaseTargetAllocationStore.ts`
+- `src/entities/portfolio/api/supabaseManualAssetStore.ts`
+- `src/entities/portfolio/api/supabaseTargetAllocationStore.test.ts`
+- `src/entities/portfolio/api/supabaseManualAssetStore.test.ts`
+- `src/entities/portfolio/api/targetAllocationStore.test.ts`
+- `src/shared/test/supabaseTestUtils.ts`
+- `docs/superpowers/plans/2026-06-04-unit22-supabase-persistence.md`
+
+수정:
+- `.gitignore` (`supabase/.temp/` 제외 추가)
+- `package.json`, `pnpm-lock.yaml` (`@supabase/supabase-js` 추가, `supabase` CLI devDependency 정리)
+- `src/shared/api/supabaseClient.ts` (getSupabaseClient 추가, `_resetSupabaseClient` 제거)
+- `src/entities/portfolio/api/targetAllocationStore.ts` (resolveDefaultStore Supabase 분기)
+- `src/entities/portfolio/api/manualAssetStore.ts` (resolveDefaultStore Supabase 분기)
+- `src/entities/portfolio/index.ts` (createSupabaseTargetAllocationStore, createSupabaseManualAssetStore, MOCK_SUPABASE_USER_ID export)
+- `docs/WORK_LOG.md`
+- `docs/SESSION_STATE.md`
+
+## 3-1. 신규/수정 파일 목록 (Unit 21)
 
 수정:
 - `docs/WORK_LOG.md` (브라우저 QA 결과, 릴리즈 후보 체크리스트, 잔여 리스크 기록)
@@ -155,6 +180,24 @@
 
 ## 4. 검증 결과 요약
 
+### Unit 22 최종 리뷰 검증 (2026-06-05)
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (209 tests, 28 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (475 modules transformed) |
+| `git diff --check` | ✅ PASS |
+| `pnpm exec supabase migration list` | NOT VERIFIED in final run — pooler 임시 인증 차단. 직전 재리뷰에서 3개 migration 정합 확인 |
+| `pnpm exec supabase db query --linked` | ✅ PASS — `pg_policies` 기준 mock user id RLS 확인 |
+| `pnpm exec supabase db query --linked` | ✅ PASS — `pg_proc` 기준 `set_updated_at` `search_path=""` 확인 |
+| `pnpm exec supabase db advisors --linked --type security --level warn --fail-on error` | ✅ PASS — `No issues found` |
+
+**Unit 22 잔여 Warning:**
+- Supabase client 추가로 build chunk size warning이 발생한다. 운영 최적화 단계에서 code splitting을 검토한다.
+- 최종 `migration list` 재실행은 pooler 임시 인증 차단으로 완료하지 못했다. 직전 재리뷰에서 migration 정합성은 확인했다.
+
 ### Unit 21 최종 검증 (2026-06-03)
 
 | 명령 | 결과 |
@@ -264,9 +307,11 @@
 ## 5. 다음 액션
 
 1. ~~Claude Code에게 Unit 21 작업 지시~~ → **완료**
-2. ~~`WORK_LOG.md`, `SESSION_STATE.md`, `NEXT_TASK_DRAFT.md` 변경사항 기반 GPT 검증 리뷰 요청~~ → **PASS**
-3. Unit 21 커밋/푸시
-4. 사용자 직접 결정/외부 연동 큐(Supabase, AI provider, OAuth, 결제)로 전환
+2. ~~`WORK_LOG.md`, `SESSION_STATE.md`, `NEXT_TASK_DRAFT.md` 변경사항 기반 GPT 검증 리뷰 요청 (Unit 21)~~ → **PASS**
+3. ~~Unit 21 커밋/푸시~~ → **완료**
+4. ~~Claude Code에게 Unit 22 작업 지시~~ → **완료**
+5. Unit 22 커밋/푸시
+6. 사용자 직접 결정/외부 연동 큐(AI provider, OAuth, 결제)로 전환
 
 ## 6. 재개 시 읽을 문서
 

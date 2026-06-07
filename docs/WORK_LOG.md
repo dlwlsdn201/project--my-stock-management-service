@@ -1,5 +1,90 @@
 ---
 
+## Post-MVP Unit 22 — Supabase Persistence 연결 (보완 포함)
+
+- 작업 일자: 2026-06-04 (초기) / 2026-06-05 (보완)
+- 작업 브랜치: main
+
+### 생성된 Migration
+
+| 파일 | 내용 | 적용 방법 |
+|------|------|-----------|
+| `supabase/migrations/20260604134639_create_portfolio_persistence_tables.sql` | target_allocations · manual_assets 테이블, MVP anon RLS (초기) | Supabase MCP `apply_migration` |
+| `supabase/migrations/20260605103226_fix_mvp_rls_mock_user.sql` | MVP RLS 패치: anon 전체 → mock user_id 제한 (보완 C2) | Supabase MCP `apply_migration` |
+| `supabase/migrations/20260605131720_fix_set_updated_at_search_path.sql` | `set_updated_at` 함수 `search_path` 명시 — security advisor W1 해소 | Supabase MCP `apply_migration` |
+
+### 적용된 테이블 / Schema
+
+| 테이블 | 컬럼 | 비고 |
+|--------|------|------|
+| `target_allocations` | id(uuid PK), user_id(uuid), equity(numeric 5,2), bond(numeric 5,2), cash_and_alternative(numeric 5,2), created_at, updated_at | user_id unique index |
+| `manual_assets` | id(uuid PK), user_id(uuid), ticker(text), name(text), quantity(numeric), avg_price(numeric), created_at, updated_at | |
+
+### RLS 정책 (보완 후)
+
+| 테이블 | 현재 MVP 정책 | 조건 | 운영 전환 정책 |
+|--------|--------------|------|----------------|
+| `target_allocations` | `mvp_anon_target_allocations_mock_user` | `user_id = '00000000-0000-0000-0000-000000000001'` | `auth.uid() = user_id` 기반 authenticated 정책으로 교체 (Unit 25+) |
+| `manual_assets` | `mvp_anon_manual_assets_mock_user` | `user_id = '00000000-0000-0000-0000-000000000001'` | `auth.uid() = user_id` 기반 authenticated 정책으로 교체 (Unit 25+) |
+
+### 검증 결과 (보완 후 최종)
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (209 tests, 28 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (gzip JS 199.37 kB — supabase-js 포함으로 크기 증가, warning only) |
+| `git diff --check` | ✅ PASS |
+| `pnpm exec supabase migration list` | ✅ PASS — local/remote 완전 정합 (3 rows matched, 3차 재리뷰 기준). 최종 재실행은 pooler 임시 인증 차단으로 NOT VERIFIED |
+| `pnpm exec supabase db query --linked` (`pg_policies`) | ✅ PASS — mock user id RLS 확인 |
+| `pnpm exec supabase db query --linked` (`pg_proc`) | ✅ PASS — `set_updated_at` `search_path=""` 확인 |
+| `pnpm exec supabase db advisors --linked --type security --level warn --fail-on error` | ✅ PASS — `No issues found` |
+
+### 보완 내역 (1차 리뷰 NOT PASS → 재보완)
+
+| 항목 | 분류 | 내용 | 해결 |
+|------|------|------|------|
+| Migration 정합성 | C1 | 로컬 `134553` ↔ 원격 `134639` 불일치 | 로컬 파일명을 `134639`로 rename → 정합 |
+| MVP RLS 제한 | C2 | `using (true)` → anon 전체 허용 | RLS 패치 migration 생성·적용, mock user_id `00000000-...-0001`로 제한 |
+| `supabase/.temp/` | W1 | 로컬 link metadata 커밋 포함 위험 | `.gitignore`에 `supabase/.temp/` 추가 |
+| CLI dep 위치 | W2 | `supabase` CLI가 `dependencies`에 위치 | `devDependencies`로 이동, `pnpm install` 갱신 |
+| `_resetSupabaseClient` | W3 | test-only 함수가 `@shared` public API 노출 | `supabaseClient.ts`에서 제거, `src/shared/test/supabaseTestUtils.ts`에 향후 통합 테스트용 플레이스홀더 추가 |
+| `MOCK_SUPABASE_USER_ID` 이중 경로 | 추가 정리 | `supabaseTargetAllocationStore` 통과 re-export 중복 | `index.ts`에서 `supabaseMockUser.ts` 직접 export로 일원화 |
+| `set_updated_at` search_path | 추가 정리 | security advisor `function_search_path_mutable` 경고 | migration `20260605131720` 적용 — `set search_path = ''` 명시 |
+
+### 신규/수정 파일 목록
+
+신규:
+- `supabase/migrations/20260604134639_create_portfolio_persistence_tables.sql` (rename: 134553 → 134639)
+- `supabase/migrations/20260605103226_fix_mvp_rls_mock_user.sql` (RLS 패치)
+- `supabase/migrations/20260605131720_fix_set_updated_at_search_path.sql` (search_path 명시)
+- `src/entities/portfolio/api/supabaseTargetAllocationStore.ts`
+- `src/entities/portfolio/api/supabaseManualAssetStore.ts`
+- `src/entities/portfolio/api/supabaseTargetAllocationStore.test.ts` (6 tests)
+- `src/entities/portfolio/api/supabaseManualAssetStore.test.ts` (9 tests)
+- `src/entities/portfolio/api/targetAllocationStore.test.ts` (4 tests, fallback 포함)
+- `src/shared/test/supabaseTestUtils.ts` (테스트 격리 유틸 플레이스홀더)
+
+수정:
+- `src/shared/api/supabaseClient.ts` (getSupabaseClient 추가, `_resetSupabaseClient` 제거)
+- `src/entities/portfolio/api/targetAllocationStore.ts` (resolveDefaultStore Supabase 분기 연결)
+- `src/entities/portfolio/api/manualAssetStore.ts` (resolveDefaultStore Supabase 분기 연결)
+- `src/entities/portfolio/index.ts` (createSupabaseTargetAllocationStore, createSupabaseManualAssetStore, MOCK_SUPABASE_USER_ID export 추가)
+- `.gitignore` (`supabase/.temp/` 추가)
+- `package.json` (`supabase` CLI → devDependencies 이동)
+
+### 남은 리스크
+
+- Auth 연동 전이므로 모든 데이터가 `MOCK_SUPABASE_USER_ID`(`00000000-0000-0000-0000-000000000001`) 기준으로 저장됨
+- 운영 전환 시 MVP RLS 정책 삭제 + auth.uid() 기반 정책 추가 필요 (Unit 25+ OAuth 연동 후)
+- Supabase generated types 미연결 — `as TargetAllocationRow` 단언 사용 중. 타입 생성 연결 시 단언 제거 가능
+- 번들 크기 경고 (681 kB / 199 kB gzip): supabase-js 포함으로 Unit 21 대비 증가. 코드 스플리팅은 운영 최적화 단계에서 진행
+- `VITE_SUPABASE_ANON_KEY`는 public client용 key이므로 노출 가능 (service_role key 사용 금지 유지)
+- 최종 `migration list` 재실행은 pooler 임시 인증 차단으로 완료하지 못했으나, 직전 재리뷰에서 3개 migration local/remote 정합을 확인함
+
+---
+
 ## Unit 21 — 최종 브라우저 QA와 릴리즈 후보 점검
 
 - 작업 일자: 2026-06-03

@@ -50,6 +50,9 @@ export {
   getTargetAllocationStore,
   resetTargetAllocationStore,
 } from './api/targetAllocationStore';
+export { createSupabaseTargetAllocationStore } from './api/supabaseTargetAllocationStore';
+export { createSupabaseManualAssetStore } from './api/supabaseManualAssetStore';
+export { MOCK_SUPABASE_USER_ID } from './api/supabaseMockUser';
 export { readTargetAllocation, saveTargetAllocation } from './api/targetAllocationApi';
 export {
   TARGET_ALLOCATION_QUERY_KEY,

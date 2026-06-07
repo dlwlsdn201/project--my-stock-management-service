@@ -11,6 +11,181 @@
 
 ---
 
+## 2026-06-05 / Unit 22 — Supabase Persistence 연결 (최종 리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `pnpm build`에서 Vite chunk size warning이 남아 있다. `@supabase/supabase-js` 추가 후 JS chunk가 681.61 kB / gzip 199.37 kB로 증가했다. 기능 완료 차단은 아니며, 운영 최적화 단계에서 route-level code splitting 또는 manualChunks를 검토한다.
+- [W2] 최종 리뷰 중 `pnpm exec supabase migration list` 재실행은 Supabase pooler 임시 인증 차단(`ECIRCUITBREAKER`)으로 실패했다. 단, 직전 재리뷰에서 3개 migration 정합성을 확인했고, 이번 최종 리뷰에서 `supabase db advisors`는 `No issues found`로 통과했다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 28 files / 209 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, 475 modules transformed, chunk size warning only
+- `git diff --check`: PASS
+- `pnpm exec supabase db advisors --linked --type security --level warn --fail-on error`: PASS, `No issues found`
+- `pnpm exec supabase migration list`: NOT VERIFIED in final run, pooler 임시 인증 차단으로 실패
+
+### 보완 확인
+
+- 이전 security advisor warning이었던 `function_search_path_mutable`은 최종 advisor 기준 `No issues found`로 해소됐다.
+- `supabase/migrations/20260605131720_fix_set_updated_at_search_path.sql`는 `public.set_updated_at`에 `set search_path = ''`를 명시한다.
+- MVP RLS 제한, `supabase/.temp/` gitignore, CLI devDependency 이동, `_resetSupabaseClient` public API 제거, `MOCK_SUPABASE_USER_ID` export 일원화는 유지된다.
+
+### 후속 권장 사항
+
+- Unit 22는 커밋/푸시 진행 가능.
+- `.claude/` 디렉터리는 작업 산출물 범위 밖이면 커밋에서 제외한다.
+- 원격 pooler 차단이 해소된 뒤 `pnpm exec supabase migration list`를 한 번 더 실행해 최종 로그를 보강하면 좋다. 현재 커밋 차단 조건은 아니다.
+
+---
+
+## 2026-06-05 / Unit 22 — Supabase Persistence 연결 (3차 재리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] `pnpm build`에서 Vite chunk size warning이 남아 있다. `@supabase/supabase-js` 추가 후 JS chunk가 681.61 kB / gzip 199.37 kB로 증가했다. 기능 완료 차단은 아니며, 운영 최적화 단계에서 route-level code splitting 또는 manualChunks를 검토한다.
+- [W2] `pnpm exec supabase db advisors --linked --type security --level warn --fail-on error`는 원격 pooler 임시 인증 차단(`ECIRCUITBREAKER`)으로 이번 재리뷰에서 완료하지 못했다. 다만 이전 advisor warning의 원인이었던 `public.set_updated_at` 함수는 `pg_proc.proconfig` 직접 조회로 `search_path=""` 적용을 확인했다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 28 files / 209 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, 475 modules transformed, chunk size warning only
+- `git diff --check`: PASS
+- `pnpm exec supabase migration list`: PASS, local/remote `20260604134639`, `20260605103226`, `20260605131720` 모두 매칭
+- `pnpm exec supabase db query --linked` (`pg_policies`): PASS, 두 테이블 모두 mock user id RLS 조건 확인
+- `pnpm exec supabase db query --linked` (`pg_proc`): PASS, `public.set_updated_at`의 `proconfig = search_path=""` 확인
+- `pnpm exec supabase db advisors --linked --type security --level warn --fail-on error`: NOT VERIFIED, pooler 임시 인증 차단으로 실패
+
+### 보완 확인
+
+- `supabase/migrations/20260605131720_fix_set_updated_at_search_path.sql`가 추가됐고 원격 migration history와 정합하다.
+- `public.set_updated_at` 함수가 `set search_path = ''`로 재정의됐다.
+- 원격 `pg_proc` 조회 기준 `proconfig`에 `search_path=""`가 적용되어 이전 `function_search_path_mutable` 경고 원인은 해소된 것으로 판단한다.
+- `MOCK_SUPABASE_USER_ID` export는 `supabaseMockUser.ts` 직접 export로 일원화됐다.
+
+### 후속 권장 사항
+
+- Unit 22는 커밋/푸시 진행 가능.
+- `.claude/` 디렉터리는 작업 산출물 범위 밖이면 커밋에서 제외한다.
+- Supabase pooler 인증 차단이 해소된 뒤 `pnpm exec supabase db advisors --linked --type security --level warn --fail-on error`를 한 번 더 실행하면 보안 advisor 결과까지 완전히 닫을 수 있다.
+
+---
+
+## 2026-06-05 / Unit 22 — Supabase Persistence 연결 (2차 재리뷰)
+
+### 최종 판단
+
+- PASS WITH WARNINGS
+
+### Critical
+
+- 없음
+
+### Warning
+
+- [W1] Supabase security advisor가 `public.set_updated_at` 함수의 `search_path` 미설정 경고를 반환한다. 현재 함수는 `SECURITY DEFINER`가 아니고 단순 `updated_at` 트리거라 Unit 22 완료를 막지는 않지만, 후속 DB hardening에서 `set search_path`를 명시하는 migration을 추가하는 것이 좋다.
+  - advisor: `function_search_path_mutable`
+  - 대상: `public.set_updated_at`
+- [W2] 최초 migration(`20260604134639_create_portfolio_persistence_tables.sql`)에는 기존 `mvp_anon_all_*` 정책 생성이 남아 있고, 다음 migration(`20260605103226_fix_mvp_rls_mock_user.sql`)에서 삭제 후 제한 정책으로 교체한다. 원격 상태는 안전하지만, 새 환경 재현 시 두 migration이 순서대로 적용되어야 한다. 현재 migration list가 정합하므로 차단하지 않는다.
+- [W3] 번들 크기 경고가 발생한다. `@supabase/supabase-js` 추가 후 JS chunk가 681.61 kB / gzip 199.37 kB로 증가했다. MVP 완료 차단은 아니며 운영 최적화 단계에서 route-level code splitting을 검토한다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 28 files / 209 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, 475 modules transformed, chunk size warning only
+- `git diff --check`: PASS
+- `pnpm exec supabase migration list`: PASS, local/remote `20260604134639`, `20260605103226` 모두 매칭
+- `pnpm exec supabase db query --linked`: PASS, `pg_policies` 기준 두 테이블 모두 mock user id 조건 확인
+- `pnpm exec supabase db advisors --linked --type security --level warn --fail-on error`: PASS with warning, error 없음
+
+### 보완 확인
+
+- [C1 해소] 로컬 migration 파일명이 원격 적용 version인 `20260604134639`로 정합화됐고, 추가 RLS patch migration `20260605103226`도 local/remote 모두 매칭된다.
+- [C2 해소] 원격 `pg_policies` 조회 결과 `target_allocations`, `manual_assets` 모두 `anon` 정책이 `user_id = '00000000-0000-0000-0000-000000000001'::uuid` 조건으로 제한되어 있다.
+- [W1 해소] `.gitignore`에 `supabase/.temp/`가 추가되어 Supabase CLI link metadata가 커밋 대상에서 제외된다.
+- [W2 해소] `supabase` CLI 패키지가 runtime `dependencies`에서 `devDependencies`로 이동했다.
+- [W3 해소] `_resetSupabaseClient`가 `src/shared/api/supabaseClient.ts` public API에서 제거됐다.
+
+### 후속 권장 사항
+
+- Unit 22는 커밋/푸시 진행 가능.
+- `.claude/` 디렉터리는 작업 산출물 범위 밖이면 커밋에서 제외한다.
+- 후속 DB hardening 작업에서 `public.set_updated_at` 함수의 `search_path`를 명시하는 migration을 추가한다.
+
+---
+
+## 2026-06-05 / Unit 22 — Supabase Persistence 연결 (1차 리뷰)
+
+### 최종 판단
+
+- NOT PASS
+
+### Critical
+
+- [C1] 로컬 마이그레이션 파일과 원격 Supabase 마이그레이션 히스토리가 일치하지 않는다. 로컬에는 `supabase/migrations/20260604134553_create_portfolio_persistence_tables.sql`가 있지만 `pnpm exec supabase migration list` 결과 원격에는 `20260604134553`이 비어 있고, 로컬에 없는 `20260604134639`가 원격에 적용돼 있다. 이 상태에서는 저장소의 migration source of truth와 실제 DB 상태가 분리되어, 이후 재현/롤백/협업 검증이 불가능하다.
+  - 보완: 원격에 적용된 `20260604134639` SQL을 로컬 migration으로 정합화하거나, 로컬 migration을 기준으로 원격 히스토리를 복구한다. 보완 후 `pnpm exec supabase migration list`에서 Local/Remote가 같은 버전으로 매칭되어야 한다.
+- [C2] MVP RLS 정책이 “제한적으로 허용”이라는 요구와 다르게 `anon` 전체 접근을 허용한다. `target_allocations`, `manual_assets` 정책이 모두 `using (true)` / `with check (true)`라서 anon key를 가진 요청자는 임의 `user_id`의 row를 읽고 쓸 수 있다. 현재 앱은 고정 mock user id를 쓰므로 MVP 단계에서도 해당 mock user id로 제한할 수 있다.
+  - 근거: `supabase/migrations/20260604134553_create_portfolio_persistence_tables.sql`
+  - 보완: MVP 정책을 `user_id = '00000000-0000-0000-0000-000000000001'::uuid` 조건으로 제한하거나, Supabase Auth 전환 전까지 허용 범위를 명시적으로 더 좁힌 정책으로 교체한다.
+
+### Warning
+
+- [W1] `supabase/.temp/*`가 untracked 상태이고 `.gitignore`에 제외 규칙이 없다. Supabase CLI link metadata는 로컬 환경 산출물이므로 커밋 대상에서 제외되어야 한다.
+- [W2] `package.json`에서 `supabase` CLI 패키지가 runtime `dependencies`에 들어가 있다. 앱 런타임에서 필요한 것은 `@supabase/supabase-js`이고, CLI는 보통 dev dependency 또는 로컬/글로벌 도구로 관리한다. 배포 번들 영향은 제한적일 수 있으나 의존성 의미가 맞지 않는다.
+- [W3] `src/shared/api/supabaseClient.ts`의 `_resetSupabaseClient`가 `@shared` public API로 노출된다. 테스트 reset 목적이면 테스트 유틸 위치 또는 명시적 test-only export 정책이 필요하다.
+- [W4] `docs/SESSION_STATE.md`, `docs/NEXT_TASK_DRAFT.md`가 Unit 22를 완료/커밋 가능으로 기록하고 있으나, 위 Critical 때문에 현재는 보완 대기 상태가 맞다.
+
+### 검증 결과
+
+- `pnpm test`: PASS, 28 files / 209 tests
+- `pnpm lint`: PASS
+- `pnpm typecheck`: PASS, `tsc -b --noEmit`
+- `pnpm build`: PASS, 475 modules transformed
+- `git diff --check`: PASS
+- `pnpm exec supabase --version`: PASS, 2.104.0
+- `pnpm exec supabase migration list`: NOT PASS, local `20260604134553`와 remote `20260604134639` 불일치
+
+### 리뷰 확인
+
+- `@supabase/supabase-js` 기반 client와 목표 비중/수동 자산 Supabase adapter 구현은 존재한다.
+- Supabase 미설정 시 in-memory store로 fallback하는 구조는 기존 MVP 흐름을 깨지 않는다.
+- FSD 방향성은 `entities -> shared` 의존으로 확인되며, feature/page 역참조는 확인되지 않았다.
+- 목표 비중과 수동 자산 adapter 단위 테스트는 추가되어 통과한다.
+- DB/보안 계층의 source of truth와 RLS 범위가 차단 이슈이므로 커밋/푸시 전 보완이 필요하다.
+
+### 보완 요청
+
+- 원격/로컬 migration version을 일치시킨다.
+- MVP anon RLS를 mock user id 범위로 제한한다.
+- `supabase/.temp/`를 `.gitignore`에 추가하고 커밋 대상에서 제외한다.
+- `supabase` CLI 패키지 위치와 `_resetSupabaseClient` public export 정책을 정리한다.
+- 보완 후 `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `git diff --check`, `pnpm exec supabase migration list`를 재실행하고 `WORK_LOG.md`, `SESSION_STATE.md`를 갱신한다.
+
+---
+
 ## 2026-06-04 / Unit 21 — 최종 브라우저 QA와 릴리즈 후보 점검 (1차 리뷰)
 
 ### 최종 판단

@@ -1,6 +1,7 @@
-import { isSupabaseConfigured } from '@shared';
+import { getSupabaseClient, isSupabaseConfigured } from '@shared';
 import { MOCK_TARGET_ALLOCATION } from '../model/mockPortfolio';
 import type { TargetAllocation } from '../model/types';
+import { createSupabaseTargetAllocationStore } from './supabaseTargetAllocationStore';
 
 // persistence port: 목표 비중 저장소 인터페이스(어댑터 교체 지점).
 export interface TargetAllocationStore {
@@ -23,11 +24,11 @@ export const createInMemoryTargetAllocationStore = (
   };
 };
 
-// Supabase 설정 시 supabase 어댑터로 교체할 지점. 현재는 라이브러리 미연동이라 mock으로 fallback한다.
+// Supabase 설정 시 supabase 어댑터로, 미설정 시 in-memory mock으로 fallback한다.
 const resolveDefaultStore = (): TargetAllocationStore => {
   if (isSupabaseConfigured()) {
-    // TODO(Unit 9+): @supabase/supabase-js 연동 시 createSupabaseTargetAllocationStore로 교체.
-    return createInMemoryTargetAllocationStore();
+    const client = getSupabaseClient();
+    if (client) return createSupabaseTargetAllocationStore(client);
   }
   return createInMemoryTargetAllocationStore();
 };
