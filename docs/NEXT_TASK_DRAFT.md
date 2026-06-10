@@ -56,7 +56,7 @@
 
 ### 완료: Post-MVP Unit 22 — Supabase Persistence 연결
 
-- 상태: GPT 최종 리뷰 PASS WITH WARNINGS, 커밋 대기.
+- 상태: `a4c61b3` 커밋 및 원격 push 완료.
 - 핵심 결과: 목표 비중과 수동 자산 store가 Supabase 설정 시 원격 DB adapter를 사용하고, 미설정 시 in-memory fallback을 유지한다. migration local/remote 정합성 확인, MVP RLS mock user id 제한 확인.
 - 잔여 Warning: Supabase client 추가로 인한 build chunk size warning. 최종 `migration list` 재실행은 pooler 임시 인증 차단으로 미완료이나, 직전 재리뷰에서 3개 migration 정합 확인. Supabase security advisor는 `No issues found`.
 - 구현 계획: `docs/superpowers/plans/2026-06-04-unit22-supabase-persistence.md`
@@ -71,7 +71,7 @@
 아래 항목은 사용자의 계정, 운영 정책, 외부 서비스 선택이 필요하므로 마지막에 몰아서 진행한다.
 
 - ~~Supabase 프로젝트 생성 및 환경 변수 제공~~ → **완료**
-- ~~실제 `@supabase/supabase-js` adapter 운영 연결 (목표 비중 + 수동 자산)~~ → **[Unit 22 PASS WITH WARNINGS, 커밋 대기]**
+- ~~실제 `@supabase/supabase-js` adapter 운영 연결 (목표 비중 + 수동 자산)~~ → **[Unit 22 완료, `a4c61b3` 커밋/푸시 완료]**
 - API key 서버 저장/암호화 정책 확정
 - 실제 AI provider 호출 방식 확정(GPT/Gemini/Claude)
 - OAuth 제공자 정책 확정 (Supabase Auth 연동 → Unit 25+ RLS 전환 포함)

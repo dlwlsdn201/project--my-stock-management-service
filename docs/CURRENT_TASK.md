@@ -6,7 +6,7 @@ Post-MVP Unit 22 — Supabase Persistence 연결 최종 리뷰 완료
 
 Unit 22 최종 GPT 리뷰 결과는 **PASS WITH WARNINGS**다. 목표 비중과 수동 자산을 Supabase에 연결하는 adapter 구현, MVP RLS mock user id 제한, `set_updated_at` 함수의 `search_path` 적용, Supabase security advisor `No issues found`를 확인했다.
 
-이번 작업은 커밋/푸시 가능 상태다. 남은 항목은 build chunk size warning과 최종 `migration list` 재실행이 Supabase pooler 임시 인증 차단으로 실패한 점이다.
+이번 작업은 `a4c61b3` 커밋 및 원격 push까지 완료됐다. 남은 항목은 build chunk size warning과 최종 `migration list` 재실행이 Supabase pooler 임시 인증 차단으로 실패한 점이다.
 
 ## 1. 반드시 읽을 문서
 
@@ -27,7 +27,7 @@ Unit 22 최종 GPT 리뷰 결과는 **PASS WITH WARNINGS**다. 목표 비중과 
 ## 2. 선행 상태
 
 - Unit 21 커밋/푸시 완료.
-- Unit 22 구현 산출물은 미커밋 상태.
+- Unit 22 구현 산출물은 `a4c61b3`으로 커밋/푸시 완료.
 - Unit 22 최종 GPT 리뷰 결과: `PASS WITH WARNINGS`
 - 검증 결과:
   - `pnpm test`: PASS, 28 files / 209 tests
@@ -84,6 +84,6 @@ pnpm exec supabase migration list
 
 ## 6. 완료 기준
 
-- Unit 22는 커밋/푸시 가능.
+- Unit 22는 커밋/푸시 완료.
 - `.claude/`는 작업 산출물 범위 밖이면 커밋에서 제외한다.
 - 커밋 후 다음 단계는 사용자 결정이 필요한 Unit 23+ 후보로 전환한다.

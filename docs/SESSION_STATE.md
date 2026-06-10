@@ -7,10 +7,10 @@
 ## 1. 현재 상태
 
 - 현재 브랜치: `main`
-- 현재 작업: Post-MVP Unit 22 최종 리뷰 PASS WITH WARNINGS, 커밋/푸시 대기
-- 마지막 완료 작업: Unit 22 추가 정리 — MOCK_SUPABASE_USER_ID 단일 경로, set_updated_at search_path migration (2026-06-05)
-- 커밋 여부: Unit 22 미커밋 (커밋/푸시 가능)
-- 리뷰 상태: Unit 22 최종 리뷰 PASS WITH WARNINGS, 커밋 대기
+- 현재 작업: Post-MVP Unit 22 커밋/푸시 완료, 사용자 결정/외부 연동 단계 전환
+- 마지막 완료 작업: Unit 22 Supabase 자산 저장소 연결 커밋/푸시 완료 (`a4c61b3`, 2026-06-07)
+- 커밋 여부: Unit 22 커밋/푸시 완료
+- 리뷰 상태: Unit 22 최종 리뷰 PASS WITH WARNINGS
 
 ## 2. 미완료 작업
 
@@ -22,7 +22,7 @@
 - ~~세션/AI설정 persistence (새로고침 시 초기화)~~ → **[Unit 20 완료]**
 - ~~다크 테마/모바일 QA 보강~~ → **[Unit 18 PASS, 브라우저 실측은 후속 QA 권장]**
 - ~~최종 브라우저 QA와 릴리즈 후보 점검~~ → **[Unit 21 PASS, 커밋/푸시 완료]**
-- ~~실제 `@supabase/supabase-js` 어댑터 연결 (목표 비중 + 수동 자산)~~ → **[Unit 22 PASS WITH WARNINGS, 커밋 대기]**
+- ~~실제 `@supabase/supabase-js` 어댑터 연결 (목표 비중 + 수동 자산)~~ → **[Unit 22 완료, `a4c61b3` 커밋/푸시 완료]**
 - 실제 외부 AI provider 호출 및 API key 서버 저장/암호화 정책 확정 — 사용자 결정 필요
 - Supabase Auth/OAuth 연동 → MVP RLS → 운영 RLS 정책 전환 — 사용자 결정 필요 (Unit 25+)
 - ~~Unit 7 후속: 무료 잔여 횟수/API key 연동 상태 배선~~ → **[Unit 13 완료]**
@@ -310,7 +310,7 @@
 2. ~~`WORK_LOG.md`, `SESSION_STATE.md`, `NEXT_TASK_DRAFT.md` 변경사항 기반 GPT 검증 리뷰 요청 (Unit 21)~~ → **PASS**
 3. ~~Unit 21 커밋/푸시~~ → **완료**
 4. ~~Claude Code에게 Unit 22 작업 지시~~ → **완료**
-5. Unit 22 커밋/푸시
+5. ~~Unit 22 커밋/푸시~~ → **완료 (`a4c61b3`)**
 6. 사용자 직접 결정/외부 연동 큐(AI provider, OAuth, 결제)로 전환
 
 ## 6. 재개 시 읽을 문서
