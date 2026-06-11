@@ -7,9 +7,9 @@
 ## 1. 현재 상태
 
 - 현재 브랜치: `main`
-- 현재 작업: Post-MVP Unit 23A 3차 재리뷰 PASS WITH WARNINGS, 커밋 진행 (2026-06-11)
-- 마지막 완료 작업: Unit 23A AI Provider Adapter 경계와 세션 API key 정책 구현 + 1·2차 리뷰 보완 (2026-06-11)
-- 커밋 여부: Unit 23A 미커밋 (커밋 진행 예정)
+- 현재 작업: Post-MVP Unit 23A 커밋/푸시 완료, Unit 23B 준비 (2026-06-11)
+- 마지막 완료 작업: Unit 23A AI Provider Adapter 경계와 세션 API key 정책 구현 + 1·2차 리뷰 보완 (`42a06d8`, 2026-06-11)
+- 커밋 여부: Unit 23A 커밋/푸시 완료 (`42a06d8`)
 - 리뷰 상태: Unit 23A 3차 GPT 재리뷰 PASS WITH WARNINGS
   - 1차 C1: FSD 경계 위반 해소 — proposal 계약/mock을 `entities/rebalancing`로, dispatcher를 feature 상위 조합부로 이동. 두 entity 간 import 제거. (해소 확인됨)
   - 1차 W1: `SettingsPortfolioPanel.test.tsx` `act(...)` 경고 제거 (async `renderPanel` settle). (해소 확인됨)
@@ -30,7 +30,7 @@
 - ~~최종 브라우저 QA와 릴리즈 후보 점검~~ → **[Unit 21 PASS, 커밋/푸시 완료]**
 - ~~실제 `@supabase/supabase-js` 어댑터 연결 (목표 비중 + 수동 자산)~~ → **[Unit 22 완료, `a4c61b3` 커밋/푸시 완료]**
 - 실제 외부 AI provider 호출 및 API key 서버 저장/암호화 정책 확정 — 사용자 결정 필요
-- AI Provider Adapter 경계와 세션 API key 정책 구현 → **[Unit 23A 3차 재리뷰 PASS WITH WARNINGS, 커밋 가능]**
+- ~~AI Provider Adapter 경계와 세션 API key 정책 구현~~ → **[Unit 23A 완료, `42a06d8` 커밋/푸시 완료]**
 - 실제 OpenAI/Codex API 호출 (provider boundary 경유) → **[Unit 23B 예정]**
 - Supabase encrypted API key storage → **[Unit 24 예정]**
 - Supabase Auth/OAuth 연동 → MVP RLS → 운영 RLS 정책 전환 — 사용자 결정 필요 (Unit 25+)
@@ -292,7 +292,7 @@
 - 1차 C1/W1/W2 해소 확인.
 - 2차 C1(`features/rebalancing-proposal/api` 세그먼트) 해소 확인.
 
-**다음 액션:** Unit 23A 커밋/푸시 → Unit 23B 실제 OpenAI/Codex API 호출 작업 지시
+**다음 액션:** Unit 23B 실제 OpenAI/Codex API 호출 작업 지시
 
 ### Unit 22 최종 리뷰 검증 (2026-06-05)
 
@@ -432,7 +432,7 @@
 10. Unit 23A 2차 재리뷰 → **NOT PASS**
 11. Claude Code Unit 23A 추가 보완 작업 지시 → **완료**
 12. Unit 23A 3차 재리뷰 → **PASS WITH WARNINGS**
-13. Unit 23A 커밋/푸시
+13. Unit 23A 커밋/푸시 → **완료 (`42a06d8`)**
 14. Unit 23B 실제 OpenAI/Codex API 호출 작업 지시
 
 ## 6. 재개 시 읽을 문서
