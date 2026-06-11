@@ -1,5 +1,215 @@
 ---
 
+## Post-MVP Unit 23A — AI Provider Adapter 경계와 세션 API key 정책
+
+- 작업 일자: 2026-06-10
+- 작업 브랜치: main
+
+### 구현 내용
+
+- **`entities/ai-provider` 슬라이스 신설**: provider id(`codex`/`gemini`/`claude`), proposal request/response/result 타입, 에러 코드(`api_key_required`/`provider_unavailable`/`invalid_response`/`network_error`) 계약 정의.
+- **Codex 1차 provider**: `DEFAULT_AI_PROVIDER_ID = 'codex'`, 라벨 `Codex`. 설정 화면 AI 모델 옵션이 GPT → Codex로 교체되고 기본 선택된다 (`AiModelId`: `'codex' | 'gemini' | 'claude'`).
+- **세션 메모리 API key atom**: `aiApiKeySessionAtom` — raw key는 브라우저 세션 동안 Jotai memory에만 존재. localStorage/sessionStorage/Supabase 어디에도 기록하지 않음. `set`/`clear`/`has` 액션 atom 제공.
+- **mock provider boundary**: `requestAiProposal()` — 기존 mock rebalancing 데이터를 async provider 경계 뒤로 이동. key 부재 시 `api_key_required` 실패 반환. 실제 외부 API 호출 없음(Unit 23B에서 OpenAI Responses API로 교체 예정).
+- **설정 UI 연결**: 저장 시 raw key → 세션 atom, persisted metadata → 마스킹 값만 localStorage. 수정/삭제 시 세션 atom도 함께 초기화.
+- **리밸런싱 UI 연결**: "AI 추천 받기"가 `requestAiProposal()` async 호출로 전환. 요청 중 버튼 비활성("제안 생성 중..."), 실패 시 `role="alert"` 에러 표시. **연결 metadata는 있지만 세션 raw key가 없으면(새로고침 후 등) 설정 안내 modal 표시.** 무료 3회 차감 정책은 provider 성공 후에만 적용.
+
+### 사용자 결정 반영
+
+- 1차 provider: Codex
+- raw API key: Jotai memory only (프로토타입)
+- persisted settings: masked metadata only
+- 실제 API 호출: Unit 23B로 이연
+- Supabase 암호화 key 저장: Unit 24로 이연
+
+### 검증 결과 (1차 리뷰 반영 후 최종)
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (222 tests, 30 files, 0 failures) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (480 modules, gzip JS 199.72 kB — 기존 chunk size warning 유지) |
+| `git diff --check` | ✅ PASS |
+
+targeted:
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test src/entities/ai-provider/` | ✅ PASS (6 tests, 2 files) |
+| `pnpm test aiSettingsAtom + SettingsPortfolioPanel` | ✅ PASS (38 tests) |
+| `pnpm test RebalancingProposalPanel` | ✅ PASS (18 tests) |
+
+### 1차 GPT 리뷰 반영 (PASS WITH WARNINGS → 커밋 전 수정 2건 완료)
+
+| 항목 | 분류 | 처리 |
+|------|------|------|
+| provider 실패 UI 테스트 누락 (계획 명시 항목) | Important | `requestAiProposal` 부분 mock으로 실패 alert·무료 횟수 미차감·로딩 버튼 비활성 테스트 3개 추가 |
+| 에러 메시지 "Codex" 하드코딩 | Minor | `AI_PROVIDER_LABELS[request.providerId]` 사용으로 변경 + provider별 라벨 테스트 추가 |
+
+리뷰가 Unit 23B로 이연을 권고한 항목 (NEXT_TASK_DRAFT에 기록):
+- `free-trial-mock-key` sentinel → `AiProposalRequest`에 명시적 trial mode 도입
+- provider 성공 시 `result.data`를 렌더 state로 연결 (현재는 mock과 동일하므로 미사용)
+- `AiModelId`/`AiProviderId` 중복 union SSOT 일원화
+- legacy `'gpt'` persisted modelId는 settings 전체 기본값 fallback (프로토타입 허용, raw key 미저장이므로 재연결 필요)
+
+### 브라우저 검증 (Claude Preview MCP)
+
+- 설정 화면: Codex 첫 옵션 + 기본 선택 확인.
+- API key 저장 후 storage 직접 검사: raw key(`sk-...`)가 localStorage/sessionStorage 어디에도 없음. `assetflow.ai-settings`에는 `modelId`/`isApiKeyConnected`/`maskedApiKey`만 존재.
+- SPA 흐름(저장 → 리밸런싱 → 요청): 모달 없이 제안 표시, 콘솔 에러 없음.
+- 전체 리로드 후 요청: 연결 metadata는 남고 세션 key는 소실 → 설정 안내 modal 정상 표시 (설계 의도 동작).
+
+### 신규/수정 파일 목록
+
+신규:
+- `src/entities/ai-provider/model/types.ts`
+- `src/entities/ai-provider/model/constants.ts`
+- `src/entities/ai-provider/model/apiKeySessionAtom.ts`
+- `src/entities/ai-provider/model/apiKeySessionAtom.test.ts` (2 tests)
+- `src/entities/ai-provider/api/mockAiProposalProvider.ts`
+- `src/entities/ai-provider/api/aiProposalProvider.ts`
+- `src/entities/ai-provider/api/aiProposalProvider.test.ts` (3 tests)
+- `src/entities/ai-provider/index.ts`
+
+수정:
+- `src/entities/settings/model/types.ts` (`AiModelId`: gpt → codex)
+- `src/entities/settings/model/constants.ts` (Codex 첫 옵션, 기본값 codex)
+- `src/entities/settings/model/aiSettingsAtom.ts` (기본 modelId codex, validator 갱신)
+- `src/entities/settings/model/aiSettingsAtom.test.ts` (gpt → codex 기대값)
+- `src/features/settings-portfolio/ui/AiSettingsSection.tsx` (세션 atom 저장/삭제 연결)
+- `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` (Codex 옵션·세션 atom·storage 미기록 가드 테스트 추가)
+- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx` (async provider 호출, 로딩/에러/세션 key 가드)
+- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx` (provider boundary 테스트 2개 추가, helper options 확장)
+
+### FSD 의존성 방향
+
+- `features/settings-portfolio` → `entities/ai-provider`·`entities/settings` (단방향 ✓)
+- `features/rebalancing-proposal` → `entities/ai-provider`·`entities/rebalancing`·`entities/session`·`entities/settings` (단방향 ✓)
+- ~~`entities/ai-provider` → `entities/rebalancing`~~ → **2차 보완으로 제거** (아래 「2차 GPT 리뷰 보완」 참고). 현재 두 entity 간 상호 import 없음.
+- deep import 없음, feature 간 import 없음.
+
+### 남은 리스크 / 범위 밖
+
+- 새로고침 시 세션 raw key 소실 → 재입력 필요(설계 의도). Unit 24 Supabase 암호화 저장으로 해소 예정.
+- 무료 체험 경로는 `free-trial-mock-key` sentinel을 사용 — Unit 23B에서 무료 경로 처리 방식 결정 필요.
+- 실제 OpenAI Responses API 호출은 Unit 23B 범위.
+
+### 2차 GPT 리뷰 보완 (NOT PASS → C1/W1/W2 해소)
+
+1차 검증 리뷰가 NOT PASS. FSD 경계 위반(C1) 1건 + Warning 2건을 권장 방향대로 보완.
+
+| 항목 | 분류 | 처리 |
+|------|------|------|
+| `entities/ai-provider` → `@entities/rebalancing` import (FSD entity 간 cross-import) | Critical | proposal 계약 + mock adapter를 `entities/rebalancing`로 이동, provider 배선(dispatcher)을 feature 상위 조합부로 분리 |
+| `SettingsPortfolioPanel.test.tsx` React `act(...)` 경고 | Warning | `renderPanel`을 async로 전환해 Suspense 두 경계(`티커`·`주식 목표 비중`) settle 후 반환 — 경고 제거 |
+| provider reject 시 `setIsRequesting(false)` 미실행 | Warning | `handleRequestProposal`에 `try/catch/finally` 적용, throw 시 fallback alert(`PROPOSAL_REQUEST_FAILURE_FALLBACK`) 표시 + 로딩 복구. throw 경로 테스트 추가 |
+
+C1 보완 후 구조:
+
+- **`entities/ai-provider`** (provider 정체성): `AiProviderId`, `AI_PROVIDER_LABELS`, `DEFAULT_AI_PROVIDER_ID`, 세션 key atom. **rebalancing import 없음.**
+- **`entities/rebalancing`** (도메인 제안 계약): `AiProposalRequest`(`apiKey` + 표시용 `providerLabel`)/`AiProposalResponse`/`AiProposalResult`/`AiProposalProvider` 타입 + `mockAiProposalProvider`(provider-agnostic). **ai-provider import 없음.**
+- **`features/rebalancing-proposal/api/requestAiProposal.ts`** (상위 조합부): `AiProviderId` → adapter 매핑 + `AI_PROVIDER_LABELS[providerId]` 주입. 두 entity를 조합하는 유일한 지점.
+
+변경 파일:
+- 신규: `src/entities/rebalancing/api/aiProposal.ts`, `src/features/rebalancing-proposal/api/requestAiProposal.ts`, `src/features/rebalancing-proposal/api/requestAiProposal.test.ts`
+- 삭제: `src/entities/ai-provider/api/{mockAiProposalProvider,aiProposalProvider,aiProposalProvider.test}.ts`
+- 수정: `src/entities/ai-provider/model/types.ts`(AiProviderId만 유지), `src/entities/ai-provider/index.ts`, `src/entities/rebalancing/index.ts`, `RebalancingProposalPanel.tsx`(dispatcher import 경로·try/catch/finally), `RebalancingProposalPanel.test.tsx`(mock 대상 경로 변경·throw 테스트), `features/rebalancing-proposal/model/constants.ts`(fallback 메시지), `SettingsPortfolioPanel.test.tsx`(async renderPanel)
+
+재검증 (2차 보완 후):
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (223 tests, 30 files) — `act(...)` 경고 없음 |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (chunk size warning 유지) |
+| `git diff --check` | ✅ PASS |
+
+FSD 재확인: `grep '@entities/' src/entities/ai-provider src/entities/rebalancing` → 양방향 모두 entity 간 import 없음.
+
+### GPT 2차 재리뷰 결과 (2026-06-11, NOT PASS)
+
+1차 C1/W1/W2 보완 자체는 확인됨:
+
+- `entities/ai-provider` → `@entities/rebalancing` cross-import 제거 확인.
+- `SettingsPortfolioPanel.test.tsx`의 React `act(...)` 경고 제거 확인.
+- provider reject 시 `try/catch/finally`로 fallback alert와 로딩 복구 처리 확인.
+
+추가 차단 이슈:
+
+| 항목 | 분류 | 내용 |
+|------|------|------|
+| `features/rebalancing-proposal/api/requestAiProposal.ts` 위치 | Critical | 프로젝트 규칙은 `features/`, `pages/`에 `api/` 세그먼트를 두지 않는다고 명시한다. 현재 파일은 실제 HTTP fetcher는 아니지만 provider adapter dispatcher를 `api` 세그먼트로 두고 있어 규칙과 충돌한다. `features/rebalancing-proposal/model/` 등 허용된 세그먼트로 이동 필요. |
+
+GPT 2차 재리뷰 검증:
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test src/features/rebalancing-proposal/api/requestAiProposal.test.ts src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx` | ✅ PASS (23 tests, 2 files) |
+| `pnpm test src/entities/ai-provider/ src/entities/settings/model/aiSettingsAtom.test.ts src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` | ✅ PASS (40 tests, 3 files) |
+| `pnpm test` | ✅ PASS (223 tests, 30 files, `act(...)` 경고 없음) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (480 modules, gzip JS 199.78 kB — 기존 chunk warning 유지) |
+| `git diff --check` | ✅ PASS |
+
+다음 보완:
+- `requestAiProposal.ts`와 `requestAiProposal.test.ts`를 `features/rebalancing-proposal/model/` 등 허용된 세그먼트로 이동.
+- `RebalancingProposalPanel.tsx`와 테스트의 import 경로 갱신.
+- 재검증 후 GPT 3차 재리뷰 요청.
+
+### 2차 재리뷰 보완 (NOT PASS → C1 해소, 2026-06-11)
+
+`features/`·`pages/`에 `api/` 세그먼트를 두지 않는다는 프로젝트 규칙에 맞춰 dispatcher를 `model/` 세그먼트로 이동.
+
+| 항목 | 처리 |
+|------|------|
+| `features/rebalancing-proposal/api/requestAiProposal.ts` 위치 규칙 위반 (Critical) | `features/rebalancing-proposal/model/requestAiProposal.ts`로 이동 (테스트 동반 이동). `api/` 세그먼트 제거 |
+
+변경 파일:
+- 이동: `features/rebalancing-proposal/api/requestAiProposal.ts` → `model/requestAiProposal.ts`, `.../api/requestAiProposal.test.ts` → `model/requestAiProposal.test.ts` (파일 내용 동일, `@entities/*` 절대 import라 무영향)
+- 수정: `RebalancingProposalPanel.tsx`·`RebalancingProposalPanel.test.tsx`의 import/`vi.mock` 경로 `../api/` → `../model/`
+
+Warning 2건은 Unit 23B 이연 (리뷰 확인):
+- W1 chunk size warning — Unit 22 Supabase client 포함으로 발생한 기존 경고, 차단 아님.
+- W2 provider `result.data` 렌더 state 미반영 — mock 단계에서 동일 데이터, Unit 23B에서 실제 응답 연결 시 처리.
+
+재검증 (2차 재리뷰 보완 후):
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (223 tests, 30 files) — `act(...)` 경고 없음 |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (chunk size warning 유지) |
+| `git diff --check` | ✅ PASS |
+
+`find src/features src/pages -type d -name api` → 결과 없음 (규칙 충족 확인).
+
+### GPT 3차 재리뷰 결과 (2026-06-11, PASS WITH WARNINGS)
+
+2차 Critical 보완 확인:
+- `requestAiProposal.ts`와 테스트가 `features/rebalancing-proposal/model/`로 이동됨.
+- `RebalancingProposalPanel.tsx`와 테스트의 import/`vi.mock` 경로가 `../model/requestAiProposal`로 갱신됨.
+- `find src/features src/pages -type d -name api -print` 결과 없음.
+
+재검증:
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (223 tests, 30 files, `act(...)` 경고 없음) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (480 modules, gzip JS 199.78 kB — 기존 chunk warning 유지) |
+| `git diff --check` | ✅ PASS |
+
+잔여 Warning:
+- build chunk size warning은 Unit 22 이후 기존 경고이며 완료 차단 아님.
+- provider 성공 결과를 렌더 state로 연결하는 작업은 Unit 23B에서 처리.
+
+---
+
 ## Post-MVP Unit 22 — Supabase Persistence 연결 (보완 포함)
 
 - 작업 일자: 2026-06-04 (초기) / 2026-06-05 (보완)

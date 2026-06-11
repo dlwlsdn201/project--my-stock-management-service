@@ -19,3 +19,14 @@ export {
   MOCK_REBALANCING_SCENARIOS,
   MOCK_STOCK_ACTION_RECOMMENDATIONS,
 } from './model/mockRecommendations';
+
+export type {
+  AiProposalErrorCode,
+  AiProposalFailure,
+  AiProposalProvider,
+  AiProposalRequest,
+  AiProposalResponse,
+  AiProposalResult,
+} from './api/aiProposal';
+
+export { mockAiProposalProvider } from './api/aiProposal';

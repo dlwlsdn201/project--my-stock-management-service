@@ -12,6 +12,9 @@ export const API_KEY_CONNECTED_NOTE =
 
 export const TRIAL_EXHAUSTED_NOTICE = '무료 제안 횟수를 모두 사용했습니다.';
 
+export const PROPOSAL_REQUEST_FAILURE_FALLBACK =
+  '제안을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+
 export const buildTrialRemainingLabel = (count: number) => `무료 제안 잔여 ${count}회`;
 
 export const SIMULATION_PERIOD_SUFFIX = '개월';

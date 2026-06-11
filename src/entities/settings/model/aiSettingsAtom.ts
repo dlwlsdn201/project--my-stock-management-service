@@ -10,13 +10,13 @@ const maskKey = (key: string): string => {
 };
 
 const DEFAULT_AI_SETTINGS: AiSettings = {
-  modelId: 'gpt',
+  modelId: 'codex',
   isApiKeyConnected: false,
   maskedApiKey: null,
 };
 
 const isAiModelId = (value: unknown): value is AiModelId =>
-  value === 'gpt' || value === 'gemini' || value === 'claude';
+  value === 'codex' || value === 'gemini' || value === 'claude';
 
 /** 저장된 값이 AI 설정 메타데이터 shape를 만족하는지 검증한다. */
 const isAiSettings = (value: unknown): value is AiSettings => {

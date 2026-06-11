@@ -66,24 +66,45 @@
 - 사유: Unit 22 완료로 Supabase 목표 비중/수동 자산 persistence 연결까지 마무리됐다. 이후에는 사용자 결정이 필요한 운영 연동 단계로 전환한다.
 - 조정: 아래 2번 큐의 각 항목에 대해 사용자가 순서와 정책을 결정하면 Claude Code가 이어서 구현한다.
 
+### 완료 예정: Post-MVP Unit 23A — AI Provider Adapter 경계와 세션 API key 정책
+
+- 상태: 3차 GPT 재리뷰 PASS WITH WARNINGS, 커밋 진행 예정.
+- 핵심 결과: `entities/ai-provider` 슬라이스 신설, Codex 1차 provider, raw API key Jotai memory only, 리밸런싱 제안 흐름 provider boundary 전환, 223 tests PASS.
+- 1차 차단 이슈 해소: `entities/ai-provider` → `@entities/rebalancing` cross-import 제거 완료.
+- 2차 차단 이슈 해소: `requestAiProposal.ts`(+테스트)를 `features/rebalancing-proposal/api/` → `features/rebalancing-proposal/model/`로 이동, panel import/`vi.mock` 경로 갱신. `find src/features src/pages -type d -name api` 결과 없음 확인. 3차 재리뷰 PASS WITH WARNINGS.
+- 2차 Warning(chunk size, provider result 렌더 미반영)은 차단 아님 / Unit 23B 이연.
+- 구현 계획: `docs/superpowers/plans/2026-06-10-unit23a-ai-provider-adapter.md`
+
+### 다음 후보: Post-MVP Unit 23B — 실제 OpenAI/Codex API 호출
+
+- 사유: Unit 23A 커밋 후 provider 경계가 준비되면 mock adapter를 실제 OpenAI Responses API 호출 구현체로 교체/확장한다.
+- 선결 사항: OpenAI SDK 설치 여부 결정(또는 fetch 직접 호출), 무료 체험 경로 처리 방식 결정(`free-trial-mock-key` sentinel 대체).
+- Unit 23A 리뷰 이연 항목 (23B 범위에 포함):
+  - `AiProposalRequest`에 명시적 trial mode 도입 (sentinel key 제거)
+  - provider 성공 시 `result.data`를 렌더 state로 연결, 패널의 직접 mock import 제거
+  - `AiModelId`/`AiProviderId` 중복 union SSOT 일원화
+
 ## 2. 사용자 직접 작업 또는 외부 결정 필요 큐
 
 아래 항목은 사용자의 계정, 운영 정책, 외부 서비스 선택이 필요하므로 마지막에 몰아서 진행한다.
 
 - ~~Supabase 프로젝트 생성 및 환경 변수 제공~~ → **완료**
 - ~~실제 `@supabase/supabase-js` adapter 운영 연결 (목표 비중 + 수동 자산)~~ → **[Unit 22 완료, `a4c61b3` 커밋/푸시 완료]**
-- API key 서버 저장/암호화 정책 확정
-- 실제 AI provider 호출 방식 확정(GPT/Gemini/Claude)
+- ~~AI provider 1차 방향 결정~~ → **Codex 우선, OpenAI API adapter 경계로 설계**
+- ~~프로토타입 API key 원문 보관 정책 결정~~ → **브라우저 세션 메모리에만 보관**
+- AI provider adapter 경계와 세션 key 정책 → **[Unit 23A 3차 재리뷰 PASS WITH WARNINGS, 커밋 예정]**
+- API key 서버 저장/암호화 정책 확정 → **정식 런칭 시 Supabase 암호화 저장 검토 (Unit 24 후보)**
+- 실제 AI provider 호출 구현 → **Unit 23B 후보**
 - OAuth 제공자 정책 확정 (Supabase Auth 연동 → Unit 25+ RLS 전환 포함)
 - 결제/구독 정책 및 연동
 
 ## 3. 다음 작업 후보 상세
 
-Unit 22가 완료되어 Claude Code 단독 구현 큐는 비어 있다. 이후 작업은 사용자 결정 후 Unit 23+로 진행한다.
+Unit 23A 커밋/푸시가 완료되면 다음 작업은 Unit 23B(실제 API 호출)다.
 
 ### 사용자 결정 후 Claude Code 구현 가능한 작업 후보
 
-- **실제 AI provider 호출 (Unit 23 후보)**: GPT/Gemini/Claude 중 provider 확정 후 API 호출 레이어 구현.
+- **실제 OpenAI/Codex API 호출 (Unit 23B 후보)**: Unit 23A adapter 경계 뒤에 실제 Responses API 호출을 연결. SDK 설치 여부·무료 체험 경로 처리 결정 필요.
 - **서버 측 API key 암호화 저장 (Unit 24 후보)**: 운영 암호화 정책 확정 후 서버 엔드포인트 또는 Supabase 함수로 구현.
 - **OAuth 연동 (Unit 25 후보)**: 카카오 등 OAuth 앱 등록 후 콜백 처리 구현.
 - **결제/구독 연동 (Unit 26 후보)**: 결제 서비스(Stripe 등) 및 구독 티어 정책 확정 후 구현.

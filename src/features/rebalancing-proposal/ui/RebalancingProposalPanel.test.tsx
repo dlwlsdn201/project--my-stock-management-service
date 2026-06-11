@@ -2,7 +2,16 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider, createStore } from 'jotai';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { setAiApiKeySessionAtom } from '@entities/ai-provider';
+import { requestAiProposal } from '../model/requestAiProposal';
+
+// provider 실패/로딩 경로를 테스트하기 위해 requestAiProposal만 spy로 감싼다.
+// 기본 동작은 실제 구현에 위임하므로 다른 테스트에는 영향이 없다.
+vi.mock('../model/requestAiProposal', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../model/requestAiProposal')>();
+  return { ...actual, requestAiProposal: vi.fn(actual.requestAiProposal) };
+});
 import { aiSettingsAtom, saveApiKeyAtom } from '@entities/settings';
 import { sessionAtom } from '@entities/session';
 import type { Session } from '@entities/session';
@@ -12,15 +21,18 @@ const DEFAULT_SESSION: Session = { userStatus: 'existing', aiTrialRemainingCount
 
 const renderPanel = (
   sessionOverride?: Partial<Session> | null,
-  apiKeyConnected = false,
+  options: { apiKeyConnected?: boolean; sessionApiKey?: string | null } = {},
 ) => {
   const store = createStore();
   // null을 명시적으로 전달하면 세션 없음(비로그인), undefined면 기본 세션 사용
   if (sessionOverride !== null) {
     store.set(sessionAtom, { ...DEFAULT_SESSION, ...sessionOverride });
   }
-  if (apiKeyConnected) {
+  if (options.apiKeyConnected) {
     store.set(saveApiKeyAtom, 'dummy-key-for-test');
+  }
+  if (options.sessionApiKey) {
+    store.set(setAiApiKeySessionAtom, options.sessionApiKey);
   }
   render(
     <Provider store={store}>
@@ -133,7 +145,7 @@ describe('RebalancingProposalPanel — 무료 3회 + API key 정책', () => {
   });
 
   it('API key 연동 상태면 잔여 횟수 없이 차단 없는 제안을 표시한다', () => {
-    renderPanel({ aiTrialRemainingCount: 0 }, true);
+    renderPanel({ aiTrialRemainingCount: 0 }, { apiKeyConnected: true, sessionApiKey: 'dummy-key-for-test' });
 
     expect(screen.getByRole('region', { name: 'AI 추천 근거' })).toBeInTheDocument();
     expect(screen.queryByText(/무료 제안 잔여/)).not.toBeInTheDocument();
@@ -164,7 +176,10 @@ describe('RebalancingProposalPanel — 횟수 차감', () => {
 
   it('API key 연동 상태에서 추천 요청 시 횟수가 차감되지 않는다', async () => {
     const user = userEvent.setup();
-    const { store } = renderPanel({ aiTrialRemainingCount: 2 }, true);
+    const { store } = renderPanel(
+      { aiTrialRemainingCount: 2 },
+      { apiKeyConnected: true, sessionApiKey: 'dummy-key-for-test' },
+    );
 
     await user.click(screen.getByRole('button', { name: 'AI 추천 받기' }));
 
@@ -185,5 +200,87 @@ describe('RebalancingProposalPanel — 횟수 차감', () => {
     store.set(saveApiKeyAtom, 'my-real-api-key');
     store.set(aiSettingsAtom, { ...store.get(aiSettingsAtom), isApiKeyConnected: false });
     expect(store.get(aiSettingsAtom).isApiKeyConnected).toBe(false);
+  });
+});
+
+describe('RebalancingProposalPanel — provider boundary', () => {
+  it('API key가 연결된 사용자가 제안 요청 시 provider 결과를 표시한다', async () => {
+    const user = userEvent.setup();
+    const { store } = renderPanel(
+      { aiTrialRemainingCount: 2 },
+      { apiKeyConnected: true, sessionApiKey: 'dummy-key-for-test' },
+    );
+
+    await user.click(screen.getByRole('button', { name: 'AI 추천 받기' }));
+
+    expect(screen.getByRole('region', { name: 'AI 추천 근거' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(store.get(sessionAtom)?.aiTrialRemainingCount).toBe(2);
+  });
+
+  it('API key 연결 상태지만 세션 key 원문이 없으면 설정 안내를 표시한다', async () => {
+    const user = userEvent.setup();
+    const { store } = renderPanel({ aiTrialRemainingCount: 2 }, { apiKeyConnected: true });
+
+    await user.click(screen.getByRole('button', { name: 'AI 추천 받기' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(store.get(sessionAtom)?.aiTrialRemainingCount).toBe(2);
+  });
+});
+
+describe('RebalancingProposalPanel — provider 실패/로딩', () => {
+  afterEach(() => {
+    vi.mocked(requestAiProposal).mockClear();
+  });
+
+  it('provider 실패 시 에러 메시지를 alert로 표시하고 무료 횟수를 차감하지 않는다', async () => {
+    vi.mocked(requestAiProposal).mockResolvedValueOnce({
+      success: false,
+      error: { code: 'provider_unavailable', message: '제안 생성에 실패했습니다.' },
+    });
+    const user = userEvent.setup();
+    const { store } = renderPanel({ aiTrialRemainingCount: 2 });
+
+    await user.click(screen.getByRole('button', { name: 'AI 추천 받기' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('제안 생성에 실패했습니다.');
+    expect(store.get(sessionAtom)?.aiTrialRemainingCount).toBe(2);
+  });
+
+  it('provider가 throw하면 fallback alert를 표시하고 버튼 로딩 상태를 복구한다', async () => {
+    vi.mocked(requestAiProposal).mockRejectedValueOnce(new Error('network down'));
+    const user = userEvent.setup();
+    const { store } = renderPanel({ aiTrialRemainingCount: 2 });
+
+    const trigger = screen.getByRole('button', { name: 'AI 추천 받기' });
+    await user.click(trigger);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '제안을 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    );
+    expect(screen.getByRole('button', { name: 'AI 추천 받기' })).toBeEnabled();
+    expect(store.get(sessionAtom)?.aiTrialRemainingCount).toBe(2);
+  });
+
+  it('요청 진행 중에는 버튼이 비활성화되고 로딩 라벨을 표시한다', async () => {
+    let resolveRequest: (value: Awaited<ReturnType<typeof requestAiProposal>>) => void;
+    vi.mocked(requestAiProposal).mockImplementationOnce(
+      () => new Promise((resolve) => { resolveRequest = resolve; }),
+    );
+    const user = userEvent.setup();
+    renderPanel({ aiTrialRemainingCount: 2 });
+
+    await user.click(screen.getByRole('button', { name: 'AI 추천 받기' }));
+
+    const loadingButton = await screen.findByRole('button', { name: '제안 생성 중...' });
+    expect(loadingButton).toBeDisabled();
+
+    resolveRequest!({
+      success: false,
+      error: { code: 'network_error', message: '네트워크 오류가 발생했습니다.' },
+    });
+
+    expect(await screen.findByRole('button', { name: 'AI 추천 받기' })).toBeEnabled();
   });
 });

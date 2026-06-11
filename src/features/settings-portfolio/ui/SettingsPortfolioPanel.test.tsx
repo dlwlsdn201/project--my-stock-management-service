@@ -11,10 +11,13 @@ import {
   resetManualAssetStore,
   resetTargetAllocationStore,
 } from '@entities/portfolio';
+import { aiApiKeySessionAtom } from '@entities/ai-provider';
 import { aiSettingsAtom } from '@entities/settings';
 import { SettingsPortfolioPanel } from './SettingsPortfolioPanel';
 
-const renderPanel = () => {
+// Suspense 기반 데이터 로딩(수동 자산/목표 비중) 두 경계가 모두 settle된 뒤 반환한다.
+// 초기 query 완료를 기다리지 않으면 동기 assertion 후 resource resolve가 act 밖에서 발생한다.
+const renderPanel = async () => {
   const user = userEvent.setup();
   const store = createStore();
   const queryClient = new QueryClient({
@@ -26,6 +29,8 @@ const renderPanel = () => {
     </Provider>
   );
   render(<SettingsPortfolioPanel />, { wrapper: Wrapper });
+  await screen.findByLabelText('티커');
+  await screen.findByLabelText('주식 목표 비중');
   return { user, store };
 };
 
@@ -36,7 +41,7 @@ afterEach(() => {
 
 describe('SettingsPortfolioPanel — 수동 자산', () => {
   it('필수값을 모두 입력하면 자산이 목록에 추가된다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(await screen.findByLabelText('티커'), '005930');
     await user.type(screen.getByLabelText('종목명'), '삼성전자');
     await user.type(screen.getByLabelText('보유 수량'), '10');
@@ -48,7 +53,7 @@ describe('SettingsPortfolioPanel — 수동 자산', () => {
   });
 
   it('필수값 누락 시 오류를 표시하고 추가하지 않는다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await screen.findByLabelText('티커');
     await user.click(screen.getByRole('button', { name: '자산 추가' }));
     expect(screen.getByText('티커와 종목명을 입력해주세요.')).toBeInTheDocument();
@@ -56,7 +61,7 @@ describe('SettingsPortfolioPanel — 수동 자산', () => {
   });
 
   it('추가한 자산을 삭제할 수 있다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(await screen.findByLabelText('티커'), '005930');
     await user.type(screen.getByLabelText('종목명'), '삼성전자');
     await user.type(screen.getByLabelText('보유 수량'), '10');
@@ -67,7 +72,7 @@ describe('SettingsPortfolioPanel — 수동 자산', () => {
   });
 
   it('자산 편집 후 수정하면 목록 값이 바뀐다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(await screen.findByLabelText('티커'), 'AAPL');
     await user.type(screen.getByLabelText('종목명'), 'Apple');
     await user.type(screen.getByLabelText('보유 수량'), '5');
@@ -83,7 +88,7 @@ describe('SettingsPortfolioPanel — 수동 자산', () => {
   });
 
   it('자산 추가 성공 시 성공 메시지를 표시한다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(await screen.findByLabelText('티커'), '005930');
     await user.type(screen.getByLabelText('종목명'), '삼성전자');
     await user.type(screen.getByLabelText('보유 수량'), '10');
@@ -94,7 +99,7 @@ describe('SettingsPortfolioPanel — 수동 자산', () => {
   });
 
   it('자산 수정 성공 시 성공 메시지를 표시한다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(await screen.findByLabelText('티커'), 'AAPL');
     await user.type(screen.getByLabelText('종목명'), 'Apple');
     await user.type(screen.getByLabelText('보유 수량'), '5');
@@ -110,7 +115,7 @@ describe('SettingsPortfolioPanel — 수동 자산', () => {
   });
 
   it('자산 삭제 성공 시 성공 메시지를 표시한다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(await screen.findByLabelText('티커'), '005930');
     await user.type(screen.getByLabelText('종목명'), '삼성전자');
     await user.type(screen.getByLabelText('보유 수량'), '10');
@@ -129,7 +134,7 @@ describe('SettingsPortfolioPanel — 수동 자산', () => {
       delete: async () => undefined,
     });
 
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(await screen.findByLabelText('티커'), 'AAPL');
     await user.type(screen.getByLabelText('종목명'), 'Apple');
     await user.type(screen.getByLabelText('보유 수량'), '5');
@@ -141,7 +146,7 @@ describe('SettingsPortfolioPanel — 수동 자산', () => {
   });
 
   it('자산 수정 실패 시 에러 메시지를 표시한다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(await screen.findByLabelText('티커'), 'AAPL');
     await user.type(screen.getByLabelText('종목명'), 'Apple');
     await user.type(screen.getByLabelText('보유 수량'), '5');
@@ -164,7 +169,7 @@ describe('SettingsPortfolioPanel — 수동 자산', () => {
   });
 
   it('자산 삭제 실패 시 에러 메시지를 표시한다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(await screen.findByLabelText('티커'), 'AAPL');
     await user.type(screen.getByLabelText('종목명'), 'Apple');
     await user.type(screen.getByLabelText('보유 수량'), '5');
@@ -188,7 +193,7 @@ describe('SettingsPortfolioPanel — 수동 자산', () => {
 
 describe('SettingsPortfolioPanel — 목표 비중', () => {
   it('합계가 100%가 아니면 오류를 표시한다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     const equityInput = await screen.findByLabelText('주식 목표 비중');
     await user.clear(equityInput);
     await user.type(equityInput, '50');
@@ -196,7 +201,7 @@ describe('SettingsPortfolioPanel — 목표 비중', () => {
   });
 
   it('공격형 프리셋을 적용하면 비중이 반영된다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.click(await screen.findByRole('button', { name: '공격형' }));
     expect(screen.getByLabelText('주식 목표 비중')).toHaveValue(80);
     expect(screen.getByLabelText('채권 목표 비중')).toHaveValue(10);
@@ -204,7 +209,7 @@ describe('SettingsPortfolioPanel — 목표 비중', () => {
   });
 
   it('목표 비중 저장에 성공하면 성공 메시지를 표시한다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.click(await screen.findByRole('button', { name: '공격형' }));
     await user.click(screen.getByRole('button', { name: '목표 비중 저장' }));
     expect(await screen.findByText('목표 비중을 저장했습니다.')).toBeInTheDocument();
@@ -217,7 +222,7 @@ describe('SettingsPortfolioPanel — 목표 비중', () => {
         throw new Error('save failed');
       },
     });
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.click(await screen.findByRole('button', { name: '공격형' }));
     await user.click(screen.getByRole('button', { name: '목표 비중 저장' }));
     expect(
@@ -228,15 +233,22 @@ describe('SettingsPortfolioPanel — 목표 비중', () => {
 
 describe('SettingsPortfolioPanel — AI 모델/API key', () => {
   it('AI 모델을 변경하면 선택 상태가 반영된다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     const geminiRadio = screen.getByRole('radio', { name: 'Gemini' });
     await user.click(geminiRadio);
     expect(geminiRadio).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'GPT' })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Codex' })).not.toBeChecked();
+  });
+
+  it('Codex가 첫 AI 모델 옵션으로 표시되고 기본 선택된다', async () => {
+    await renderPanel();
+    const codexRadio = screen.getByRole('radio', { name: 'Codex' });
+    expect(codexRadio).toBeInTheDocument();
+    expect(codexRadio).toBeChecked();
   });
 
   it('유효한 API key 저장 시 마스킹과 연동됨 상태를 표시한다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(screen.getByLabelText('API key'), 'secret-key-1234');
     await user.click(screen.getByRole('button', { name: '저장' }));
 
@@ -248,14 +260,14 @@ describe('SettingsPortfolioPanel — AI 모델/API key', () => {
   });
 
   it('짧은 API key 저장 시 오류 상태를 표시한다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(screen.getByLabelText('API key'), 'short');
     await user.click(screen.getByRole('button', { name: '저장' }));
     expect(screen.getByRole('alert')).toHaveTextContent('최소 8자 이상');
   });
 
   it('API key 오류 시 입력과 오류 메시지가 aria로 연결된다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(screen.getByLabelText('API key'), 'short');
     await user.click(screen.getByRole('button', { name: '저장' }));
 
@@ -269,7 +281,7 @@ describe('SettingsPortfolioPanel — AI 모델/API key', () => {
   });
 
   it('저장된 API key를 삭제하면 미설정 상태로 돌아간다', async () => {
-    const { user } = renderPanel();
+    const { user } = await renderPanel();
     await user.type(screen.getByLabelText('API key'), 'secret-key-1234');
     await user.click(screen.getByRole('button', { name: '저장' }));
     await user.click(screen.getByRole('button', { name: '삭제' }));
@@ -281,7 +293,7 @@ describe('SettingsPortfolioPanel — AI 모델/API key', () => {
 
 describe('SettingsPortfolioPanel — AI 설정 전역 상태 배선', () => {
   it('유효한 API key 저장 시 aiSettingsAtom.isApiKeyConnected가 true가 된다', async () => {
-    const { user, store } = renderPanel();
+    const { user, store } = await renderPanel();
     await user.type(screen.getByLabelText('API key'), 'secret-key-1234');
     await user.click(screen.getByRole('button', { name: '저장' }));
 
@@ -289,7 +301,7 @@ describe('SettingsPortfolioPanel — AI 설정 전역 상태 배선', () => {
   });
 
   it('API key 삭제 시 aiSettingsAtom.isApiKeyConnected가 false로 돌아간다', async () => {
-    const { user, store } = renderPanel();
+    const { user, store } = await renderPanel();
     await user.type(screen.getByLabelText('API key'), 'secret-key-1234');
     await user.click(screen.getByRole('button', { name: '저장' }));
     await user.click(screen.getByRole('button', { name: '삭제' }));
@@ -298,9 +310,28 @@ describe('SettingsPortfolioPanel — AI 설정 전역 상태 배선', () => {
   });
 
   it('AI 모델 변경 시 aiSettingsAtom.modelId가 갱신된다', async () => {
-    const { user, store } = renderPanel();
+    const { user, store } = await renderPanel();
     await user.click(screen.getByRole('radio', { name: 'Claude' }));
 
     expect(store.get(aiSettingsAtom).modelId).toBe('claude');
+  });
+
+  it('API key 저장 시 raw key는 세션 메모리 atom에만 존재하고 storage에는 기록되지 않는다', async () => {
+    const { user, store } = await renderPanel();
+    await user.type(screen.getByLabelText('API key'), 'secret-key-1234');
+    await user.click(screen.getByRole('button', { name: '저장' }));
+
+    expect(store.get(aiApiKeySessionAtom)).toBe('secret-key-1234');
+    expect(JSON.stringify(window.localStorage)).not.toContain('secret-key-1234');
+    expect(JSON.stringify(window.sessionStorage)).not.toContain('secret-key-1234');
+  });
+
+  it('API key 삭제 시 세션 메모리 atom도 함께 비워진다', async () => {
+    const { user, store } = await renderPanel();
+    await user.type(screen.getByLabelText('API key'), 'secret-key-1234');
+    await user.click(screen.getByRole('button', { name: '저장' }));
+    await user.click(screen.getByRole('button', { name: '삭제' }));
+
+    expect(store.get(aiApiKeySessionAtom)).toBeNull();
   });
 });

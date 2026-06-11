@@ -15,10 +15,10 @@ describe('aiSettingsAtom', () => {
     window.localStorage.clear();
   });
 
-  it('기본값은 GPT 모델, API key 미연결이다', () => {
+  it('기본값은 Codex 모델, API key 미연결이다', () => {
     const store = createStore();
     const settings = store.get(aiSettingsAtom);
-    expect(settings.modelId).toBe('gpt');
+    expect(settings.modelId).toBe('codex');
     expect(settings.isApiKeyConnected).toBe(false);
     expect(store.get(isApiKeyConnectedAtom)).toBe(false);
   });
@@ -103,7 +103,7 @@ describe('aiSettingsAtom', () => {
       store.set(saveApiKeyAtom, 'secret-key-1234');
       store.set(clearApiKeyAtom);
       expect(JSON.parse(window.localStorage.getItem(AI_SETTINGS_STORAGE_KEY) ?? '{}')).toEqual({
-        modelId: 'gpt',
+        modelId: 'codex',
         isApiKeyConnected: false,
         maskedApiKey: null,
       });
@@ -112,13 +112,13 @@ describe('aiSettingsAtom', () => {
     it('잘못된 JSON은 무시하고 기본값으로 fallback한다', () => {
       window.localStorage.setItem(AI_SETTINGS_STORAGE_KEY, '{bad-json');
       const store = createStore();
-      expect(store.get(aiSettingsAtom)).toEqual({ modelId: 'gpt', isApiKeyConnected: false, maskedApiKey: null });
+      expect(store.get(aiSettingsAtom)).toEqual({ modelId: 'codex', isApiKeyConnected: false, maskedApiKey: null });
     });
 
     it('지원하지 않는 modelId/shape는 기본값으로 fallback한다', () => {
       window.localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify({ modelId: 'unknown' }));
       const store = createStore();
-      expect(store.get(aiSettingsAtom)).toEqual({ modelId: 'gpt', isApiKeyConnected: false, maskedApiKey: null });
+      expect(store.get(aiSettingsAtom)).toEqual({ modelId: 'codex', isApiKeyConnected: false, maskedApiKey: null });
     });
   });
 });

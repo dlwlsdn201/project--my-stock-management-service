@@ -1,5 +1,6 @@
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import { useState } from 'react';
+import { clearAiApiKeySessionAtom, setAiApiKeySessionAtom } from '@entities/ai-provider';
 import {
   aiSettingsAtom,
   clearApiKeyAtom,
@@ -25,6 +26,8 @@ export const AiSettingsSection = () => {
   const setAiModel = useSetAtom(setAiModelAtom);
   const saveApiKey = useSetAtom(saveApiKeyAtom);
   const clearApiKey = useSetAtom(clearApiKeyAtom);
+  const setAiApiKeySession = useSetAtom(setAiApiKeySessionAtom);
+  const clearAiApiKeySession = useSetAtom(clearAiApiKeySessionAtom);
 
   // 로컬 UI 상태 — 현재 입력 중인 key 원문과 로컬 오류 상태만 유지
   const [keyInput, setKeyInput] = useState('');
@@ -44,17 +47,20 @@ export const AiSettingsSection = () => {
     }
     setHasError(false);
     setKeyInput('');
+    setAiApiKeySession(trimmed); // raw key는 세션 메모리 atom에만 보관 (storage 미기록)
     saveApiKey(trimmed); // 전역 atom에 마스킹+연결 상태 저장 (원문 미저장)
   };
 
   const handleEdit = () => {
     setHasError(false);
+    clearAiApiKeySession();
     clearApiKey();
   };
 
   const handleDelete = () => {
     setHasError(false);
     setKeyInput('');
+    clearAiApiKeySession();
     clearApiKey(); // 전역 atom에 미연결 + maskedKey null 저장
   };
 

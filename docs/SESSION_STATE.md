@@ -7,10 +7,16 @@
 ## 1. 현재 상태
 
 - 현재 브랜치: `main`
-- 현재 작업: Post-MVP Unit 22 커밋/푸시 완료, 사용자 결정/외부 연동 단계 전환
-- 마지막 완료 작업: Unit 22 Supabase 자산 저장소 연결 커밋/푸시 완료 (`a4c61b3`, 2026-06-07)
-- 커밋 여부: Unit 22 커밋/푸시 완료
-- 리뷰 상태: Unit 22 최종 리뷰 PASS WITH WARNINGS
+- 현재 작업: Post-MVP Unit 23A 3차 재리뷰 PASS WITH WARNINGS, 커밋 진행 (2026-06-11)
+- 마지막 완료 작업: Unit 23A AI Provider Adapter 경계와 세션 API key 정책 구현 + 1·2차 리뷰 보완 (2026-06-11)
+- 커밋 여부: Unit 23A 미커밋 (커밋 진행 예정)
+- 리뷰 상태: Unit 23A 3차 GPT 재리뷰 PASS WITH WARNINGS
+  - 1차 C1: FSD 경계 위반 해소 — proposal 계약/mock을 `entities/rebalancing`로, dispatcher를 feature 상위 조합부로 이동. 두 entity 간 import 제거. (해소 확인됨)
+  - 1차 W1: `SettingsPortfolioPanel.test.tsx` `act(...)` 경고 제거 (async `renderPanel` settle). (해소 확인됨)
+  - 1차 W2: `handleRequestProposal` try/catch/finally + throw 경로 fallback alert/테스트 추가. (해소 확인됨)
+  - 2차 C1: `features/rebalancing-proposal/api/` 세그먼트가 “features/pages에는 api 세그먼트 금지” 규칙과 충돌 → **`features/rebalancing-proposal/model/requestAiProposal.ts`로 이동 완료**, panel import/`vi.mock` 경로 갱신. `find ... -name api` 결과 없음 확인.
+  - 2차 Warning: W1(chunk size), W2(provider result 렌더 미반영) 모두 차단 아님 / Unit 23B 이연 (리뷰 확인).
+  - 재검증: `pnpm test` 223 PASS(경고 없음) / lint / typecheck / build / `git diff --check` 모두 PASS.
 
 ## 2. 미완료 작업
 
@@ -24,11 +30,42 @@
 - ~~최종 브라우저 QA와 릴리즈 후보 점검~~ → **[Unit 21 PASS, 커밋/푸시 완료]**
 - ~~실제 `@supabase/supabase-js` 어댑터 연결 (목표 비중 + 수동 자산)~~ → **[Unit 22 완료, `a4c61b3` 커밋/푸시 완료]**
 - 실제 외부 AI provider 호출 및 API key 서버 저장/암호화 정책 확정 — 사용자 결정 필요
+- AI Provider Adapter 경계와 세션 API key 정책 구현 → **[Unit 23A 3차 재리뷰 PASS WITH WARNINGS, 커밋 가능]**
+- 실제 OpenAI/Codex API 호출 (provider boundary 경유) → **[Unit 23B 예정]**
+- Supabase encrypted API key storage → **[Unit 24 예정]**
 - Supabase Auth/OAuth 연동 → MVP RLS → 운영 RLS 정책 전환 — 사용자 결정 필요 (Unit 25+)
 - ~~Unit 7 후속: 무료 잔여 횟수/API key 연동 상태 배선~~ → **[Unit 13 완료]**
 - ~~API key 저장 위치/마스킹/삭제 정책 SSOT화~~ → **[Unit 13 완료]**
 
-## 3. 신규/수정 파일 목록 (Unit 22)
+## 3. 신규/수정 파일 목록 (Unit 23A, 1·2차 리뷰 보완 반영 최종)
+
+신규:
+- `src/entities/ai-provider/model/types.ts` (`AiProviderId`만 보유)
+- `src/entities/ai-provider/model/constants.ts`
+- `src/entities/ai-provider/model/apiKeySessionAtom.ts`
+- `src/entities/ai-provider/model/apiKeySessionAtom.test.ts`
+- `src/entities/ai-provider/index.ts`
+- `src/entities/rebalancing/api/aiProposal.ts` (proposal 계약 + `mockAiProposalProvider`, provider-agnostic — 1차 C1 보완)
+- `src/features/rebalancing-proposal/model/requestAiProposal.ts` (provider dispatcher 상위 조합부 — 2차 C1 보완으로 `api/`→`model/`)
+- `src/features/rebalancing-proposal/model/requestAiProposal.test.ts`
+- `docs/superpowers/plans/2026-06-10-unit23a-ai-provider-adapter.md`
+
+> 1차 구현의 `src/entities/ai-provider/api/{mockAiProposalProvider,aiProposalProvider,aiProposalProvider.test}.ts`는 1차 C1 보완으로 삭제됨 (rebalancing/feature로 책임 이관).
+
+수정:
+- `src/entities/settings/model/types.ts` (AiModelId: gpt → codex)
+- `src/entities/settings/model/constants.ts` (Codex 첫 옵션·기본값)
+- `src/entities/settings/model/aiSettingsAtom.ts` (기본 modelId codex)
+- `src/entities/settings/model/aiSettingsAtom.test.ts`
+- `src/entities/rebalancing/index.ts` (proposal 계약·mock adapter export)
+- `src/features/settings-portfolio/ui/AiSettingsSection.tsx` (세션 atom 연결)
+- `src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` (async `renderPanel` settle — 1차 W1)
+- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.tsx` (async provider boundary, try/catch/finally — 1차 W2)
+- `src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx` (dispatcher mock 경로·throw 테스트)
+- `src/features/rebalancing-proposal/model/constants.ts` (`PROPOSAL_REQUEST_FAILURE_FALLBACK`)
+- `docs/WORK_LOG.md`, `docs/SESSION_STATE.md`, `docs/NEXT_TASK_DRAFT.md`
+
+## 3-0. 신규/수정 파일 목록 (Unit 22)
 
 신규:
 - `supabase/migrations/20260604134639_create_portfolio_persistence_tables.sql`
@@ -180,6 +217,83 @@
 
 ## 4. 검증 결과 요약
 
+### Unit 23A 1차 GPT 리뷰 검증 (2026-06-10)
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test src/entities/ai-provider/` | ✅ PASS (6 tests, 2 files) |
+| `pnpm test src/entities/settings/model/aiSettingsAtom.test.ts src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` | ✅ PASS (38 tests, `act(...)` warning 발생) |
+| `pnpm test src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx` | ✅ PASS (18 tests) |
+| `pnpm test` | ✅ PASS (222 tests, 30 files, 0 failures, `act(...)` warning 발생) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (480 modules, gzip JS 199.72 kB — 기존 chunk warning 유지) |
+| `git diff --check` | ✅ PASS |
+
+판정: **NOT PASS**
+
+차단 보완:
+- `entities/ai-provider`에서 `@entities/rebalancing` import 제거. 현재 구조는 `entities → shared`만 허용하는 FSD 규칙과 같은 레이어 cross-import 금지 규칙을 위반한다.
+
+권장 보완:
+- `SettingsPortfolioPanel.test.tsx`의 React `act(...)` 경고 제거.
+- `RebalancingProposalPanel`의 provider 요청에 `try/catch/finally` 적용.
+
+**핵심 확인:**
+- raw API key는 Jotai memory에만 존재 — localStorage/sessionStorage 직접 검사로 미기록 확인
+- `assetflow.ai-settings`에는 `modelId`/`isApiKeyConnected`/`maskedApiKey`만 저장
+- 리밸런싱 제안이 provider boundary(`requestAiProposal`) 경유로 전환
+- 무료 3회 차감은 provider 성공 후에만 적용
+
+**다음 액션:** Claude Code 보완 작업 → GPT 재리뷰 → 리뷰 통과 후 커밋/푸시 → Unit 23B (실제 OpenAI API 호출)
+
+### Unit 23A 2차 GPT 재리뷰 검증 (2026-06-11)
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test src/features/rebalancing-proposal/api/requestAiProposal.test.ts src/features/rebalancing-proposal/ui/RebalancingProposalPanel.test.tsx` | ✅ PASS (23 tests, 2 files) |
+| `pnpm test src/entities/ai-provider/ src/entities/settings/model/aiSettingsAtom.test.ts src/features/settings-portfolio/ui/SettingsPortfolioPanel.test.tsx` | ✅ PASS (40 tests, 3 files) |
+| `pnpm test` | ✅ PASS (223 tests, 30 files, 0 failures, `act(...)` warning 없음) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (480 modules, gzip JS 199.78 kB — 기존 chunk warning 유지) |
+| `git diff --check` | ✅ PASS |
+
+판정: **NOT PASS**
+
+차단 보완:
+- `src/features/rebalancing-proposal/api/requestAiProposal.ts`가 `features/` 하위 `api` 세그먼트에 있어 `.rules/project-rules_architecture.mdc`의 “features/pages에는 api 세그먼트를 두지 않는다” 규칙과 충돌한다. `features/rebalancing-proposal/model/` 등 허용된 세그먼트로 이동하고 import/test 경로를 갱신해야 한다.
+
+보완 확인:
+- 1차 C1(`entities/ai-provider` → `@entities/rebalancing`) 해소 확인.
+- 1차 W1(`SettingsPortfolioPanel.test.tsx` `act(...)` 경고) 해소 확인.
+- 1차 W2(provider reject 시 로딩 복구 누락) 해소 확인.
+
+**다음 액션:** Claude Code 추가 보완 작업 → GPT 3차 재리뷰 → 리뷰 통과 후 커밋/푸시 → Unit 23B
+
+### Unit 23A 3차 GPT 재리뷰 검증 (2026-06-11)
+
+| 명령 | 결과 |
+| --- | --- |
+| `pnpm test` | ✅ PASS (223 tests, 30 files, 0 failures, `act(...)` warning 없음) |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm build` | ✅ PASS (480 modules, gzip JS 199.78 kB — 기존 chunk warning 유지) |
+| `git diff --check` | ✅ PASS |
+| `find src/features src/pages -type d -name api -print` | ✅ PASS (출력 없음) |
+
+판정: **PASS WITH WARNINGS**
+
+잔여 Warning:
+- build chunk size warning은 Unit 22 이후 기존 경고이며 완료 차단 아님.
+- provider 성공 결과를 렌더 state로 연결하는 작업은 Unit 23B에서 처리.
+
+보완 확인:
+- 1차 C1/W1/W2 해소 확인.
+- 2차 C1(`features/rebalancing-proposal/api` 세그먼트) 해소 확인.
+
+**다음 액션:** Unit 23A 커밋/푸시 → Unit 23B 실제 OpenAI/Codex API 호출 작업 지시
+
 ### Unit 22 최종 리뷰 검증 (2026-06-05)
 
 | 명령 | 결과 |
@@ -311,7 +425,15 @@
 3. ~~Unit 21 커밋/푸시~~ → **완료**
 4. ~~Claude Code에게 Unit 22 작업 지시~~ → **완료**
 5. ~~Unit 22 커밋/푸시~~ → **완료 (`a4c61b3`)**
-6. 사용자 직접 결정/외부 연동 큐(AI provider, OAuth, 결제)로 전환
+6. ~~사용자 직접 결정/외부 연동 큐(AI provider, OAuth, 결제)로 전환~~ → **완료**
+7. ~~Unit 23A AI Provider Adapter 경계와 세션 API key 정책 작업 지시~~ → **구현 완료**
+8. Unit 23A GPT 검증 리뷰 → **1차 NOT PASS**
+9. Claude Code Unit 23A 보완 작업 지시 → **완료**
+10. Unit 23A 2차 재리뷰 → **NOT PASS**
+11. Claude Code Unit 23A 추가 보완 작업 지시 → **완료**
+12. Unit 23A 3차 재리뷰 → **PASS WITH WARNINGS**
+13. Unit 23A 커밋/푸시
+14. Unit 23B 실제 OpenAI/Codex API 호출 작업 지시
 
 ## 6. 재개 시 읽을 문서
 

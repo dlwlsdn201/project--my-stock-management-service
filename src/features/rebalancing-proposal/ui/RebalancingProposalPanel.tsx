@@ -1,6 +1,7 @@
 import { useAtomValue, useSetAtom } from 'jotai';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { aiApiKeySessionAtom } from '@entities/ai-provider';
 import { ALLOCATION_GROUP_LABELS } from '@entities/portfolio';
 import {
   MOCK_REBALANCING_RECOMMENDATIONS,
@@ -16,7 +17,7 @@ import type {
   StockActionRecommendation,
 } from '@entities/rebalancing';
 import { DEFAULT_AI_TRIAL_COUNT, decrementAiTrialAtom, sessionAtom } from '@entities/session';
-import { isApiKeyConnectedAtom } from '@entities/settings';
+import { aiSettingsAtom, isApiKeyConnectedAtom } from '@entities/settings';
 import { Button, MetricValue, Modal, ROUTES, Surface } from '@shared';
 import {
   API_KEY_CONNECTED_NOTE,
@@ -26,9 +27,11 @@ import {
   buildTrialRemainingLabel,
   PROPOSAL_REQUEST_CTA_LABEL,
   PROPOSAL_SECTION_LABELS,
+  PROPOSAL_REQUEST_FAILURE_FALLBACK,
   SIMULATION_PERIOD_SUFFIX,
   TRIAL_EXHAUSTED_NOTICE,
 } from '../model/constants';
+import { requestAiProposal } from '../model/requestAiProposal';
 
 interface RebalancingProposalPanelProps {
   recommendations?: RebalancingRecommendationItem[];
@@ -69,21 +72,52 @@ export const RebalancingProposalPanel = ({
 }: RebalancingProposalPanelProps) => {
   const session = useAtomValue(sessionAtom);
   const isApiKeyConnected = useAtomValue(isApiKeyConnectedAtom);
+  const aiSettings = useAtomValue(aiSettingsAtom);
+  const aiApiKey = useAtomValue(aiApiKeySessionAtom);
   const decrementTrial = useSetAtom(decrementAiTrialAtom);
 
   const aiTrialRemainingCount = session?.aiTrialRemainingCount ?? DEFAULT_AI_TRIAL_COUNT;
 
   const [isApiKeyPromptOpen, setIsApiKeyPromptOpen] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [proposalError, setProposalError] = useState<string | null>(null);
 
   const isTrialExhausted = !isApiKeyConnected && aiTrialRemainingCount <= 0;
 
-  const handleRequestProposal = () => {
+  const handleRequestProposal = async () => {
+    setProposalError(null);
+
     if (isTrialExhausted) {
       setIsApiKeyPromptOpen(true);
       return;
     }
-    if (!isApiKeyConnected) {
-      decrementTrial();
+
+    // 연결 metadata는 있지만 세션 raw key가 없는 경우(새로고침 등) — 재입력 안내
+    if (isApiKeyConnected && !aiApiKey) {
+      setIsApiKeyPromptOpen(true);
+      return;
+    }
+
+    setIsRequesting(true);
+    try {
+      const result = await requestAiProposal({
+        providerId: aiSettings.modelId,
+        apiKey: aiApiKey ?? 'free-trial-mock-key',
+      });
+
+      if (!result.success) {
+        setProposalError(result.error.message);
+        return;
+      }
+
+      if (!isApiKeyConnected) {
+        decrementTrial();
+      }
+    } catch {
+      // Unit 23B에서 실제 network fetch를 붙이면 provider가 throw할 수 있다.
+      setProposalError(PROPOSAL_REQUEST_FAILURE_FALLBACK);
+    } finally {
+      setIsRequesting(false);
     }
   };
 
@@ -166,10 +200,15 @@ export const RebalancingProposalPanel = ({
           </div>
         )}
         <div>
-          <Button type="button" variant="primary" onClick={handleRequestProposal}>
-            {PROPOSAL_REQUEST_CTA_LABEL}
+          <Button type="button" variant="primary" onClick={handleRequestProposal} disabled={isRequesting}>
+            {isRequesting ? '제안 생성 중...' : PROPOSAL_REQUEST_CTA_LABEL}
           </Button>
         </div>
+        {proposalError && (
+          <p role="alert" className="text-sm text-[hsl(var(--destructive))]">
+            {proposalError}
+          </p>
+        )}
         <p className="text-xs text-[hsl(var(--muted-foreground))]">{REBALANCING_DISCLOSURE}</p>
       </Surface>
 

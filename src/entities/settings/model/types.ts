@@ -1,4 +1,4 @@
-export type AiModelId = 'gpt' | 'gemini' | 'claude';
+export type AiModelId = 'codex' | 'gemini' | 'claude';
 
 export type ApiKeyStatus = 'unset' | 'connected' | 'error';
 
